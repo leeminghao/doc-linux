@@ -1,45 +1,5 @@
-Linux Process
+Linux Process 0 -- The First Process.
 ================================================================================
-
-基本概念
---------------------------------------------------------------------------------
-进程: 程序执行的一个实例,目的就是担当分配系统资源(CPU时间,内存,文件等)的实体.
-
-进程描述符
---------------------------------------------------------------------------------
-
-为了管理进程,内核必须对每个进程所做的事情进行清楚的描述.例如:
-进程优先级;给它分配了什么地址空间;允许它访问哪个文件等等.
-
-路径: include/linux/sched.h
-```
-struct task_struct {
-    volatile long state;    /* -1 unrunnable, 0 runnable, >0 stopped */
-
-    void *stack;            // ==> "thread_info": 进程的基本信息.
-    atomic_t usage;
-    unsigned int flags;     /* per process flags, defined below */
-    ......
-    /* process credentials */  ==> 进程凭证
-    /* objective and real subjective task credentials (COW) */
-    const struct cred __rcu *real_cred;
-    /* effective (overridable) subjective task credentials (COW) */
-    const struct cred __rcu *cred;
-    ......
-    struct tty_struct *tty; /* NULL if no tty */ ==> "tty_struct": 与进程相关的tty
-    ......
-    struct mm_struct *mm, *active_mm; // ==> "mm_struct": 指向内存区描述符的指针.
-    ......
-    /* filesystem information */
-    struct fs_struct *fs;  // ==> "fs_struct": 文件系统信息
-    /* open file information */
-    struct files_struct *files;  // ==> "files_struct": 所有打开文件的信息
-    ......
-    /* signal handlers */
-    struct signal_struct *signal; // ==> "signal_struct": 所接收的信号
-    ......
-};
-```
 
 进程0
 --------------------------------------------------------------------------------
