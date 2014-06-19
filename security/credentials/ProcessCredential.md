@@ -14,15 +14,18 @@ credential的使用既要在进程相关的数据结构方面给予支持,也需
 
 ```
 /*
- * The security context of a task
+ * The security context of a task - 用来描述一个进程安全性的上下文
  *
  * The parts of the context break down into two categories:
+ * 一个进程的安全上下文可以分文如下两类
  *
  *  (1) The objective context of a task.  These parts are used when some other
  *  task is attempting to affect this one.
+ *  (1) 进程客观的安全上下文 - 用于控制当其他进程尝试侵袭当前的进程
  *
  *  (2) The subjective context.  These details are used when the task is acting
  *  upon another object, be that a file, a task, a key or whatever.
+ *  (2) 进程主观的安全上下文 - 用于控制其访问其他的资源(一个文件, 一个进程等等)
  *
  * Note that some members of this structure belong to both categories - the
  * LSM security pointer for instance.

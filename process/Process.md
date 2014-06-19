@@ -20,6 +20,8 @@ struct task_struct {
     atomic_t usage;
     unsigned int flags;     /* per process flags, defined below */
     ......
+    int exit_state;
+    ......
     /* process credentials */  ==> 进程凭证
     /* objective and real subjective task credentials (COW) */
     const struct cred __rcu *real_cred;
@@ -44,12 +46,45 @@ struct task_struct {
 进程状态
 --------------------------------------------------------------------------------
 
+path: include/linux/sched.h
+
+```
+/* Task state bitmask. NOTE! These bits are also
+ * encoded in fs/proc/array.c: get_task_state().
+ *
+ * We have two separate sets of flags: task->state
+ * is about runnability, while task->exit_state are
+ * about the task exiting. Confusing, but this way
+ * modifying one set can't modify the other one by
+ * mistake.
+ */
+#define TASK_RUNNING		0
+#define TASK_INTERRUPTIBLE	1
+#define TASK_UNINTERRUPTIBLE	2
+#define __TASK_STOPPED		4
+#define __TASK_TRACED		8
+/* in tsk->exit_state */
+#define EXIT_ZOMBIE		16
+#define EXIT_DEAD		32
+```
+
+/* tsk->state */
 * TASK_RUNNING: 进程是可执行的;它或者正在执行,或者在运行队列中等待执行.这是进程在用户空间中执行的唯一可能的状态.
-* TASK_INTERRUPTIBLE: 进程正在睡眠,等待某些条件的达成.一旦这些条件达成,内核就会把进程状态设置为运行.处于此状态的进程也会因为接收到信号
-                      而提前被唤醒并投入运行.
+* TASK_INTERRUPTIBLE: 进程正在睡眠,等待某些条件的达成(比如释放进程正在等待的资源).一旦这些条件达成,内核就会把进程状态设置为运行.
+                      处于此状态的进程也会因为接收到信号而提前被唤醒并投入运行.
 * TASK_UNINTERRUPTIBLE: 除了不对信号进行处理外,这个状态与TASK_INTERRUPTIBLE状态相同.
+    例如,当进程在打开一个设备文件的时候,其相应的设备驱动程序开始探测相应的硬件设备时会用到这种状态.探测完成以前,设备驱动程序不能被中断.
 * __TASK_TRACED: 被其它进程跟踪(ptrace).
-* __TASK_STOPPED: 进程没有投入运行也不能投入运行.
+* __TASK_STOPPED: 进程执行被暂停.当进程收到(SIGSTOP, SIGTSTP, SIGTTIN或SIGTTOU信号)后进入暂停状态.
+
+/* tsk->state or tsk->exit_state */
+* EXIT_ZOMBIE: 进程执行被终止,但是父进程还没发布wait4()或waitpid()系统掉哟你来返回有关死亡进程的信息.
+               发布wait类系统调用前,内核不能丢弃包含在死进程描述符中的数据,因为父进程可能还需要它.
+* EXIT_DEAD: 最终状态:父进程刚刚发出wait4()或waitpid()系统调用,因而进程由系统删除.为了防止其它执行线程在同一进程上执行
+             wait()类系统调用而把进程状态由EXIT_ZOMBIE转为EXIT_DEAD状态.
+
+进程描述符处理
+--------------------------------------------------------------------------------
 
 进程创建:
 --------------------------------------------------------------------------------
@@ -117,9 +152,16 @@ hello world
 ```
 
 ## Fork
-  Linux的fork使用写时拷贝(copy-on-write)页实现,当调用fork函数之后,内核此时并不复制整个进程地址空间,而是让父进程和子进程共享同一个拷贝,
-而且内核将它们的访问权限设置为只读的,如果父,子进程中的任何一个试图修改这些区域,则内核只为修改区域的那块内存制作一个副本,通常是虚拟存储器中的一页.
-fork的实际开销就是复制进程的页表和给子进程创建唯一的进程描述符.
+传统的Unix OS以统一的方式对待所有的进程:子进程复制父进程所拥有的所有的资源.
+缺点: 创建慢且效率低下,因为子进程需要拷贝父进程的整个地址空间.实际上,子进程几乎不必读或修改父进程所有的资源,
+   在很多情况下,子进程立即调用execve(),并清除父进程拷贝过来的地址空间.
+现代内核:
+* 写时复制技术: 允许父子进程读相同的物理页.只要两者中有一个试图写一个物理页,内核就把这个页内容拷贝到一个新的物理页.
+  并把这个新的物理页分配给正在写的进程.
+* 轻量级进程允许父子进程共享进程在内核的很多数据结构.如页表,打开文件表以及信号处理.
+* vfork()系统调用创建的进程能共享其父进程的内存地址空间.为了防止父进程重写子进程需要的数据,阻止父进程的执行,一直到
+  子进程退出或执行新的程序为止.
+
 
 下面我们以bionic c库中的fork函数为例来讲解fork函数的执行过程:
 
@@ -366,6 +408,7 @@ long do_fork(unsigned long clone_flags,
 
         ......
 
+        /* copy_process()复制进程描述符,该函数返回刚创建的task_struct描述符的地址. */
         p = copy_process(clone_flags, stack_start, regs, stack_size,
                          child_tidptr, NULL, trace);
         ......
@@ -386,39 +429,51 @@ copy_process拷贝一个进程
  * flags). The actual kick-off is left to the caller.
  */
 static struct task_struct *copy_process(unsigned long clone_flags,
-					unsigned long stack_start,
-					struct pt_regs *regs,
-					unsigned long stack_size,
-					int __user *child_tidptr,
-					struct pid *pid,
-					int trace)
+    unsigned long stack_start,
+    struct pt_regs *regs,
+    unsigned long stack_size,
+    int __user *child_tidptr,
+    struct pid *pid,
+    int trace)
 {
-	int retval;
-	struct task_struct *p;
-	int cgroup_callbacks_done = 0;
+        int retval;
+        struct task_struct *p;
+        int cgroup_callbacks_done = 0;
 
         /* 1. 检查clone_flags是否合法 */
+
         /* 2. 通过调用security_task_create(clone_flags)函数以及稍后的security_task_alloc(p)
          * 函数执行所有附加的安全检查.
          */
-	retval = security_task_create(clone_flags);
+         retval = security_task_create(clone_flags);
 
-        /* 3. 调用dup_task_struct为新进程创建一个内核栈,thread_info结构和task_struct,这些值与
-         * 当前值相同.此时,子进程和父进程的描述符是完全相同的.
+        /* 3. 调用dup_task_struct为子进程获取进程描述符.
          */
-	p = dup_task_struct(current);
+         p = dup_task_struct(current);
 
         /* 4.得到的进程与父进程内容几乎完全一致，初始化新创建进程 */
         ......
+        retval = -EAGAIN;
+        if (atomic_read(&p->real_cred->user->processes) >=
+           task_rlimit(p, RLIMIT_NPROC)) {
+           if (!capable(CAP_SYS_ADMIN) && !capable(CAP_SYS_RESOURCE) &&
+               p->real_cred->user != INIT_USER)
+                    goto bad_fork_free;
+        }
+        current->flags &= ~PF_NPROC_EXCEEDED;
+        /* 为新建的进程拷贝credentials */
+        retval = copy_creds(p, clone_flags);
+        if (retval < 0)
+            goto bad_fork_free;
 
-	return p;
+        return p;
 
         ......
 }
 ```
 
 当进程由于中断或系统调用从用户态转换到内核态时,进程所使用的栈也要从用户栈切换到内核栈.
-通过内核栈获取栈尾thread_info, 就可以获取当前进程描述符task_struct.每个进程的thread_info结构在
+通过内核栈获取栈尾thread_info,就可以获取当前进程描述符task_struct.每个进程的thread_info结构在
 它的内核栈的尾端分配.
 dup_task_struct的实现如下所示:
 
@@ -427,74 +482,166 @@ dup_task_struct的实现如下所示:
 ```
 static struct task_struct *dup_task_struct(struct task_struct *orig)
 {
-	struct task_struct *tsk;
-	struct thread_info *ti;
-	unsigned long *stackend;
-	int node = tsk_fork_get_node(orig);
-	int err;
+    struct task_struct *tsk;
+    struct thread_info *ti;
+    unsigned long *stackend;
+    int node = tsk_fork_get_node(orig);
+    int err;
 
-	prepare_to_copy(orig);
+    prepare_to_copy(orig);
 
-        /* 1.执行alloc_task_struct_node()宏, 用slab分配器task_struct_cachep为新进程获取进程描述符,
-         * 并将描述符地址保存在tsk局部变量中.
-         */
-	tsk = alloc_task_struct_node(node);
-	if (!tsk)
-		return NULL;
+    /* 1.执行alloc_task_struct_node()宏,为新进程获取进程描述符,并将描述符地址保存在tsk局部变量中.
+     */
+     tsk = alloc_task_struct_node(node);
+     if (!tsk)
+        return NULL;
 
-        /* 2.执行alloc_thread_info_node宏以获取一块空闲内存区,用来存放新进程的thread_info结构和
-         * 内核栈,并将这些块内存区字段的地址存在局部变量ti中.这块内存区的大小是8KB或4KB.
-         */
-	ti = alloc_thread_info_node(tsk, node);
-	if (!ti) {
-		free_task_struct(tsk);
-		return NULL;
-	}
+    /* 2.执行alloc_thread_info_node宏以获取一块空闲内存区,用来存放新进程的thread_info结构和
+     * 内核栈,并将这些块内存区字段的地址存在局部变量ti中.这块内存区的大小是8KB或4KB.
+     */
+     ti = alloc_thread_info_node(tsk, node);
+     if (!ti) {
+        free_task_struct(tsk);
+        return NULL;
+     }
 
-        /* 3.将current进程描述符的内容复制到tsk所指向的task_struct结构中,然后把tsk->thread_info
-         * 置为ti.
-         */
-	err = arch_dup_task_struct(tsk, orig);
-	if (err)
-		goto out;
+    /* 3.将current进程描述符的内容复制到tsk所指向的task_struct结构中,然后把tsk->stack置为ti. */
+     err = arch_dup_task_struct(tsk, orig);
+     if (err)
+        goto out;
+     tsk->stack = ti;
 
-	tsk->stack = ti;
+    /* 4.把current进程的thread_info描述符的内容复制到ti中,然后把ti->task置为tsk.
+     * 意味着子进程和父进程共享内核堆栈.
+     */
+     setup_thread_stack(tsk, orig);
 
-        /* 4.把current进程的thread_info描述符的内容复制到ti中,然后把ti->task置为tsk.
-         * 意味着子进程和父进程共享内核堆栈.
-         */
-	setup_thread_stack(tsk, orig);
-
-	clear_user_return_notifier(tsk);
-	clear_tsk_need_resched(tsk);
-	stackend = end_of_stack(tsk);
-	*stackend = STACK_END_MAGIC;	/* for overflow detection */
+     clear_user_return_notifier(tsk);
+     clear_tsk_need_resched(tsk);
+     stackend = end_of_stack(tsk);
+     *stackend = STACK_END_MAGIC;    /* for overflow detection */
 
 #ifdef CONFIG_CC_STACKPROTECTOR
-	tsk->stack_canary = get_random_int();
+     tsk->stack_canary = get_random_int();
 #endif
 
-	/*
-         * One for us, one for whoever does the "release_task()" (usually
-         * parent)
-         */
-        /* 5.把新进程描述符使用计数器(tsk->usage)置为2, 用来表示进程描述符正在被使用而且其
-         * 相应的进程状态处于活动状态(进程状态既不是EXIT_ZOMBIE,也不是EXIT_DEAD).
-         */
-	atomic_set(&tsk->usage, 2);
+    /*
+     * One for us, one for whoever does the "release_task()" (usually
+     * parent)
+     */
+    /* 5.把新进程描述符使用计数器(tsk->usage)置为2, 用来表示进程描述符正在被使用而且其
+     * 相应的进程状态处于活动状态(进程状态既不是EXIT_ZOMBIE,也不是EXIT_DEAD).
+     */
+     atomic_set(&tsk->usage, 2);
 #ifdef CONFIG_BLK_DEV_IO_TRACE
-	tsk->btrace_seq = 0;
+   tsk->btrace_seq = 0;
 #endif
-	tsk->splice_pipe = NULL;
+    tsk->splice_pipe = NULL;
 
-	account_kernel_stack(ti, 1);
+    account_kernel_stack(ti, 1);
 
-	return tsk;
+    return tsk;  /* 返回进程描述符 */
 
 out:
-	free_thread_info(ti);
-	free_task_struct(tsk);
-	return NULL;
+    free_thread_info(ti);
+    free_task_struct(tsk);
+    return NULL;
+}
+```
+
+## kernel/kernel/cred.c
+
+```
+/*
+ * Copy credentials for the new process created by fork()
+ *
+ * We share if we can, but under some circumstances we have to generate a new
+ * set.
+ *
+ * The new process gets the current process's subjective credentials as its
+ * objective and subjective credentials
+ */
+int copy_creds(struct task_struct *p, unsigned long clone_flags)
+{
+#ifdef CONFIG_KEYS
+    struct thread_group_cred *tgcred;
+#endif
+    struct cred *new;
+    int ret;
+
+    p->replacement_session_keyring = NULL;
+
+    /* CLONE_THREAD - 把子进程插入到父进程的同一线程组中,并迫使子进程共享父进程的信号描述符 */
+    if (
+#ifdef CONFIG_KEYS
+       !p->cred->thread_keyring &&
+#endif
+        clone_flags & CLONE_THREAD
+       ) {
+           /* 将real_cred指针指向cred */
+           p->real_cred = get_cred(p->cred);
+           get_cred(p->cred);
+           alter_cred_subscribers(p->cred, 2);
+           kdebug("share_creds(%p{%d,%d})",
+                  p->cred, atomic_read(&p->cred->usage),
+                  read_cred_subscribers(p->cred));
+                  atomic_inc(&p->cred->user->processes);
+           return 0;
+   }
+
+   new = prepare_creds();
+   if (!new)
+      return -ENOMEM;
+
+   if (clone_flags & CLONE_NEWUSER) {
+      ret = create_user_ns(new);
+      if (ret < 0)
+          goto error_put;
+   }
+
+   /* cache user_ns in cred.  Doesn't need a refcount because it will
+    * stay pinned by cred->user
+    */
+    new->user_ns = new->user->user_ns;
+
+#ifdef CONFIG_KEYS
+   /* new threads get their own thread keyrings if their parent already
+    * had one */
+    if (new->thread_keyring) {
+       key_put(new->thread_keyring);
+       new->thread_keyring = NULL;
+       if (clone_flags & CLONE_THREAD)
+          install_thread_keyring_to_cred(new);
+    }
+
+   /* we share the process and session keyrings between all the threads in
+    * a process - this is slightly icky as we violate COW credentials a
+    * bit */
+    if (!(clone_flags & CLONE_THREAD)) {
+       tgcred = kmalloc(sizeof(*tgcred), GFP_KERNEL);
+       if (!tgcred) {
+          ret = -ENOMEM;
+          goto error_put;
+       }
+       atomic_set(&tgcred->usage, 1);
+       spin_lock_init(&tgcred->lock);
+       tgcred->process_keyring = NULL;
+       tgcred->session_keyring = key_get(new->tgcred->session_keyring);
+
+       release_tgcred(new);
+       new->tgcred = tgcred;
+   }
+#endif
+
+    atomic_inc(&new->user->processes);
+    p->cred = p->real_cred = get_cred(new);
+    alter_cred_subscribers(new, 2);
+    validate_creds(new);
+    return 0;
+
+error_put:
+    put_cred(new);
+    return ret;
 }
 ```
 
