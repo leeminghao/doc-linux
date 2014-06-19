@@ -1,5 +1,11 @@
-Linux Process Credential
+Linux Credentials
 ================================================================================
+
+什么是Credentials?
+--------------------------------------------------------------------------------
+
+https://github.com/leeminghao/doc-linux/blob/master/security/credentials/credentials.txt
+
 
 进程凭证(Process Credentials)
 --------------------------------------------------------------------------------
@@ -126,4 +132,149 @@ struct cred init_cred = {
 	.tgcred			= &init_tgcred,
 #endif
 };
+```
+
+## 进程credentials的传递
+
+#### kernel/kernel/fork.c
+
+```
+static struct task_struct *copy_process(unsigned long clone_flags,
+    unsigned long stack_start,
+    struct pt_regs *regs,
+    unsigned long stack_size,
+    int __user *child_tidptr,
+    struct pid *pid,
+    int trace)
+{
+        int retval;
+        struct task_struct *p;
+        int cgroup_callbacks_done = 0;
+
+        /* 1. 检查clone_flags是否合法 */
+
+        /* 2. 通过调用security_task_create(clone_flags)函数以及稍后的security_task_alloc(p)
+         * 函数执行所有附加的安全检查.
+         */
+         retval = security_task_create(clone_flags);
+
+        /* 3. 调用dup_task_struct为子进程获取进程描述符.
+         */
+         p = dup_task_struct(current);
+
+        /* 4.得到的进程与父进程内容几乎完全一致，初始化新创建进程 */
+        ......
+        retval = -EAGAIN;
+        if (atomic_read(&p->real_cred->user->processes) >=
+           task_rlimit(p, RLIMIT_NPROC)) {
+           if (!capable(CAP_SYS_ADMIN) && !capable(CAP_SYS_RESOURCE) &&
+               p->real_cred->user != INIT_USER)
+                    goto bad_fork_free;
+        }
+        current->flags &= ~PF_NPROC_EXCEEDED;
+        /* 5. 为新建的进程拷贝credentials */
+        retval = copy_creds(p, clone_flags);
+        if (retval < 0)
+            goto bad_fork_free;
+
+        return p;
+
+        ......
+}
+```
+
+## kernel/kernel/cred.c
+
+```
+/*
+ * Copy credentials for the new process created by fork()
+ *
+ * We share if we can, but under some circumstances we have to generate a new
+ * set.
+ *
+ * The new process gets the current process's subjective credentials as its
+ * objective and subjective credentials
+ */
+int copy_creds(struct task_struct *p, unsigned long clone_flags)
+{
+#ifdef CONFIG_KEYS
+    struct thread_group_cred *tgcred;
+#endif
+    struct cred *new;
+    int ret;
+
+    p->replacement_session_keyring = NULL;
+
+    /* CLONE_THREAD - 把子进程插入到父进程的同一线程组中,并迫使子进程共享父进程的信号描述符 */
+    if (
+#ifdef CONFIG_KEYS
+       !p->cred->thread_keyring &&
+#endif
+        clone_flags & CLONE_THREAD
+       ) {
+           /* 将real_cred指针指向cred */
+           p->real_cred = get_cred(p->cred);
+           get_cred(p->cred);
+           alter_cred_subscribers(p->cred, 2);
+           kdebug("share_creds(%p{%d,%d})",
+                  p->cred, atomic_read(&p->cred->usage),
+                  read_cred_subscribers(p->cred));
+                  atomic_inc(&p->cred->user->processes);
+           return 0;
+   }
+
+   new = prepare_creds();
+   if (!new)
+      return -ENOMEM;
+
+   if (clone_flags & CLONE_NEWUSER) {
+      ret = create_user_ns(new);
+      if (ret < 0)
+          goto error_put;
+   }
+
+   /* cache user_ns in cred.  Doesn't need a refcount because it will
+    * stay pinned by cred->user
+    */
+    new->user_ns = new->user->user_ns;
+
+#ifdef CONFIG_KEYS
+   /* new threads get their own thread keyrings if their parent already
+    * had one */
+    if (new->thread_keyring) {
+       key_put(new->thread_keyring);
+       new->thread_keyring = NULL;
+       if (clone_flags & CLONE_THREAD)
+          install_thread_keyring_to_cred(new);
+    }
+
+   /* we share the process and session keyrings between all the threads in
+    * a process - this is slightly icky as we violate COW credentials a
+    * bit */
+    if (!(clone_flags & CLONE_THREAD)) {
+       tgcred = kmalloc(sizeof(*tgcred), GFP_KERNEL);
+       if (!tgcred) {
+          ret = -ENOMEM;
+          goto error_put;
+       }
+       atomic_set(&tgcred->usage, 1);
+       spin_lock_init(&tgcred->lock);
+       tgcred->process_keyring = NULL;
+       tgcred->session_keyring = key_get(new->tgcred->session_keyring);
+
+       release_tgcred(new);
+       new->tgcred = tgcred;
+   }
+#endif
+
+    atomic_inc(&new->user->processes);
+    p->cred = p->real_cred = get_cred(new);
+    alter_cred_subscribers(new, 2);
+    validate_creds(new);
+    return 0;
+
+error_put:
+    put_cred(new);
+    return ret;
+}
 ```
