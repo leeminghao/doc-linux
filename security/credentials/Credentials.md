@@ -139,6 +139,14 @@ struct cred init_cred = {
 };
 ```
 
+最终,idle进程的credential如下所示:
+
+```
+1.Traditional UNIX credentials:
+  uid=0,gid=0; suid=0, sgid=0; euid=0, egid=0, fsuid=0, fsgid=0 (scontext)
+  uid=0,gid=0; suid=0, sgid=0; euid=0, egid=0, fsuid=0, fsgid=0 (ocontext)
+```
+
 ## Fork Credentials
 
 一个新创建的进程的credential是在其父进程在调用fork函数创建其时调用copy_creds函数为其准备的.
