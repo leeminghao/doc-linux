@@ -24,9 +24,9 @@ struct task_struct {
     ......
     /* process credentials */  ==> 进程凭证
     /* objective and real subjective task credentials (COW) */
-    const struct cred __rcu *real_cred;
+    const struct cred __rcu *real_cred;  /* ocontext */
     /* effective (overridable) subjective task credentials (COW) */
-    const struct cred __rcu *cred;
+    const struct cred __rcu *cred;       /* scontext */
     ......
     struct tty_struct *tty; /* NULL if no tty */ ==> "tty_struct": 与进程相关的tty
     ......
@@ -165,8 +165,9 @@ hello world
 
 下面我们以bionic c库中的fork函数为例来讲解fork函数的执行过程:
 
-#### bionic/libc/bionic/fork.c
+#### fork
 
+path: bionic/libc/bionic/fork.c
 ```
 int  fork(void)
 {
@@ -178,8 +179,9 @@ int  fork(void)
 }
 ```
 
-#### bionic/libc/arch-arm/syscalls/__fork.S
+#### __fork
 
+path: bionic/libc/arch-arm/syscalls/__fork.S
 ```
 ENTRY(__fork)
     mov     ip, r7          # 将r7寄存器的值保存到ip寄存器中.
@@ -194,13 +196,14 @@ ENTRY(__fork)
 END(__fork)
 ```
 
-#### kernel/arch/arm/include/asm/unistd.h
-
 __NR_fork定义在kernel/arch/arm/include/asm/unistd.h中:
 EABI是什么东西呢? ABI: Application Binary Interface, 应用二进制接口.
 * 在较新的EABI规范中,是将系统调用号压入寄存器r7中;
 * 而在老的OABI中则是执行的swi中断号的方式, 也就是说原来的调用方式(Old ABI)是通过跟随在swi指令中的调用号来进行的.
 
+#### __NR_fork
+
+path: kernel/arch/arm/include/asm/unistd.h
 ```
 #define __NR_OABI_SYSCALL_BASE  0x900000
 
@@ -257,8 +260,9 @@ immed_24 24位立即数，值为从0-16777215之间的整数。
 
 系统会根据ABI的不同而将相应的系统调用表的基地址加载进tbl寄存器,接下来查找的过程:
 ARM异常向量表:
-#### arch/arm/kernel/entry-armv.S中:
+#### vector_start
 
+path: arch/arm/kernel/entry-armv.S中:
 ```
 __vectors_start:
 	W(b)	vector_rst
@@ -272,22 +276,23 @@ __vectors_start:
 
 ```
 
-
-#### arch/arm/kernel/entry-armv.S
+#### vector_swi
 
 对于swi软中断的中断函数入口表项如下:
 
+path: arch/arm/kernel/entry-armv.S
 ```
 __stubs_start:
 	@ This must be the first word
 	.word	vector_swi
 ```
 
-#### kernel/arch/arm/kernel/entry-common.S
-
 最终,当使用swi触发软中断的时候将会调用vector_swi处的中断处理函数来处理对应的软件中断.
 SWI Handler(swi软中断处理函数):
 
+#### SWI handler
+
+path: kernel/arch/arm/kernel/entry-common.S
 ```
 /*=============================================================================
  * SWI handler
@@ -335,29 +340,30 @@ ENTRY(vector_swi)
 ENDPROC(vector_swi)
 ```
 
-#### kernel/arch/arm/kernel/entry-common.S
-
 sys_call_table 在内核中是个跳转表,这个表中存储的是一系列的函数指针,这些指针就是系统调用函数的
 指针,sys_call_table的定义如下所示:
 
+#### sys_call_table
+
+path: kernel/arch/arm/kernel/entry-common.S
 ```
 	.type	sys_call_table, #object
 ENTRY(sys_call_table)
 #include "calls.S"
 ```
 
-#### kernel/arch/arm/kernel/call.S
-
 将会从sys_call_table表中取出fork对应在内核态要执行的函数.
 
+path: kernel/arch/arm/kernel/call.S
 ```
 /* 0 */		CALL(sys_restart_syscall)
 		CALL(sys_exit)
 		CALL(sys_fork_wrapper)
 ```
 
-#### kernel/arch/arm/kernel/entry-common.S
+#### sys_fork_wrapper
 
+path: kernel/arch/arm/kernel/entry-common.S
 ```
 sys_fork_wrapper:
 		add	r0, sp, #S_OFF # 指定参数.
@@ -365,10 +371,11 @@ sys_fork_wrapper:
 ENDPROC(sys_fork_wrapper)
 ```
 
-#### kernel/arch/arm/kernel/sys_arm.c
-
 最终fork要执行的函数是sys_fork:
 
+#### sys_fork
+
+path: kernel/arch/arm/kernel/sys_arm.c
 ```
 /* Fork a new task - this creates a new program thread.
  * This is called indirectly via a small wrapper
@@ -384,10 +391,11 @@ asmlinkage int sys_fork(struct pt_regs *regs)
 }
 ```
 
-#### kernel/kernel/fork.c
-
 sys_fork函数最终是调用do_fork来实现一个进程的创建:
 
+#### do_fork
+
+path: kernel/kernel/fork.c
 ```
 /*
  *  Ok, this is the main fork-routine.
@@ -415,10 +423,9 @@ long do_fork(unsigned long clone_flags,
 }
 ```
 
-#### kernel/kernel/fork.c
+#### copy_process
 
-copy_process拷贝一个进程
-
+path: kernel/kernel/fork.c
 ```
 /*
  * This creates a new process as a copy of the old one,
@@ -475,10 +482,12 @@ static struct task_struct *copy_process(unsigned long clone_flags,
 当进程由于中断或系统调用从用户态转换到内核态时,进程所使用的栈也要从用户栈切换到内核栈.
 通过内核栈获取栈尾thread_info,就可以获取当前进程描述符task_struct.每个进程的thread_info结构在
 它的内核栈的尾端分配.
+
 dup_task_struct的实现如下所示:
 
-#### kernel/kernel/fork.c
+#### dup_task_struct
 
+path: kernel/kernel/fork.c
 ```
 static struct task_struct *dup_task_struct(struct task_struct *orig)
 {
@@ -548,6 +557,10 @@ out:
     return NULL;
 }
 ```
+
+#### copy_creds
+
+https://github.com/leeminghao/doc-linux/blob/master/security/credentials/Credentials.md
 
 ## 总结:
 

@@ -1,18 +1,18 @@
 Linux Credentials
 ================================================================================
 
-什么是Credentials?
+Credentials?
 --------------------------------------------------------------------------------
 
 https://github.com/leeminghao/doc-linux/blob/master/security/credentials/credentials.txt
 
 
-进程凭证(Process Credentials)
+Task Credentials
 --------------------------------------------------------------------------------
 
-凭证把进程与一个特定的用户和用户组捆绑在一起.凭证在多用户系统上尤为重要,因为信任状可以决定每个进程能做什么,不能做什么.
-credential的使用既要在进程相关的数据结构方面给予支持,也需要在被保护的资源方面给予支持.文件就是一种显而易见的资源.
-当某个进程试图访问一个文件时,VFS总是根据文件的拥有者和进程的credential所建立的许可权来检查访问的合法性.
+在Linux中,所有的Task Credentials都通过一个名为"struct cred"的结构体引用来保存,每个Task
+的task_struct中有一个名为"cred"的指针指向该进程的credential.
+一旦credentials集合已经prepare并且commited之后,其一般不会再改变
 
 ## 进程凭证描述符(struct cred)
 
@@ -54,6 +54,7 @@ struct cred {
 #define CRED_MAGIC	0x43736564
 #define CRED_MAGIC_DEAD	0x44656144
 #endif
+        /* 1. Traditional UNIX credentials */
         /* 用户和组的实际ID, 标识我们究竟是谁(登录用户的uid和gid). */
 	uid_t		uid;		/* real UID of the task */
 	gid_t		gid;		/* real GID of the task */
@@ -66,14 +67,17 @@ struct cred {
         /* 文件访问的用户和组的有效ID,进程用来决定对资源(文件)的访问权限. */
 	uid_t		fsuid;		/* UID for VFS ops */
 	gid_t		fsgid;		/* GID for VFS ops */
+
+        /* 2.Secure management flags */
 	unsigned	securebits;	/* SUID-less security management */
 
-
+        /* 3.Capabilities */
 	kernel_cap_t	cap_inheritable; /* caps our children can inherit */
 	kernel_cap_t	cap_permitted;	/* caps we're permitted */
 	kernel_cap_t	cap_effective;	/* caps we can actually use */
 	kernel_cap_t	cap_bset;	/* capability bounding set */
 
+        /* 4.Keys and keyrings */
 #ifdef CONFIG_KEYS
 	unsigned char	jit_keyring;	/* default keyring to attach requested
 					 * keys to */
@@ -82,6 +86,7 @@ struct cred {
 	struct thread_group_cred *tgcred; /* thread-group shared credentials */
 #endif
 
+        /* 5.LSM */
 #ifdef CONFIG_SECURITY
 	void		*security;	/* subjective LSM security */
 #endif
@@ -93,12 +98,12 @@ struct cred {
 };
 ```
 
-## idle进程的credential初始化
+## idle进程的credential
 
 idle进程是linux中的第一个进程,其进程credential是由内核开发者手动设置的,
 idle进程的credential初始化是通过宏RCU_INIT_POINTER来实现的,其声明如下:
 
-路径: include/linux/rcupdate.h
+#### include/linux/rcupdate.h
 
 ```
 /* 将init_cred的地址赋值给real_cred和cred指针 */
@@ -106,7 +111,7 @@ idle进程的credential初始化是通过宏RCU_INIT_POINTER来实现的,其声�
 		p = (typeof(*v) __force __rcu *)(v)
 ```
 
-## init_cred的定义
+#### init_cred的定义
 
 路径: linux/kernel/cred.c
 
@@ -134,10 +139,14 @@ struct cred init_cred = {
 };
 ```
 
-## 进程credentials的传递
+## Fork Credentials
 
-#### kernel/kernel/fork.c
+一个新创建的进程的credential是在其父进程在调用fork函数创建其时调用copy_creds函数为其准备的.
+调用流程如下所示:
 
+#### copy_process
+
+path: kernel/kernel/fork.c
 ```
 static struct task_struct *copy_process(unsigned long clone_flags,
     unsigned long stack_start,
@@ -177,14 +186,18 @@ static struct task_struct *copy_process(unsigned long clone_flags,
         if (retval < 0)
             goto bad_fork_free;
 
+        ......
+
         return p;
 
         ......
 }
 ```
 
-## kernel/kernel/cred.c
+为新建进程创建credential的函数是copy_cred,其具体实现如下所示:
+#### copy_creds
 
+path:kernel/kernel/cred.c
 ```
 /*
  * Copy credentials for the new process created by fork()
@@ -223,10 +236,12 @@ int copy_creds(struct task_struct *p, unsigned long clone_flags)
            return 0;
    }
 
+   /* 1.为新进程准备一个新的struct cred结构体用于保存其credential */
    new = prepare_creds();
    if (!new)
       return -ENOMEM;
 
+   /* 2.以下代码用于初始化新的credential */
    if (clone_flags & CLONE_NEWUSER) {
       ret = create_user_ns(new);
       if (ret < 0)
@@ -268,6 +283,7 @@ int copy_creds(struct task_struct *p, unsigned long clone_flags)
 #endif
 
     atomic_inc(&new->user->processes);
+    /* 3.将新建的credential描述符挂接到任务描述符的cred和real_cred指针上 */
     p->cred = p->real_cred = get_cred(new);
     alter_cred_subscribers(new, 2);
     validate_creds(new);
@@ -276,5 +292,73 @@ int copy_creds(struct task_struct *p, unsigned long clone_flags)
 error_put:
     put_cred(new);
     return ret;
+}
+```
+
+下面我们来看prepare_creds函数是如何为新进程准备新建一个"struct cred"结构体来保存进程的credential的.
+#### prepare_creds
+
+path: kernel/cred.c
+
+```
+/**
+ * prepare_creds - Prepare a new set of credentials for modification
+ *
+ * Prepare a new set of task credentials for modification.  A task's creds
+ * shouldn't generally be modified directly, therefore this function is used to
+ * prepare a new copy, which the caller then modifies and then commits by
+ * calling commit_creds().
+ *
+ * Preparation involves making a copy of the objective creds for modification.
+ *
+ * Returns a pointer to the new creds-to-be if successful, NULL otherwise.
+ *
+ * Call commit_creds() or abort_creds() to clean up.
+ */
+struct cred *prepare_creds(void)
+{
+	struct task_struct *task = current;
+	const struct cred *old;
+	struct cred *new;
+
+	validate_process_creds();
+        /* 1.先为指向credential描述符(struct crede)的new指针分配一块内存 */
+	new = kmem_cache_alloc(cred_jar, GFP_KERNEL);
+	if (!new)
+		return NULL;
+
+	kdebug("prepare_creds() alloc %p", new);
+
+        /* 2.获取当前进程的scontext(subjective context)(用于访问资源时候作为安全性验证,保存在task描述符的cred变量中.)
+        ** 并将当前进程的scontext赋给新建的struct cred局部变量指针new.
+        */
+	old = task->cred;
+	memcpy(new, old, sizeof(struct cred));
+
+        /* 3.初始化新创建的credential描述符 */
+	atomic_set(&new->usage, 1);
+	set_cred_subscribers(new, 0);
+	get_group_info(new->group_info);
+	get_uid(new->user);
+
+#ifdef CONFIG_KEYS
+	key_get(new->thread_keyring);
+	key_get(new->request_key_auth);
+	atomic_inc(&new->tgcred->usage);
+#endif
+
+#ifdef CONFIG_SECURITY
+	new->security = NULL;  /* 将LSM初始化为NULL */
+#endif
+
+        /* 4.根据当前内核配置的rules调用对应的cred_parepare函数来初始化credential描述符 */
+	if (security_prepare_creds(new, old, GFP_KERNEL) < 0)
+		goto error;
+	validate_creds(new);
+	return new;  /* 返回新建的credential 描述符 */
+
+error:
+	abort_creds(new);
+	return NULL;
 }
 ```
