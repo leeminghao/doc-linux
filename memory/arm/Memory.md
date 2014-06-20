@@ -1,7 +1,5 @@
-Linux File System - rootfs
+Linux Memory
 ================================================================================
 
-What is rootfs?
+Kernel Memory Layout on ARM Linux
 --------------------------------------------------------------------------------
-
-https://github.com/leeminghao/doc-linux/blob/master/filesystem/rootfs/ramfs-rootfs-initramfs.txt
