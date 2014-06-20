@@ -370,3 +370,7 @@ error:
 	return NULL;
 }
 ```
+
+综上可知,父进程调用fork函数创建子进程以后,子进程和父进程的credentials一模一样.
+init进程作为一个内核线程(调用kernel_thread函数创建,最终也是调用do_fork函数来从父进程)
+就和其父进程idle进程的credentials完全一样.
