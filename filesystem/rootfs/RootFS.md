@@ -8,10 +8,11 @@ https://github.com/leeminghao/doc-linux/blob/master/filesystem/rootfs/ramfs-root
 
 History
 --------------------------------------------------------------------------------
+
     在早期的Linux系统中, 一般就只有软盘或者硬盘被用来作为Linux的根文件系统, 因此很容易把这些设备的驱动程序集成到内核中.
 但是现在根文件系统可能保存在各种存储设备上, 包括SCSI, SATA,U盘等等. 因此把这些设备驱动程序全部编译到内核中显得不太方便.
 利用udevd可以实现实现内核模块的自动加载, 因此我们希望根文件系统的设备驱动程序也能够实现自动加载. 但是这里有一个矛盾,
-udevd是一个可执行文件, 在根文件系统被挂载前, 是不可能执行udevd的, 但是如果udevd没有启动, 那就无法自动加载根根据系统设备的驱动程序,
+udevd是一个可执行文件, 在根文件系统被挂载前, 是不可能执行udevd的, 但是如果udevd没有启动, 那就无法自动根据根目录来加载系统设备的驱动程序
 同时也无法在/dev目录下建立相应的设备节点. 为了解决这个矛盾,于是出现了initrd(bootloader initialized RAMdisk).
 initrd是一个被压缩过的小型根目录, 这个目录中包含了启动阶段中必须的驱动模块, 可执行文件和启动脚本. 包括上面提到的udevd,
 当系统启动的时候, booloader会把initrd文件读到内存中,然后把initrd的起始地址告诉内核.内核在运行过程中会解压initrd,
@@ -63,33 +64,71 @@ General setup  --->
 initrd是由bootloader加载到内存中的,这时bootloader会把起始地址和结束地址传递给内核,内核中的全局initrd_start和initrd_end分别
 指向initrd的起始地址和结束地址。现在内核还需要判断这个initrd是新式的cpio格式的initrd还是旧的initrd.
 
-initrd和initramfs在内核中的处理
+安装根文件系统
 --------------------------------------------------------------------------------
 
-## 临时根目录rootfs的挂载
+安装根文件系统是系统初始化的关键部分.这是一个相当复杂的过程,因为Linux内核允许根文件系统存放在很多不同的地方,比如:
+硬盘分区,软盘,通过NFS共享的远程文件系统,甚至保存到ramdisk中(RAM中的虚拟块设备).
+当系统启动时,内核就要在变量ROOT_DEV中寻找包含根文件系统的磁盘主设备号.当编译内核时,或者向最初的bootloader传递一个root
+选项时,根文件系统可以被指定为/dev目录下的一个设备文件.类似的,根文件系统的安装标志存放在root_mountflags变量中.用户可以指定
+这些标志,或者通过对已编译的内核映像使用rdev外部程序，或者想最初的bootloader程序传递一个合适的rootflags选项来达到.
 
-首先, 在内核启动过程,会初始化rootfs文件系统,rootfs和tmpfs都是内存中的文件系统,其类型为ramfs.
-然后会把这个rootf挂载到根目录. 其代码如下:
+安装根文件系统分为两个阶段:
 
-#### start_kernel
+## Stage1
 
-path: init/main.c
+内核安装特殊rootfs文件系统,该文件系统仅提供一个作为初始安装点的空目录.
+
+#### init_rootfs
+
+path: init/do_mounts.c
 ```
-asmlinkage void __init start_kernel(void)
+int __init init_rootfs(void)
 {
-    char * command_line;
-    extern const struct kernel_param __start___param[], __stop___param[];
-    ......
-    vfs_caches_init_early();
-    ......
-    vfs_caches_init(totalram_pages);
-    ......
+    /* 调用register_filesystem函数注册rootfs文件系统 */
+    int err = register_filesystem(&rootfs_fs_type);
+
+    if (err)
+        return err;
+
+    if (IS_ENABLED(CONFIG_TMPFS) && !saved_root_name[0] &&
+        (!root_fs_names || strstr(root_fs_names, "tmpfs"))) {
+        err = shmem_init();
+        is_tmpfs = true;
+    } else {
+        err = init_ramfs_fs();
+    }
+
+    if (err)
+        unregister_filesystem(&rootfs_fs_type);
+
+    return err;
 }
 ```
 
-#### vfs_caches_init
+#### rootfs_fs_type
+
+path: init/do_mounts.c
+```
+static struct file_system_type rootfs_fs_type = {
+	.name		= "rootfs",
+	.mount		= rootfs_mount,
+	.kill_sb	= kill_litter_super,
+};
+```
+
+## Stage2
+
+内核在空目录上安装实际的根文件系统.
+
+**注意:** 内核为何要在安装实际根文件系统之前安装rootfs文件系统呢?
+  rootfs文件系统允许内核容易地改变实际根文件系统.事实上,在某些情况下,内核逐个地安装和卸载几个根文件系统.
+
 
 
 Blog
 --------------------------------------------------------------------------------
-http://blog.csdn.net/zzobin/article/details/7722838
+* http://blog.csdn.net/zzobin/article/details/7722838 (Linux内核Ramdisk机制)
+* http://www.linuxsir.org/bbs/thread336103.html (精通initramfs的构建)
+* http://blog.linux.org.tw/~jserv/archives/001954.html (深入理解Linux 2.6的initramfs机制)
+* http://www.ibm.com/developerworks/cn/linux/l-k26initrd/ (Linux 2.6内核的Initrd机制解析)
