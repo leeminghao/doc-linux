@@ -106,15 +106,145 @@ int __init init_rootfs(void)
 }
 ```
 
+#### register_filesystem
+
+文件系统类型注册,通常,用户在为自己的系统编译内核时可以把Linux配置为能够识别所有需要的文件系统.
+但是,文件系统的源代码实际上要么包含在内核的影像中,要么作为一个模块被动态装入.VFS必须对代码目前
+已经在内核中的所有文件系统的类型进行跟踪,这就是通过进行文件系统类型注册来实现的.
+
+path: fs/filesystems.c
+```
+/**
+ * register_filesystem - register a new filesystem
+ * @fs: the file system structure
+ *
+ * Adds the file system passed to the list of file systems the kernel
+ * is aware of for mount and other syscalls. Returns 0 on success,
+ * or a negative errno code on an error.
+ *
+ * The &struct file_system_type that is passed is linked into the kernel
+ * structures and must not be freed until the file system has been
+ * unregistered.
+ */
+
+int register_filesystem(struct file_system_type * fs)
+{
+    int res = 0;
+    struct file_system_type ** p;
+
+    BUG_ON(strchr(fs->name, '.'));
+    if (fs->next)
+        return -EBUSY;
+    write_lock(&file_systems_lock);
+    p = find_filesystem(fs->name, strlen(fs->name));
+    if (*p)
+        res = -EBUSY;
+    else
+        *p = fs;
+    write_unlock(&file_systems_lock);
+    return res;
+}
+```
+
+#### find_filesystem
+
+```
+static struct file_system_type **find_filesystem(const char *name, unsigned len)
+{
+    struct file_system_type **p;
+    for (p=&file_systems; *p; p=&(*p)->next)
+    if (strlen((*p)->name) == len &&
+        strncmp((*p)->name, name, len) == 0)
+            break;
+    return p;
+}
+```
+
 #### rootfs_fs_type
 
 path: init/do_mounts.c
 ```
 static struct file_system_type rootfs_fs_type = {
-	.name		= "rootfs",
-	.mount		= rootfs_mount,
-	.kill_sb	= kill_litter_super,
+    .name ="rootfs",
+    .mount = rootfs_mount,
+    .kill_sb = kill_litter_super,
 };
+```
+
+init_mount_tree函数执行如下操作:
+
+#### init_mount_tree
+
+path: fs/namespace.c
+```
+static void __init init_mount_tree(void)
+{
+    struct vfsmount *mnt;
+    struct mnt_namespace *ns;
+    struct path root;
+    struct file_system_type *type;
+
+    type = get_fs_type("rootfs");
+    if (!type)
+       panic("Can't find rootfs type");
+    mnt = vfs_kern_mount(type, 0, "rootfs", NULL);
+    put_filesystem(type);
+    if (IS_ERR(mnt))
+        panic("Can't create rootfs");
+
+    ns = create_mnt_ns(mnt);
+    if (IS_ERR(ns))
+        panic("Can't allocate initial namespace");
+
+    init_task.nsproxy->mnt_ns = ns;
+    get_mnt_ns(ns);
+
+    root.mnt = mnt;
+    root.dentry = mnt->mnt_root;
+
+    set_fs_pwd(current->fs, &root);
+    set_fs_root(current->fs, &root);
+}
+```
+
+调用vfs_kern_mount函数,把字符串"rootfs"作为文件系统类型参数传递给它,并把该函数返回的新安装文件系统描述符
+的地址保存在mnt局部变量中.
+
+#### vfs_kern_mount
+
+path: fs/namespace.c
+```
+struct vfsmount *
+vfs_kern_mount(struct file_system_type *type, int flags, const char *name, void *data)
+{
+    struct mount *mnt;
+    struct dentry *root;
+
+    if (!type)
+        return ERR_PTR(-ENODEV);
+
+    mnt = alloc_vfsmnt(name);
+    if (!mnt)
+       return ERR_PTR(-ENOMEM);
+
+    if (flags & MS_KERNMOUNT)
+    mnt->mnt.mnt_flags = MNT_INTERNAL;
+
+    root = mount_fs(type, flags, name, data);
+    if (IS_ERR(root)) {
+       free_vfsmnt(mnt);
+       return ERR_CAST(root);
+    }
+
+    mnt->mnt.mnt_root = root;
+    mnt->mnt.mnt_sb = root->d_sb;
+    mnt->mnt_mountpoint = mnt->mnt.mnt_root;
+    mnt->mnt_parent = mnt;
+    lock_mount_hash();
+    list_add_tail(&mnt->mnt_instance, &root->d_sb->s_mounts);
+    unlock_mount_hash();
+    return &mnt->mnt;
+}
 ```
 
 ## Stage2
@@ -123,8 +253,6 @@ static struct file_system_type rootfs_fs_type = {
 
 **注意:** 内核为何要在安装实际根文件系统之前安装rootfs文件系统呢?
   rootfs文件系统允许内核容易地改变实际根文件系统.事实上,在某些情况下,内核逐个地安装和卸载几个根文件系统.
-
-
 
 Blog
 --------------------------------------------------------------------------------
