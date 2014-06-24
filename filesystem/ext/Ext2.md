@@ -125,7 +125,7 @@ struct ext2_super_block {
 };
 ```
 
-组描述符和位图
+组描述符
 --------------------------------------------------------------------------------
 
 每个块组都有自己的组描述符,它是一个ext2_group_desc结构:
@@ -221,3 +221,33 @@ struct ext2_inode {
 	} osd2;				/* OS dependent 2 */
 };
 ```
+
+索引节点的增强属性
+--------------------------------------------------------------------------------
+
+Ext2索引节点的格式对于文件系统涉及这就好像一件紧身衣,索引节点的长度必须是2的幂,以免造成存放索引节点的块
+内碎片.实际上,一个Ext2索引节点的128个字符空间中充满了信息,只有少许空间可以增加新的字段.另一方面,将索引节点
+的长度增加至256不仅相当浪费,而且使用不同索引节点长度的Ext2文件之间还会造成兼容问题.
+引入增强属性就是要克服上面的问题.这些属性存放在索引节点之外的磁盘块中.索引节点的i_file_acl字段指向一个
+存放增强属性的块.具有同样增强属性的不同索引节点可以共享同一个块.
+每个增强属性有一个名称和值.两者都编码为变长字符数组.并由ext2_xattr_entry描述符来确定.
+
+#### ext2_xattr_entry
+
+path: fs/ext2/xattr.h
+```
+struct ext2_xattr_entry {
+	__u8	e_name_len;	/* length of name */
+	__u8	e_name_index;	/* attribute name index */
+	__le16	e_value_offs;	/* offset in disk block of value */
+	__le32	e_value_block;	/* disk block attribute is stored on (n/i) */
+	__le32	e_value_size;	/* size of attribute value */
+	__le32	e_hash;		/* hash value of name and value */
+	char	e_name[0];	/* attribute name */
+};
+```
+
+#### 访问控制列表
+
+访问控制列表可以与每个文件关联,有了这种列表,用户可以为它的文件限定可以访问的用户或用户组名称
+以及相应的权限. 增强属性主要就是为了支持ACL才引入.
