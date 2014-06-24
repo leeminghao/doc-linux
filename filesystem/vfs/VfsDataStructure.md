@@ -108,3 +108,159 @@ $ mkdir /flp/mnt
 $ mount -t ext2 /dev/fd0 /flp/mnt
 ```
 现在,软盘文件系统上的空foo文件就可以通过/flp/foo和/flp/mnt/foo来访问
+
+超级块对象
+--------------------------------------------------------------------------------
+
+超级块结构表示一个文件系统. 它包含管理文件系统所需的信息, 包括文件系统名称(比如ext2),文件系统的大小和状态,块设备的引用和
+元数据信息(比如空闲列表等等).超级块通常存储在存储媒体上, 但是如果超级块不存在, 也可以实时创建它.
+
+#### super_block
+
+path: include/linux/fs.h
+```
+struct super_block {
+    struct list_head s_list;    /* Keep this first */ /* 指向超级块链表的指针 */
+    dev_t s_dev;  /* search index; _not_ kdev_t */ /* 设备标识符 */
+    unsigned char s_blocksize_bits;  /* 以位为单位的块大小 */
+    unsigned long s_blocksize;       /* 以字节为单位的快大小 */
+    loff_t s_maxbytes; /* Max file size */ /* 文件的最大长度 */
+    struct file_system_type *s_type;       /* 文件系统类型 */
+
+    const struct super_operations *s_op;   /* 操作超级块的方法 */
+    const struct dquot_operations *dq_op;  /* 磁盘限额处理方法 */
+    const struct quotactl_ops *s_qcop;     /* 磁盘限额管理方法 */
+    const struct export_operations *s_export_op; /* 网络文件系统使用的输出操作 */
+
+    unsigned long s_flags;    /* 安装标志 */
+    unsigned long s_magic;    /* 文件系统的魔数 */
+    struct dentry *s_root;    /* 文件系统根目录的目录项对象 */
+    struct rw_semaphore s_umount; /* 卸载所用的信号量 */
+    int s_count;          /* 引用计数器 */
+    atomic_t s_active;    /* 次级引用计数器 */
+#ifdef CONFIG_SECURITY
+    void                    *s_security; /* 指向超级块安全数据结构的指针 */
+#endif
+    const struct xattr_handler **s_xattr; /* 指向超级块扩展属性结构的指针 */
+
+    struct list_head s_inodes; /* all inodes */ /* 所有索引节点的链表 */
+    /* 用于处理远程网络文件系统的匿名目录项的链表 */
+    struct hlist_bl_head s_anon; /* anonymous dentries for (nfs) exporting */
+    struct list_head s_mounts;   /* list of mounts; _not_ for fs use */
+
+    struct block_device *s_bdev; /* 指向块设备驱动程序描述符的指针 */
+    struct backing_dev_info *s_bdi;
+    struct mtd_info *s_mtd;
+    struct hlist_node s_instances; /* 用于给定文件系统类型的超级块对象链表的指针 */
+    struct quota_info s_dquot; /* Diskquota specific options */ /* 磁盘限额的描述符 */
+
+    struct sb_writers s_writers;
+
+    char s_id[32]; /* Informational name */ /* 包含超级块的块设备名称 */
+    u8 s_uuid[16]; /* UUID */
+
+    void *s_fs_info; /* Filesystem private info */  /* 指向文件系统的私有信息 */
+    unsigned int s_max_links;
+    fmode_t s_mode;
+
+    /* Granularity of c/m/atime in ns.
+       Cannot be worse than a second */
+    u32 s_time_gran;
+
+    /*
+     * The next field is for VFS *only*. No filesystems have any business
+     * even looking at it. You had been warned.
+     */
+    struct mutex s_vfs_rename_mutex; /* Kludge */
+
+    /*
+     * Filesystem subtype.  If non-empty the filesystem type field
+     * in /proc/mounts will be "type.subtype"
+     */
+    char *s_subtype;
+
+     /*
+      * Saved mount options for lazy filesystems using
+      * generic_show_options()
+      */
+     char __rcu *s_options;
+     const struct dentry_operations *s_d_op; /* default d_op for dentries */
+
+     /*
+      * Saved pool identifier for cleancache (-1 means none)
+      */
+     int cleancache_poolid;
+
+     struct shrinker s_shrink; /* per-sb shrinker handle */
+
+     /* Number of inodes with nlink == 0 but still referenced */
+     atomic_long_t s_remove_count;
+
+     /* Being remounted read-only */
+     int s_readonly_remount;
+
+     /* AIO completions deferred from interrupt context */
+     struct workqueue_struct *s_dio_done_wq;
+
+     /*
+      * Keep the lru lists last in the structure so they always sit on their
+      * own individual cachelines.
+      */
+     struct list_lru s_dentry_lru ____cacheline_aligned_in_smp;
+     struct list_lru s_inode_lru ____cacheline_aligned_in_smp;
+     struct rcu_head rcu;
+};
+```
+
+所有超级块对象都以双向循环链表的形式链接在一起,链表中的第一个元素用"super_blocks"变量来表示.
+而超级块对象的"s_list"字段存放指向链表相邻元素的指针. "sb_lock"自旋锁保护链表妙手多处理器系统上的同时访问.
+"s_fs_info"字段指向属于具体文件系统的超级块信息; 例如,假如超级块对象指向的是Ext2文件系统,该字段就指向
+ext2_sb_info数据结构.为了效率起见,由s_fs_info所指向的数据被复制到内存.任何基于磁盘的文件系统都需要访问
+和更改自己的磁盘分配位图,以便分配或释放磁盘块. VFS允许这些文件系统直接对内存超级块的s_fs_info字段进行
+操作,而无需访问磁盘.
+
+
+#### super_operations
+
+与超级块关联的方法就是所谓的超级块操作.这些操作是由数据结构super_operations来描述的.
+
+path: include/linux/fs.h
+```
+struct super_operations {
+    /* 为索引节点对象分配空间,包括文件系统数据所需要的空间 */
+    struct inode *(*alloc_inode)(struct super_block *sb);
+    /* 撤销索引节点对象,包括具体文件系统的数据 */
+    void (*destroy_inode)(struct inode *);
+
+    /* 当索引节点标记为修改(脏)时调用. */
+    void (*dirty_inode) (struct inode *, int flags);
+    /* 用通过传递参数指定的索引节点对象的内容更新一个文件系统的索引节点.索引节点对象的i_ino字段表示所涉及磁盘上文件系统的索引节点 */
+    int (*write_inode) (struct inode *, struct writeback_control *wbc);
+    int (*drop_inode) (struct inode *);
+    void (*evict_inode) (struct inode *);
+    void (*put_super) (struct super_block *);
+    int (*sync_fs)(struct super_block *sb, int wait);
+    int (*freeze_fs) (struct super_block *);
+    int (*unfreeze_fs) (struct super_block *);
+    int (*statfs) (struct dentry *, struct kstatfs *);
+    int (*remount_fs) (struct super_block *, int *, char *);
+    void (*umount_begin) (struct super_block *);
+
+    int (*show_options)(struct seq_file *, struct dentry *);
+    int (*show_devname)(struct seq_file *, struct dentry *);
+    int (*show_path)(struct seq_file *, struct dentry *);
+    int (*show_stats)(struct seq_file *, struct dentry *);
+#ifdef CONFIG_QUOTA
+    ssize_t (*quota_read)(struct super_block *, int, char *, size_t, loff_t);
+    ssize_t (*quota_write)(struct super_block *, int, const char *, size_t, loff_t);
+#endif
+    int (*bdev_try_to_free_page)(struct super_block*, struct page*, gfp_t);
+    long (*nr_cached_objects)(struct super_block *, int);
+    long (*free_cached_objects)(struct super_block *, long, int);
+};
+```
+
+
+Blog
+--------------------------------------------------------------------------------
+http://www.ibm.com/developerworks/cn/linux/l-linux-filesystem/ (Linux文件系统剖析)
