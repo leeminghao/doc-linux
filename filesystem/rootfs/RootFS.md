@@ -180,6 +180,8 @@ static void __init init_mount_tree(void)
     struct path root;
     struct file_system_type *type;
 
+    /* 调用get_fs_type在文件系统类型链表中搜索并确定"rootfs"的名字的位置,
+     * 返回局部变量type中对应file_system_type描述符的地址 */
     type = get_fs_type("rootfs");
     if (!type)
        panic("Can't find rootfs type");
@@ -189,16 +191,19 @@ static void __init init_mount_tree(void)
     if (IS_ERR(mnt))
         panic("Can't create rootfs");
 
+    /* 调用create_mnt_ns函数为进程0的命名空间分配一个mnt_namespace对象 */
     ns = create_mnt_ns(mnt);
     if (IS_ERR(ns))
         panic("Can't allocate initial namespace");
 
+    /* 并将它插入到init_task.nsproxy->mnt_ns中去 */
     init_task.nsproxy->mnt_ns = ns;
     get_mnt_ns(ns);
 
     root.mnt = mnt;
     root.dentry = mnt->mnt_root;
 
+    /* 将进程0的根目录和当前工作目录设置为根文件系统 */
     set_fs_pwd(current->fs, &root);
     set_fs_root(current->fs, &root);
 }
@@ -211,6 +216,10 @@ static void __init init_mount_tree(void)
 
 path: fs/namespace.c
 ```
+/* 参数: type - 要安装的文件系统的类型名.
+ * flags - 安装标志.
+ * name - 存放文件系统的块设备的路径名.
+ * data - 指向传递给文件系统的mount_fs方法的附加数据的指针 */
 struct vfsmount *
 vfs_kern_mount(struct file_system_type *type, int flags, const char *name, void *data)
 {
@@ -220,6 +229,7 @@ vfs_kern_mount(struct file_system_type *type, int flags, const char *name, void 
     if (!type)
         return ERR_PTR(-ENODEV);
 
+    /* 调用alloc_vfsmnt分配一个新的已安装文件系统的描述符,并将它的地址存放在mnt局部变量中 */
     mnt = alloc_vfsmnt(name);
     if (!mnt)
        return ERR_PTR(-ENOMEM);
@@ -227,20 +237,144 @@ vfs_kern_mount(struct file_system_type *type, int flags, const char *name, void 
     if (flags & MS_KERNMOUNT)
     mnt->mnt.mnt_flags = MNT_INTERNAL;
 
+    /* 调用mount_fs来加载根文件系统的超级块信息 */
     root = mount_fs(type, flags, name, data);
     if (IS_ERR(root)) {
        free_vfsmnt(mnt);
        return ERR_CAST(root);
     }
 
+    /* 将mnt->mnt.mnt_root的字段初始化为与文件系统根目录对应的目录项对象的地址,
+     * 并增加该目录项对象的引用计数值 */
     mnt->mnt.mnt_root = root;
+    /* 用新超级块对象的地址初始化mnt->mnt.mnt_sb字段 */
     mnt->mnt.mnt_sb = root->d_sb;
     mnt->mnt_mountpoint = mnt->mnt.mnt_root;
+    /* 用mnt的值初始化mnt->mnt_parent字段 */
     mnt->mnt_parent = mnt;
     lock_mount_hash();
     list_add_tail(&mnt->mnt_instance, &root->d_sb->s_mounts);
     unlock_mount_hash();
+    /* 返回已安装文件系统对象的地址mnt */
     return &mnt->mnt;
+}
+```
+
+接下来调用mount_fs函数来mount根文件系统, 如下所示:
+
+#### mount_fs
+
+path: fs/super.c
+```
+struct dentry *
+mount_fs(struct file_system_type *type, int flags, const char *name, void *data)
+{
+	struct dentry *root;
+	struct super_block *sb;
+	char *secdata = NULL;
+	int error = -ENOMEM;
+
+	if (data && !(type->fs_flags & FS_BINARY_MOUNTDATA)) {
+		secdata = alloc_secdata();
+		if (!secdata)
+			goto out;
+
+		error = security_sb_copy_data(data, secdata);
+		if (error)
+			goto out_free_secdata;
+	}
+
+        /* 调用"root"文件类型描述符指定的mount函数来获取根目录项,
+         * 在这里mount指针指向的是rootfs_mount函数. */
+	root = type->mount(type, flags, name, data);
+	if (IS_ERR(root)) {
+		error = PTR_ERR(root);
+		goto out_free_secdata;
+	}
+	sb = root->d_sb;
+	BUG_ON(!sb);
+	WARN_ON(!sb->s_bdi);
+	WARN_ON(sb->s_bdi == &default_backing_dev_info);
+	sb->s_flags |= MS_BORN;
+
+	error = security_sb_kern_mount(sb, flags, secdata);
+	if (error)
+		goto out_sb;
+
+	/*
+	 * filesystems should never set s_maxbytes larger than MAX_LFS_FILESIZE
+	 * but s_maxbytes was an unsigned long long for many releases. Throw
+	 * this warning for a little while to try and catch filesystems that
+	 * violate this rule.
+	 */
+	WARN((sb->s_maxbytes < 0), "%s set sb->s_maxbytes to "
+		"negative value (%lld)\n", type->name, sb->s_maxbytes);
+
+	up_write(&sb->s_umount);
+	free_secdata(secdata);
+	return root;
+out_sb:
+	dput(root);
+	deactivate_locked_super(sb);
+out_free_secdata:
+	free_secdata(secdata);
+out:
+	return ERR_PTR(error);
+}
+```
+
+#### rootfs_mount
+
+path: init/do_mounts.c
+```
+static bool is_tmpfs;
+static struct dentry *rootfs_mount(struct file_system_type *fs_type,
+	int flags, const char *dev_name, void *data)
+{
+	static unsigned long once;
+	void *fill = ramfs_fill_super;
+
+	if (test_and_set_bit(0, &once))
+		return ERR_PTR(-ENODEV);
+
+	if (IS_ENABLED(CONFIG_TMPFS) && is_tmpfs)
+		fill = shmem_fill_super;
+
+        /* 最终调用mount_nodev函数来获取rootfs的超级块并把根目录项指针返回到上一级函数 */
+	return mount_nodev(fs_type, flags, data, fill);
+}
+```
+
+#### mount_nodev
+
+path: fs/super.c
+```
+struct dentry *mount_nodev(struct file_system_type *fs_type,
+	int flags, void *data,
+	int (*fill_super)(struct super_block *, void *, int))
+{
+	int error;
+        /* 1. 调用sget()函数分配新的超级块,传递set_anon_super函数的地址作为参数.
+         * 接下来,用合适的方式设置超级块的s_dev字段; 主设备号,次设备号不同于其它
+         * 已安装的特殊文件系统的次设备号
+         */
+	struct super_block *s = sget(fs_type, NULL, set_anon_super, flags, NULL);
+
+	if (IS_ERR(s))
+		return ERR_CAST(s);
+
+        /* fill_super函数指针指定为了ramfs_fill_super,在此,调用该函数来分配索引节点对象
+         * 和对应的目录项对象,并填充超级块字段值. 由于rootfs是一种特殊文件系统, 没有磁盘
+         * 超级块, 因此只需执行两个超级块操作
+         */
+	error = fill_super(s, data, flags & MS_SILENT ? 1 : 0);
+	if (error) {
+		deactivate_locked_super(s);
+		return ERR_PTR(error);
+	}
+	s->s_flags |= MS_ACTIVE;
+        /* 调用dget函数返回对应的根文件系统的根目录项对象 */
+	return dget(s->s_root);
 }
 ```
 

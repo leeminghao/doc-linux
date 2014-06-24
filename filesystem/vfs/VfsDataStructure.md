@@ -77,6 +77,46 @@ $ mount -t ext2 /dev/fd0 /flp
 综上, 跟踪已安装的文件系统会变为一场噩梦.对于每个安装操作,内核必须在内存中保存安装点和安装标志,以及要安装文件系统与其它已安装文件系统
 的关系.这样的信息保存在已安装文件系统描述符中.每个描述符是一个具有vfsmount类型的数据结构:
 
+#### mount
+
+path: fs/mount.h
+```
+struct mount {
+	struct hlist_node mnt_hash;
+	struct mount *mnt_parent;
+	struct dentry *mnt_mountpoint;
+	struct vfsmount mnt;
+	struct rcu_head mnt_rcu;
+#ifdef CONFIG_SMP
+	struct mnt_pcp __percpu *mnt_pcp;
+#else
+	int mnt_count;
+	int mnt_writers;
+#endif
+	struct list_head mnt_mounts;	/* list of children, anchored here */
+	struct list_head mnt_child;	/* and going through their mnt_child */
+	struct list_head mnt_instance;	/* mount instance on sb->s_mounts */
+	const char *mnt_devname;	/* Name of device e.g. /dev/dsk/hda1 */
+	struct list_head mnt_list;
+	struct list_head mnt_expire;	/* link in fs-specific expiry list */
+	struct list_head mnt_share;	/* circular list of shared mounts */
+	struct list_head mnt_slave_list;/* list of slave mounts */
+	struct list_head mnt_slave;	/* slave list entry */
+	struct mount *mnt_master;	/* slave is on master->mnt_slave_list */
+	struct mnt_namespace *mnt_ns;	/* containing namespace */
+	struct mountpoint *mnt_mp;	/* where is it mounted */
+#ifdef CONFIG_FSNOTIFY
+	struct hlist_head mnt_fsnotify_marks;
+	__u32 mnt_fsnotify_mask;
+#endif
+	int mnt_id;			/* mount identifier */
+	int mnt_group_id;		/* peer group identifier */
+	int mnt_expiry_mark;		/* true if marked for expiry */
+	int mnt_pinned;
+	struct path mnt_ex_mountpoint;
+};
+```
+
 #### vfsmount
 
 path: include/linux/mount.h
@@ -520,7 +560,9 @@ struct dentry {
 
 	/* Ref lookup also touches following */
 	struct lockref d_lockref;	/* per-dentry lock and refcount */
+        /* 目录项方法 */
 	const struct dentry_operations *d_op;
+        /* 文件的超级块对象 */
 	struct super_block *d_sb;	/* The root of the dentry tree */
 	unsigned long d_time;		/* used by d_revalidate */
 	void *d_fsdata;			/* fs-specific data */
