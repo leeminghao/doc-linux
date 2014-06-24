@@ -1,15 +1,6 @@
 Linux VFS Data Structure
 ================================================================================
 
-与进程相关的文件
---------------------------------------------------------------------------------
-
-每个进程都有它当前的工作目录和它自己的根目录.这仅仅是内核用来表示进程与文件系统相互作用
-所必须维护的数据中的两个例子,类型为fs_struct的整个数据结构就用于此目的.且每个进程描述符
-的fs字段就指向进程的fs_struct结构.
-
-#### fs_struct
-
 文件系统类型注册
 --------------------------------------------------------------------------------
 
@@ -498,6 +489,105 @@ struct file_operations {
 	long (*fallocate)(struct file *file, int mode, loff_t offset,
 			  loff_t len);
 	int (*show_fdinfo)(struct seq_file *m, struct file *f);
+};
+```
+
+目录项对象
+--------------------------------------------------------------------------------
+
+VFS把每个目录看作由若干子目录和文件组成的一个普通文件.然而一旦目录项被读入内存,VFS就把它转换成基于dentry结构的一个
+目录项对象.对于进程查找的路径名中的每一个分量,内核都为其创建一个目录项对象;目录项对象将每个分量与其对应的索引节点相联系.
+例如,在查找路径名/tmp/test时,内核为根目录"/"创建一个目录项对象,为根目录下的"tmp"项创建一个第二级目录项对象,为"test"项
+创建一个第三级目录项对象.
+
+**注意**: 目录项对象在磁盘上没有对应的映像,因此在dentry结构中不包括指出对该对象已经被修改的字段.目录项对象存放在名为"dentry_cache"
+的slab分配器高速缓存中.
+
+#### dentry
+
+path: include/linux/dcache.h
+```
+struct dentry {
+	/* RCU lookup touched fields */
+	unsigned int d_flags;		/* protected by d_lock */
+	seqcount_t d_seq;		/* per dentry seqlock */
+	struct hlist_bl_node d_hash;	/* lookup hash list */
+	struct dentry *d_parent;	/* parent directory */
+	struct qstr d_name;
+	struct inode *d_inode;		/* Where the name belongs to - NULL is
+					 * negative */
+	unsigned char d_iname[DNAME_INLINE_LEN];	/* small names */
+
+	/* Ref lookup also touches following */
+	struct lockref d_lockref;	/* per-dentry lock and refcount */
+	const struct dentry_operations *d_op;
+	struct super_block *d_sb;	/* The root of the dentry tree */
+	unsigned long d_time;		/* used by d_revalidate */
+	void *d_fsdata;			/* fs-specific data */
+
+	struct list_head d_lru;		/* LRU list */
+	/*
+	 * d_child and d_rcu can share memory
+	 */
+	union {
+		struct list_head d_child;	/* child of parent list */
+	 	struct rcu_head d_rcu;
+	} d_u;
+	struct list_head d_subdirs;	/* our children */
+	struct hlist_node d_alias;	/* inode alias list */
+};
+```
+
+与目录项对象关联的方法称为目录项操作.这些方法由dentry_operations结构加以描述.
+
+#### dentry_operations
+
+path: linux/fs/dcache.h
+```
+struct dentry_operations {
+	int (*d_revalidate)(struct dentry *, unsigned int);
+	int (*d_weak_revalidate)(struct dentry *, unsigned int);
+	int (*d_hash)(const struct dentry *, struct qstr *);
+	int (*d_compare)(const struct dentry *, const struct dentry *,
+			unsigned int, const char *, const struct qstr *);
+	int (*d_delete)(const struct dentry *);
+	void (*d_release)(struct dentry *);
+	void (*d_prune)(struct dentry *);
+	void (*d_iput)(struct dentry *, struct inode *);
+	char *(*d_dname)(struct dentry *, char *, int);
+	struct vfsmount *(*d_automount)(struct path *);
+	int (*d_manage)(struct dentry *, bool);
+} ____cacheline_aligned;
+```
+
+与进程相关的文件
+--------------------------------------------------------------------------------
+
+每个进程都有它当前的工作目录和它自己的根目录.这仅仅是内核用来表示进程与文件系统相互作用
+所必须维护的数据中的两个例子,类型为fs_struct的整个数据结构就用于此目的.且每个进程描述符
+的fs字段就指向进程的fs_struct结构.
+
+#### fs_struct
+
+path: include/linux/fs_struct.h
+```
+struct fs_struct {
+	int users;
+	spinlock_t lock;
+	seqcount_t seq;
+	int umask;
+	int in_exec;
+	struct path root, pwd;
+};
+```
+
+#### path
+
+path: include/linux/path.h
+```
+struct path {
+	struct vfsmount *mnt;
+	struct dentry *dentry;
 };
 ```
 
