@@ -36,6 +36,8 @@ struct task_struct {
     struct fs_struct *fs;  // ==> "fs_struct": 文件系统信息
     /* open file information */
     struct files_struct *files;  // ==> "files_struct": 所有打开文件的信息
+    /* namespaces */
+    struct nsproxy *nsproxy; // 命名空间信息
     ......
     /* signal handlers */
     struct signal_struct *signal; // ==> "signal_struct": 所接收的信号

@@ -585,9 +585,67 @@ struct fs_struct {
 
 path: include/linux/path.h
 ```
-struct path {
+ostruct path {
 	struct vfsmount *mnt;
 	struct dentry *dentry;
+};
+```
+
+命名空间
+--------------------------------------------------------------------------------
+
+在传统的Unix系统中,只有一个已安装文件系统树: 从系统的根文件系统开始,每个进程通过指定合适的路径名可以访问
+已安装文件系统的任何文件. 从这个方面考虑: Linux 2.6更加精确, 每个进程可拥有自己的已安装文件系统树--叫做进程
+的命名空间.
+通常大多数进程共享同一个命名空间,即位于系统的根文件系统且被init进程使用的已安装文件系统树.不过,如果clone
+系统调用以CLONE_NEWNS标志创建一个进程,那么进程将获得一个新的命名空间.这个新的命名空间随后由子进程继承.
+当进程安装或卸载一个文件系统时,仅修改它的命名空间.因此,所做的修改对共享同一命名空间的所有进程都是可见的,并且
+也只对它们可见.进程甚至可通过使用Linux特有的pivot_root()系统调用来改变它们命名空间的根文件系统.
+进程的命名空间由进程描述符的nsproxy字段指向的nsproxy结构描述.
+
+#### nsproxy
+
+path: include/linux/nsproxy.h
+```
+/*
+ * A structure to contain pointers to all per-process
+ * namespaces - fs (mount), uts, network, sysvipc, etc.
+ *
+ * The pid namespace is an exception -- it's accessed using
+ * task_active_pid_ns.  The pid namespace here is the
+ * namespace that children will use.
+ *
+ * 'count' is the number of tasks holding a reference.
+ * The count for each namespace, then, will be the number
+ * of nsproxies pointing to it, not the number of tasks.
+ *
+ * The nsproxy is shared by tasks which share all namespaces.
+ * As soon as a single namespace is cloned or unshared, the
+ * nsproxy is copied.
+ */
+struct nsproxy {
+	atomic_t count;
+	struct uts_namespace *uts_ns;
+	struct ipc_namespace *ipc_ns;
+	struct mnt_namespace *mnt_ns;
+	struct pid_namespace *pid_ns_for_children;
+	struct net 	     *net_ns;
+};
+```
+
+#### mnt_namespace
+
+path: fs/mount.h
+```
+struct mnt_namespace {
+	atomic_t		count;
+	unsigned int		proc_inum;
+	struct mount *	root;
+	struct list_head	list;
+	struct user_namespace	*user_ns;
+	u64			seq;	/* Sequence number to prevent loops */
+	wait_queue_head_t poll;
+	int event;
 };
 ```
 
