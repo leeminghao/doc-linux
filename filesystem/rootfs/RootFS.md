@@ -381,9 +381,134 @@ struct dentry *mount_nodev(struct file_system_type *fs_type,
 ## Stage2
 
 内核在空目录上安装实际的根文件系统.
-
 **注意:** 内核为何要在安装实际根文件系统之前安装rootfs文件系统呢?
   rootfs文件系统允许内核容易地改变实际根文件系统.事实上,在某些情况下,内核逐个地安装和卸载几个根文件系统.
+
+根文件系统安装操作的第二阶段是由内核在系统初始化即将结束时进行的.根据内核被编译时所选择的选项,和内核装入
+程序所传递的启动选项,可以由集中方法安装实际根文件系统.为了简单起见,我们只考虑磁盘文件系统的情况,它的设备
+文件名已经通过"root"启动参数传递给内核.同时我们假定除了rootfs文件系统以外,没有使用其他初始特殊文件系统.
+
+start_kernel-->rest_init-->kernel_init-->kernel_init_freeable-->prepare_namespace.
+
+#### prepare_namespace
+
+path: init/do_mounts.c
+```
+/*
+ * Prepare the namespace - decide what/where to mount, load ramdisks, etc.
+ */
+void __init prepare_namespace(void)
+{
+	int is_floppy;
+
+	if (root_delay) {
+		printk(KERN_INFO "Waiting %d sec before mounting root device...\n",
+		       root_delay);
+		ssleep(root_delay);
+	}
+
+	/*
+	 * wait for the known devices to complete their probing
+	 *
+	 * Note: this is a potential source of long boot delays.
+	 * For example, it is not atypical to wait 5 seconds here
+	 * for the touchpad of a laptop to initialize.
+	 */
+	wait_for_device_probe();
+
+	md_run_setup();
+
+        /* 把root_device_name变量设置为从参数"root"中获取的设备文件名,同样把ROOT_DEV变量设置为
+         * 同一设备文件的主设备号和次设备号
+         */
+	if (saved_root_name[0]) {
+		root_device_name = saved_root_name;
+		if (!strncmp(root_device_name, "mtd", 3) ||
+		    !strncmp(root_device_name, "ubi", 3)) {
+			mount_block_root(root_device_name, root_mountflags);
+			goto out;
+		}
+		ROOT_DEV = name_to_dev_t(root_device_name);
+		if (strncmp(root_device_name, "/dev/", 5) == 0)
+			root_device_name += 5;
+	}
+
+	if (initrd_load())
+		goto out;
+
+	/* wait for any asynchronous scanning to complete */
+	if ((ROOT_DEV == 0) && root_wait) {
+		printk(KERN_INFO "Waiting for root device %s...\n",
+			saved_root_name);
+		while (driver_probe_done() != 0 ||
+			(ROOT_DEV = name_to_dev_t(saved_root_name)) == 0)
+			msleep(100);
+		async_synchronize_full();
+	}
+
+	is_floppy = MAJOR(ROOT_DEV) == FLOPPY_MAJOR;
+
+	if (is_floppy && rd_doload && rd_load_disk(0))
+		ROOT_DEV = Root_RAM0;
+
+        /* 2.调用mount_root函数. */
+	mount_root();
+out:
+	devtmpfs_mount("dev");
+        /* 3.移动rootfs文件系统根目录上的已安装文件系统的安装点 */
+	sys_mount(".", "/", NULL, MS_MOVE, NULL);
+	sys_chroot(".");
+}
+```
+
+**注意**:rootfs特殊文件系统并没有被卸载,它只是隐藏在基于磁盘的根文件系统下了.
+
+#### mount_root
+
+path: init/do_mounts.c
+```
+void __init mount_root(void)
+{
+#ifdef CONFIG_ROOT_NFS
+	if (ROOT_DEV == Root_NFS) {
+		if (mount_nfs_root())
+			return;
+
+		printk(KERN_ERR "VFS: Unable to mount root fs via NFS, trying floppy.\n");
+		ROOT_DEV = Root_FD0;
+	}
+#endif
+#ifdef CONFIG_BLK_DEV_FD
+	if (MAJOR(ROOT_DEV) == FLOPPY_MAJOR) {
+		/* rd_doload is 2 for a dual initrd/ramload setup */
+		if (rd_doload==2) {
+			if (rd_load_disk(1)) {
+				ROOT_DEV = Root_RAM1;
+				root_device_name = NULL;
+			}
+		} else
+			change_floppy("root floppy");
+	}
+#endif
+#ifdef CONFIG_BLOCK
+	create_dev("/dev/root", ROOT_DEV);
+	mount_block_root("/dev/root", root_mountflags);
+#endif
+}
+```
+
+#### create_dev
+
+path: init/do_mounts.h
+```
+static inline int create_dev(char *name, dev_t dev)
+{
+	sys_unlink(name);
+        /* 调用sys_mknode函数在rootfs初始根文件系统中创建设备文件"/dev/root",
+         * 其主,次设备号与存放在ROOT_DEV中的一样 */
+	return sys_mknod(name, S_IFBLK|0600, new_encode_dev(dev));
+}
+```
 
 Blog
 --------------------------------------------------------------------------------
