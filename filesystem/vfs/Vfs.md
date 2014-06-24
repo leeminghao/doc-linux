@@ -128,7 +128,9 @@ void __init vfs_caches_init(unsigned long mempages)
     dcache_init();
     inode_init();
     files_init(mempages);
+
     mnt_init();
+
     bdev_cache_init();
     chrdev_init();
 }

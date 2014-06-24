@@ -9,7 +9,7 @@ https://github.com/leeminghao/doc-linux/blob/master/filesystem/rootfs/ramfs-root
 History
 --------------------------------------------------------------------------------
 
-    在早期的Linux系统中, 一般就只有软盘或者硬盘被用来作为Linux的根文件系统, 因此很容易把这些设备的驱动程序集成到内核中.
+在早期的Linux系统中,一般就只有软盘或者硬盘被用来作为Linux的根文件系统,因此很容易把这些设备的驱动程序集成到内核中.
 但是现在根文件系统可能保存在各种存储设备上, 包括SCSI, SATA,U盘等等. 因此把这些设备驱动程序全部编译到内核中显得不太方便.
 利用udevd可以实现实现内核模块的自动加载, 因此我们希望根文件系统的设备驱动程序也能够实现自动加载. 但是这里有一个矛盾,
 udevd是一个可执行文件, 在根文件系统被挂载前, 是不可能执行udevd的, 但是如果udevd没有启动, 那就无法自动根据根目录来加载系统设备的驱动程序
@@ -108,10 +108,6 @@ int __init init_rootfs(void)
 
 #### register_filesystem
 
-文件系统类型注册,通常,用户在为自己的系统编译内核时可以把Linux配置为能够识别所有需要的文件系统.
-但是,文件系统的源代码实际上要么包含在内核的影像中,要么作为一个模块被动态装入.VFS必须对代码目前
-已经在内核中的所有文件系统的类型进行跟踪,这就是通过进行文件系统类型注册来实现的.
-
 path: fs/filesystems.c
 ```
 /**
@@ -187,6 +183,7 @@ static void __init init_mount_tree(void)
     type = get_fs_type("rootfs");
     if (!type)
        panic("Can't find rootfs type");
+
     mnt = vfs_kern_mount(type, 0, "rootfs", NULL);
     put_filesystem(type);
     if (IS_ERR(mnt))
