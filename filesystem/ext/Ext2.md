@@ -124,3 +124,28 @@ struct ext2_super_block {
 	__u32	s_reserved[190];	/* Padding to the end of the block */
 };
 ```
+
+组描述符和位图
+--------------------------------------------------------------------------------
+
+每个块组都有自己的组描述符,它是一个ext2_group_desc结构:
+
+#### ext2_group_desc
+
+path: fs/ext2/ext2.h
+```
+/*
+ * Structure of a blocks group descriptor
+ */
+struct ext2_group_desc
+{
+	__le32	bg_block_bitmap;		/* Blocks bitmap block */
+	__le32	bg_inode_bitmap;		/* Inodes bitmap block */
+	__le32	bg_inode_table;		/* Inodes table block */
+	__le16	bg_free_blocks_count;	/* Free blocks count */
+	__le16	bg_free_inodes_count;	/* Free inodes count */
+	__le16	bg_used_dirs_count;	/* Directories count */
+	__le16	bg_pad;
+	__le32	bg_reserved[3];
+};
+```
