@@ -260,6 +260,153 @@ struct super_operations {
 };
 ```
 
+索引节点对象
+--------------------------------------------------------------------------------
+
+文件系统处理文件所需要的所有信息都存放在一个名为索引节点的数据结构中.文件名可以随时改正
+但是索引节点对文件是唯一的,并且随文件的存在而存在.内存中的索引节点对象由一个inode数据结构组成.
+
+#### inode
+
+path: include/linux/fs.h
+```
+/*
+ * Keep mostly read-only and often accessed (especially for
+ * the RCU path lookup and 'stat' data) fields at the beginning
+ * of the 'struct inode'
+ */
+struct inode {
+   umode_t                      i_mode;
+   unsigned short		i_opflags;
+   kuid_t			i_uid;
+   kgid_t			i_gid;
+   unsigned int		i_flags;
+
+#ifdef CONFIG_FS_POSIX_ACL
+	struct posix_acl	*i_acl;
+	struct posix_acl	*i_default_acl;
+#endif
+
+	const struct inode_operations	*i_op;
+	struct super_block	*i_sb;
+	struct address_space	*i_mapping;
+
+#ifdef CONFIG_SECURITY
+	void			*i_security;
+#endif
+
+	/* Stat data, not accessed from path walking */
+	unsigned long		i_ino;
+	/*
+	 * Filesystems may only read i_nlink directly.  They shall use the
+	 * following functions for modification:
+	 *
+	 *    (set|clear|inc|drop)_nlink
+	 *    inode_(inc|dec)_link_count
+	 */
+	union {
+		const unsigned int i_nlink;
+		unsigned int __i_nlink;
+	};
+	dev_t			i_rdev;
+	loff_t			i_size;
+	struct timespec		i_atime;
+	struct timespec		i_mtime;
+	struct timespec		i_ctime;
+	spinlock_t		i_lock;	/* i_blocks, i_bytes, maybe i_size */
+	unsigned short          i_bytes;
+	unsigned int		i_blkbits;
+	blkcnt_t		i_blocks;
+
+#ifdef __NEED_I_SIZE_ORDERED
+	seqcount_t		i_size_seqcount;
+#endif
+
+	/* Misc */
+	unsigned long		i_state;
+	struct mutex		i_mutex;
+
+	unsigned long		dirtied_when;	/* jiffies of first dirtying */
+
+	struct hlist_node	i_hash;
+	struct list_head	i_wb_list;	/* backing dev IO list */
+	struct list_head	i_lru;		/* inode LRU list */
+	struct list_head	i_sb_list;
+	union {
+		struct hlist_head	i_dentry;
+		struct rcu_head		i_rcu;
+	};
+	u64			i_version;
+	atomic_t		i_count;
+	atomic_t		i_dio_count;
+	atomic_t		i_writecount;
+	const struct file_operations	*i_fop;	/* former ->i_op->default_file_ops */
+	struct file_lock	*i_flock;
+	struct address_space	i_data;
+#ifdef CONFIG_QUOTA
+	struct dquot		*i_dquot[MAXQUOTAS];
+#endif
+	struct list_head	i_devices;
+	union {
+		struct pipe_inode_info	*i_pipe;
+		struct block_device	*i_bdev;
+		struct cdev		*i_cdev;
+	};
+
+	__u32			i_generation;
+
+#ifdef CONFIG_FSNOTIFY
+	__u32			i_fsnotify_mask; /* all events this inode cares about */
+	struct hlist_head	i_fsnotify_marks;
+#endif
+
+#ifdef CONFIG_IMA
+	atomic_t		i_readcount; /* struct files open RO */
+#endif
+	void			*i_private; /* fs or device private pointer */
+};
+```
+
+与索引节点对象关联的方法也叫索引节点操作.它们由inode_operations结构来描述:
+
+#### inode_operations
+
+path: include/linux/fs.h
+```
+struct inode_operations {
+	struct dentry * (*lookup) (struct inode *,struct dentry *, unsigned int);
+	void * (*follow_link) (struct dentry *, struct nameidata *);
+	int (*permission) (struct inode *, int);
+	struct posix_acl * (*get_acl)(struct inode *, int);
+
+	int (*readlink) (struct dentry *, char __user *,int);
+	void (*put_link) (struct dentry *, struct nameidata *, void *);
+
+	int (*create) (struct inode *,struct dentry *, umode_t, bool);
+	int (*link) (struct dentry *,struct inode *,struct dentry *);
+	int (*unlink) (struct inode *,struct dentry *);
+	int (*symlink) (struct inode *,struct dentry *,const char *);
+	int (*mkdir) (struct inode *,struct dentry *,umode_t);
+	int (*rmdir) (struct inode *,struct dentry *);
+	int (*mknod) (struct inode *,struct dentry *,umode_t,dev_t);
+	int (*rename) (struct inode *, struct dentry *,
+			struct inode *, struct dentry *);
+	int (*setattr) (struct dentry *, struct iattr *);
+	int (*getattr) (struct vfsmount *mnt, struct dentry *, struct kstat *);
+	int (*setxattr) (struct dentry *, const char *,const void *,size_t,int);
+	ssize_t (*getxattr) (struct dentry *, const char *, void *, size_t);
+	ssize_t (*listxattr) (struct dentry *, char *, size_t);
+	int (*removexattr) (struct dentry *, const char *);
+	int (*fiemap)(struct inode *, struct fiemap_extent_info *, u64 start,
+		      u64 len);
+	int (*update_time)(struct inode *, struct timespec *, int);
+	int (*atomic_open)(struct inode *, struct dentry *,
+			   struct file *, unsigned open_flag,
+			   umode_t create_mode, int *opened);
+	int (*tmpfile) (struct inode *, struct dentry *, umode_t);
+	int (*set_acl)(struct inode *, struct posix_acl *, int);
+} ____cacheline_aligned;
+```
 
 Blog
 --------------------------------------------------------------------------------
