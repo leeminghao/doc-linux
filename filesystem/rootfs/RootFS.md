@@ -516,3 +516,4 @@ Blog
 * http://www.linuxsir.org/bbs/thread336103.html (精通initramfs的构建)
 * http://blog.linux.org.tw/~jserv/archives/001954.html (深入理解Linux 2.6的initramfs机制)
 * http://www.ibm.com/developerworks/cn/linux/l-k26initrd/ (Linux 2.6内核的Initrd机制解析)
+* http://kissthink.com/archive/gou-jian-i-n-i-t-r-a-m-f-s-wen-jian-xi-tong.html
