@@ -40,8 +40,7 @@ Ext2分区的其余部分分成块组(block group),每个块组的分布图如�
 **注意**: 通常,超级块与组描述副被复制到每个块组中,只有块组0所包含的超级块和组描述符才由内核使用,而其余的超级块和组描述符保持不变;
 事实上,内核甚至不考虑它们.
 
-超级块
---------------------------------------------------------------------------------
+### 超级块
 
 Ext2在磁盘上的超级块存放在一个ext2_super_block结构中:
 
@@ -125,8 +124,7 @@ struct ext2_super_block {
 };
 ```
 
-组描述符
---------------------------------------------------------------------------------
+### 组描述符
 
 每个块组都有自己的组描述符,它是一个ext2_group_desc结构:
 
@@ -150,8 +148,7 @@ struct ext2_group_desc
 };
 ```
 
-索引节点
---------------------------------------------------------------------------------
+### 索引节点
 
 索引节点表由一连串连续的块组成,其中每一块包含索引节点的一个预定义号.索引节点表第一个块的块号存放
 在组描述符的bg_inode_table中.
@@ -222,8 +219,7 @@ struct ext2_inode {
 };
 ```
 
-索引节点的增强属性
---------------------------------------------------------------------------------
+### 索引节点的增强属性
 
 Ext2索引节点的格式对于文件系统涉及这就好像一件紧身衣,索引节点的长度必须是2的幂,以免造成存放索引节点的块
 内碎片.实际上,一个Ext2索引节点的128个字符空间中充满了信息,只有少许空间可以增加新的字段.另一方面,将索引节点
@@ -269,4 +265,130 @@ Ext2数据结构的VFS映像:
 数据块               字节数组                     VFS缓冲区               动态
 空闲索引节点         ext2_inode                   无                      从不
 空闲块               字节数组                     无                      从不
+```
+
+### 超级块
+
+VFS超级块的s_fs_info字段指向了一个包含文件系统信息的数据结构.对于Ext2,该字段指向了
+ext2_sb_info类型的结构:
+
+#### ext2_sb_info
+
+path: fs/ext2/ext2.h
+```
+/*
+ * second extended-fs super-block data in memory
+ */
+struct ext2_sb_info {
+	unsigned long s_frag_size;	/* Size of a fragment in bytes */
+	unsigned long s_frags_per_block;/* Number of fragments per block */
+	unsigned long s_inodes_per_block;/* Number of inodes per block */
+	unsigned long s_frags_per_group;/* Number of fragments in a group */
+	unsigned long s_blocks_per_group;/* Number of blocks in a group */
+	unsigned long s_inodes_per_group;/* Number of inodes in a group */
+	unsigned long s_itb_per_group;	/* Number of inode table blocks per group */
+	unsigned long s_gdb_count;	/* Number of group descriptor blocks */
+	unsigned long s_desc_per_block;	/* Number of group descriptors per block */
+	unsigned long s_groups_count;	/* Number of groups in the fs */
+	unsigned long s_overhead_last;  /* Last calculated overhead */
+	unsigned long s_blocks_last;    /* Last seen block count */
+	struct buffer_head * s_sbh;	/* Buffer containing the super block */
+	struct ext2_super_block * s_es;	/* Pointer to the super block in the buffer */
+	struct buffer_head ** s_group_desc;
+	unsigned long  s_mount_opt;
+	unsigned long s_sb_block;
+	kuid_t s_resuid;
+	kgid_t s_resgid;
+	unsigned short s_mount_state;
+	unsigned short s_pad;
+	int s_addr_per_block_bits;
+	int s_desc_per_block_bits;
+	int s_inode_size;
+	int s_first_ino;
+	spinlock_t s_next_gen_lock;
+	u32 s_next_generation;
+	unsigned long s_dir_count;
+	u8 *s_debts;
+	struct percpu_counter s_freeblocks_counter;
+	struct percpu_counter s_freeinodes_counter;
+	struct percpu_counter s_dirs_counter;
+	struct blockgroup_lock *s_blockgroup_lock;
+	/* root of the per fs reservation window tree */
+	spinlock_t s_rsv_window_lock;
+	struct rb_root s_rsv_window_root;
+	struct ext2_reserve_window_node s_rsv_window_head;
+	/*
+	 * s_lock protects against concurrent modifications of s_mount_state,
+	 * s_blocks_last, s_overhead_last and the content of superblock's
+	 * buffer pointed to by sbi->s_es.
+	 *
+	 * Note: It is used in ext2_show_options() to provide a consistent view
+	 * of the mount options.
+	 */
+	spinlock_t s_lock;
+};
+```
+
+#### Ext2超级块和组描述符有关的缓冲区与缓冲区首部和ext2_sb_info数据结构之间的关系:
+
+UnderstandingLinuxKernel_3rd.pdf (Page 758)
+
+### 索引节点
+
+在打开文件时,要执行路径名查找.对于不在目录项高速缓存内的路径名元素,会创建一个新的页目录项对象
+和索引节点.当VFS访问一个Ext2磁盘索引节点时,它会创建一个ext2_inode_info类型的索引节点描述符.
+
+#### ext2_inode_info
+
+path: fs/ext2/ext2.h
+```
+/*
+ * second extended file system inode data in memory
+ */
+struct ext2_inode_info {
+	__le32	i_data[15];
+	__u32	i_flags;
+	__u32	i_faddr;
+	__u8	i_frag_no;
+	__u8	i_frag_size;
+	__u16	i_state;
+	__u32	i_file_acl;
+	__u32	i_dir_acl;
+	__u32	i_dtime;
+
+	/*
+	 * i_block_group is the number of the block group which contains
+	 * this file's inode.  Constant across the lifetime of the inode,
+	 * it is used for making block allocation decisions - we try to
+	 * place a file's data blocks near its inode block, and new inodes
+	 * near to their parent directory's inode.
+	 */
+	__u32	i_block_group;
+
+	/* block reservation info */
+	struct ext2_block_alloc_info *i_block_alloc_info;
+
+	__u32	i_dir_start_lookup;
+#ifdef CONFIG_EXT2_FS_XATTR
+	/*
+	 * Extended attributes can be read independently of the main file
+	 * data. Taking i_mutex even when reading would cause contention
+	 * between readers of EAs and writers of regular file data, so
+	 * instead we synchronize on xattr_sem when reading or changing
+	 * EAs.
+	 */
+	struct rw_semaphore xattr_sem;
+#endif
+	rwlock_t i_meta_lock;
+
+	/*
+	 * truncate_mutex is for serialising ext2_truncate() against
+	 * ext2_getblock().  It also protects the internals of the inode's
+	 * reservation data structures: ext2_reserve_window and
+	 * ext2_reserve_window_node.
+	 */
+	struct mutex truncate_mutex;
+	struct inode	vfs_inode;
+	struct list_head i_orphan;	/* unlinked but open inodes */
+};
 ```
