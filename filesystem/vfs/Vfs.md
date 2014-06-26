@@ -220,6 +220,125 @@ void __init mnt_init(void)
 这两个函数用于安装根文件系统,具体实现见:
 https://github.com/leeminghao/doc-linux/blob/master/filesystem/rootfs/RootFS.md
 
+VFS系统调用的实现
+-------------------------------------------------------------------------------
+
+## open
+
+open系统调用的服务例程为sys_open函数,最终是通过调用do_sys_open函数来实现的,如下所示:
+
+#### do_sys_open
+
+path: fs/open.c
+```
+/* filename: 要打开文件的路径名; flags: 访问模式的一些标志.
+ * mode: 文件被创建所需要的许可权位掩码mode.
+ * 如果该系统调用成功,就返回一个文件描述符,也就是指向文件对象的指针数组
+ * current->files->fd中分配给新文件的索引.
+ */
+long do_sys_open(int dfd, const char __user *filename, int flags, umode_t mode)
+{
+	struct open_flags op;
+	int fd = build_open_flags(flags, mode, &op);
+	struct filename *tmp;
+
+	if (fd)
+		return fd;
+
+        /* 1. 调用getname()从进程地址空间读取该文件的路径名 */
+	tmp = getname(filename);
+	if (IS_ERR(tmp))
+		return PTR_ERR(tmp);
+        /* 2.调用get_unused_fd()在current->files->fd中查找一个空的位置.相应的索引(新文件描述符)存放在fd局部变量中 */
+	fd = get_unused_fd_flags(flags);
+	if (fd >= 0) {
+		struct file *f = do_filp_open(dfd, tmp, &op);
+		if (IS_ERR(f)) {
+			put_unused_fd(fd);
+			fd = PTR_ERR(f);
+		} else {
+			fsnotify_open(f);
+			fd_install(fd, f);
+		}
+	}
+	putname(tmp);
+	return fd;
+}
+```
+
+#### build_open_flags
+
+path: fs/open.c
+```
+static inline int build_open_flags(int flags, umode_t mode, struct open_flags *op)
+{
+	int lookup_flags = 0;
+	int acc_mode;
+
+	if (flags & (O_CREAT | __O_TMPFILE))
+		op->mode = (mode & S_IALLUGO) | S_IFREG;
+	else
+		op->mode = 0;
+
+	/* Must never be set by userspace */
+	flags &= ~FMODE_NONOTIFY & ~O_CLOEXEC;
+
+	/*
+	 * O_SYNC is implemented as __O_SYNC|O_DSYNC.  As many places only
+	 * check for O_DSYNC if the need any syncing at all we enforce it's
+	 * always set instead of having to deal with possibly weird behaviour
+	 * for malicious applications setting only __O_SYNC.
+	 */
+	if (flags & __O_SYNC)
+		flags |= O_DSYNC;
+
+	if (flags & __O_TMPFILE) {
+		if ((flags & O_TMPFILE_MASK) != O_TMPFILE)
+			return -EINVAL;
+		acc_mode = MAY_OPEN | ACC_MODE(flags);
+		if (!(acc_mode & MAY_WRITE))
+			return -EINVAL;
+	} else if (flags & O_PATH) {
+		/*
+		 * If we have O_PATH in the open flag. Then we
+		 * cannot have anything other than the below set of flags
+		 */
+		flags &= O_DIRECTORY | O_NOFOLLOW | O_PATH;
+		acc_mode = 0;
+	} else {
+		acc_mode = MAY_OPEN | ACC_MODE(flags);
+	}
+
+	op->open_flag = flags;
+
+	/* O_TRUNC implies we need access checks for write permissions */
+	if (flags & O_TRUNC)
+		acc_mode |= MAY_WRITE;
+
+	/* Allow the LSM permission hook to distinguish append
+	   access from general write access. */
+	if (flags & O_APPEND)
+		acc_mode |= MAY_APPEND;
+
+	op->acc_mode = acc_mode;
+
+	op->intent = flags & O_PATH ? 0 : LOOKUP_OPEN;
+
+	if (flags & O_CREAT) {
+		op->intent |= LOOKUP_CREATE;
+		if (flags & O_EXCL)
+			op->intent |= LOOKUP_EXCL;
+	}
+
+	if (flags & O_DIRECTORY)
+		lookup_flags |= LOOKUP_DIRECTORY;
+	if (!(flags & O_NOFOLLOW))
+		lookup_flags |= LOOKUP_FOLLOW;
+	op->lookup_flags = lookup_flags;
+	return 0;
+}
+```
+
 Blog
 -------------------------------------------------------------------------------
 * http://www.ibm.com/developerworks/cn/linux/l-vfs/ (解析Linux中的VFS文件系统机制)
