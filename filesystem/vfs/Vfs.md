@@ -268,6 +268,8 @@ long do_sys_open(int dfd, const char __user *filename, int flags, umode_t mode)
 
 #### build_open_flags
 
+build_open_flags函数将参数flags和mode添加到open_flags数据结构中.
+
 path: fs/open.c
 ```
 static inline int build_open_flags(int flags, umode_t mode, struct open_flags *op)
@@ -336,6 +338,105 @@ static inline int build_open_flags(int flags, umode_t mode, struct open_flags *o
 		lookup_flags |= LOOKUP_FOLLOW;
 	op->lookup_flags = lookup_flags;
 	return 0;
+}
+```
+
+#### do_filp_open
+
+调用do_filp_open函数,传递给它的参数有路径名和包含flags和mode的数据结构open_flags.
+
+path: fs/namei.c
+```
+struct file *do_filp_open(int dfd, struct filename *pathname,
+		const struct open_flags *op)
+{
+	struct nameidata nd;
+	int flags = op->lookup_flags;
+	struct file *filp;
+
+	filp = path_openat(dfd, pathname, &nd, op, flags | LOOKUP_RCU);
+	if (unlikely(filp == ERR_PTR(-ECHILD)))
+		filp = path_openat(dfd, pathname, &nd, op, flags);
+	if (unlikely(filp == ERR_PTR(-ESTALE)))
+		filp = path_openat(dfd, pathname, &nd, op, flags | LOOKUP_REVAL);
+	return filp;
+}
+```
+
+#### path_openat
+
+path: fs/namei.c
+
+```
+static struct file *path_openat(int dfd, struct filename *pathname,
+		struct nameidata *nd, const struct open_flags *op, int flags)
+{
+	struct file *base = NULL;
+	struct file *file;
+	struct path path;
+	int opened = 0;
+	int error;
+
+	file = get_empty_filp();
+	if (IS_ERR(file))
+		return file;
+
+	file->f_flags = op->open_flag;
+
+	if (unlikely(file->f_flags & __O_TMPFILE)) {
+		error = do_tmpfile(dfd, pathname, nd, flags, op, file, &opened);
+		goto out;
+	}
+
+	error = path_init(dfd, pathname->name, flags | LOOKUP_PARENT, nd, &base);
+	if (unlikely(error))
+		goto out;
+
+	current->total_link_count = 0;
+	error = link_path_walk(pathname->name, nd);
+	if (unlikely(error))
+		goto out;
+
+	error = do_last(nd, &path, file, op, &opened, pathname);
+	while (unlikely(error > 0)) { /* trailing symlink */
+		struct path link = path;
+		void *cookie;
+		if (!(nd->flags & LOOKUP_FOLLOW)) {
+			path_put_conditional(&path, nd);
+			path_put(&nd->path);
+			error = -ELOOP;
+			break;
+		}
+		error = may_follow_link(&link, nd);
+		if (unlikely(error))
+			break;
+		nd->flags |= LOOKUP_PARENT;
+		nd->flags &= ~(LOOKUP_OPEN|LOOKUP_CREATE|LOOKUP_EXCL);
+		error = follow_link(&link, nd, &cookie);
+		if (unlikely(error))
+			break;
+		error = do_last(nd, &path, file, op, &opened, pathname);
+		put_link(nd, &link, cookie);
+	}
+out:
+	if (nd->root.mnt && !(nd->flags & LOOKUP_ROOT))
+		path_put(&nd->root);
+	if (base)
+		fput(base);
+	if (!(opened & FILE_OPENED)) {
+		BUG_ON(!error);
+		put_filp(file);
+	}
+	if (unlikely(error)) {
+		if (error == -EOPENSTALE) {
+			if (flags & LOOKUP_RCU)
+				error = -ECHILD;
+			else
+				error = -ESTALE;
+		}
+		file = ERR_PTR(error);
+	}
+	return file;
 }
 ```
 
