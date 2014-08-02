@@ -1,4 +1,4 @@
-Linux 0.11 Install Disk Filesystem
+Linux 0.11 安装硬盘文件系统
 ================================================================================
 
 准备过程
@@ -8,7 +8,7 @@ Linux 0.11 Install Disk Filesystem
 
 1. 硬盘参数表(DRIVE_INFO):
 
-#define DRIVE_INFO (*(struct drive_info*)0x90080)  内存0x90080开始32字节的机器系统数据用于存放硬盘参数表.
+\#define DRIVE_INFO (*(struct drive_info*)0x90080)  内存0x90080开始32字节的机器系统数据用于存放硬盘参数表.
 
 2. 硬盘参数描述符:
 
