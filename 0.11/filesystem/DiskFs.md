@@ -390,48 +390,10 @@ struct buffer_head * getblk(int dev,int block)
     struct buffer_head * tmp, * bh;
 
 repeat:
+    /* 因为是第一次调用hash_table中肯定没有指定设备号，块号的缓冲块. */
     if ((bh = get_hash_table(dev,block)))
         return bh;
-    tmp = free_list;
-    do {
-        if (tmp->b_count)
-            continue;
-        if (!bh || BADNESS(tmp)<BADNESS(bh)) {
-            bh = tmp;
-            if (!BADNESS(tmp))
-                break;
-        }
-    /* and repeat until we find something good */
-    } while ((tmp = tmp->b_next_free) != free_list);
-    if (!bh) {
-        sleep_on(&buffer_wait);
-        goto repeat;
-    }
-    wait_on_buffer(bh);
-    if (bh->b_count)
-        goto repeat;
-
-    while (bh->b_dirt) {
-        sync_dev(bh->b_dev);
-        wait_on_buffer(bh);
-        if (bh->b_count)
-            goto repeat;
-    }
-
-    /* NOTE!! While we slept waiting for this block, somebody else might */
-    /* already have added "this" block to the cache. check it */
-    if (find_buffer(dev,block))
-        goto repeat;
-    /* OK, FINALLY we know that this buffer is the only one of it's kind, */
-    /* and that it's unused (b_count=0), unlocked (b_lock=0), and clean */
-    bh->b_count=1;
-    bh->b_dirt=0;
-    bh->b_uptodate=0;
-    remove_from_queues(bh);
-    bh->b_dev=dev;
-    bh->b_blocknr=block;
-    insert_into_queues(bh);
-    return bh;
+    ......
 }
 ```
 
@@ -452,6 +414,9 @@ struct buffer_head * get_hash_table(int dev, int block)
     struct buffer_head * bh;
 
     for (;;) {
+        /* 现在是第一次使用缓冲区,缓冲区的hash_table中不可能存在已读入的缓冲块,
+         * 也就是hash_table中没有挂接任何节点. find_buffer返回的一定是NULL.
+         */
         if (!(bh=find_buffer(dev,block)))
             return NULL;
         bh->b_count++;
@@ -460,6 +425,85 @@ struct buffer_head * get_hash_table(int dev, int block)
             return bh;
         bh->b_count--;
     }
+}
+```
+
+find_buffer的具体实现如下所示:
+
+path: fs/buffer.c
+```
+#define _hashfn(dev,block) (((unsigned)(dev^block))%NR_HASH)
+#define hash(dev,block) hash_table[_hashfn(dev,block)]
+......
+static struct buffer_head * find_buffer(int dev, int block)
+{
+    struct buffer_head * tmp;
+
+    for (tmp = hash(dev,block) ; tmp != NULL ; tmp = tmp->b_next)
+        if (tmp->b_dev==dev && tmp->b_blocknr==block)
+            return tmp;
+    return NULL;
+}
+```
+
+返回到getblk函数中去从空闲缓冲区中申请一个空闲缓冲块
+
+path: fs/buffer.c
+```
+struct buffer_head * getblk(int dev,int block)
+{
+    struct buffer_head * tmp, * bh;
+
+repeat:
+    /* 因为是第一次调用hash_table中肯定没有指定设备号，块号的缓冲块. */
+    if ((bh = get_hash_table(dev,block)))
+        return bh;
+
+    /* 在hash_table中没有查询到对应的缓冲块,所以要在空闲链表中申请新的缓冲块 */
+    tmp = free_list;
+    do {
+        if (tmp->b_count)
+            continue;
+        if (!bh || BADNESS(tmp)<BADNESS(bh)) { // bh现在为NULL, 取得空闲的缓冲块
+            bh = tmp;
+            if (!BADNESS(tmp))
+                break;
+        }
+    /* and repeat until we find something good */
+    } while ((tmp = tmp->b_next_free) != free_list);
+    if (!bh) {
+        sleep_on(&buffer_wait);
+        goto repeat;
+    }
+    /* 缓冲块没有加锁 */
+    wait_on_buffer(bh);
+    /* 现在还没有使用缓冲块 */
+    if (bh->b_count)
+        goto repeat;
+
+    /* 缓冲块的内容没有被修改 */
+    while (bh->b_dirt) {
+        sync_dev(bh->b_dev);
+        wait_on_buffer(bh);
+        if (bh->b_count)
+            goto repeat;
+    }
+
+    /* NOTE!! While we slept waiting for this block, somebody else might */
+    /* already have added "this" block to the cache. check it */
+    if (find_buffer(dev,block))
+        goto repeat;
+    /* OK, FINALLY we know that this buffer is the only one of it's kind, */
+    /* and that it's unused (b_count=0), unlocked (b_lock=0), and clean */
+    /* 申请到缓冲块后,对它进行初始化设置,并将这个缓冲块挂接到hash_table中 */
+    bh->b_count=1;
+    bh->b_dirt=0;
+    bh->b_uptodate=0;
+    remove_from_queues(bh);
+    bh->b_dev=dev;
+    bh->b_blocknr=block;
+    insert_into_queues(bh);
+    return bh;
 }
 ```
 
