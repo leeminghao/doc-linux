@@ -140,3 +140,72 @@ long rd_init(long mem_start, int length)
     return(length);
 }
 ```
+
+### 初始化缓冲区
+
+Linux 0.11通过hash_table[NR_HASH], buffer_head双向循环链表组成的复杂哈希表管理缓冲区.
+缓冲区的初始化是通过buffer_init函数对缓冲区进行设置的，如下所示：
+
+path: init/main.c
+```
+void main(void)
+{
+    ......
+    buffer_init(buffer_memory_end);
+    ......
+}
+```
+
+path: fs/buffer.c
+```
+/* 这个end是内核代码末端的地址,这个值是在内核模块链接期间设置end这个值,
+** 然后在这里使用.
+*/
+struct buffer_head * start_buffer = (struct buffer_head *) &end;
+struct buffer_head * hash_table[NR_HASH];
+static struct buffer_head * free_list;
+......
+/* 在buffer_init函数里,从内核的末端及缓冲区的末端开始,方向相对增长,配对的做出buffer_head,缓冲块
+** 直到不足一对buffer_head, 缓冲块.
+*/
+void buffer_init(long buffer_end)
+{
+    struct buffer_head * h = start_buffer;
+    void * b;
+    int i;
+
+    if (buffer_end == 1<<20)
+        b = (void *) (640*1024);
+    else
+        b = (void *) buffer_end;
+    /* h, b分别从缓冲区的低地址和高地址开始,每次取buffer_head, 缓冲块各一个.
+     * 忽略剩余不足一对buffer_head, 缓冲块的空间
+     */
+    while ( (b -= BLOCK_SIZE) >= ((void *) (h+1)) ) {
+        h->b_dev = 0;
+        h->b_dirt = 0;
+        h->b_count = 0;
+        h->b_lock = 0;
+        h->b_uptodate = 0;
+        h->b_wait = NULL;
+        /* 这两项初始化为NULL, 后续使用将与hash_table挂接 */
+        h->b_next = NULL;
+        h->b_prev = NULL;
+        /* 每个buffer_head关联一个缓冲块 */
+        h->b_data = (char *) b;
+        /* 这两项使buffer_head分别与前,后buffer_head链接形成双链表 */
+        h->b_prev_free = h-1;
+        h->b_next_free = h+1;
+        h++;
+        NR_BUFFERS++;
+        if (b == (void *) 0x100000) // 避开ROMBIOS & VGA
+            b = (void *) 0xA0000;
+    }
+    h--;
+    free_list = start_buffer;
+    free_list->b_prev_free = h;
+    h->b_next_free = free_list;
+    for (i=0;i<NR_HASH;i++)
+        hash_table[i]=NULL;
+}
+```

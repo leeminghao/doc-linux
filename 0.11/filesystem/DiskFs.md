@@ -144,18 +144,48 @@ i-节点的链接数目域记录了有多少个目录项指向这个i-节点,因
 准备过程
 --------------------------------------------------------------------------------
 
+### 轮转到进程1执行
+
+执行进程1过程如下:
+
+path: init/main.c
+```
+void main(void)
+{
+    ......
+    if (!fork()) {        /* we count on this going ok */
+        init();  // 跳转到进程1执行
+    }
+    ......
+}
+```
+
+path: init/main.c
+```
+void init(void)
+{
+    ......
+    setup((void *) &drive_info); // drive_info就是硬盘参数表
+    ......
+}
+```
+
 ### 根据机器系统数据(DRIVE_INFO)设置硬盘参数(hd_info):
 
 #### 硬盘参数表(DRIVE_INFO):
 
-\#define DRIVE_INFO (*(struct drive_info*)0x90080)  内存0x90080开始32字节的机器系统数据用于存放硬盘参数表.
-
 硬盘参数表是由setup程序利用ROM BIOS的中断读取的机器系统数据.
+
+path: init/main.c
+```
+#define DRIVE_INFO (*(struct drive_info*)0x90080)  内存0x90080开始32字节的机器系统数据用于存放硬盘参数表.
+```
 
 #### 硬盘参数描述符:
 
 所有硬盘的参数存放到类型为(struct hd_i_struct)的变量hd_info中
 
+path: kernel/blk_drv/hd.c
 ```
 struct hd_i_struct {
     int head; // 磁头数
@@ -171,20 +201,116 @@ struct hd_i_struct {
 
 所有的硬盘信息存放到类型为(struct hd_struct)的变量hd中
 
+path: kernel/blk_drv/hd.c
 ```
 static struct hd_struct {
     long start_sect;  // 起始扇区
     long nr_sects;    // 总扇区数
-};
+} hd[5*MAX_HD]={{0,0},};
 ```
 
 #### 过程:
 
 设置硬盘参数信息是通过调用sys_setup来实现的,具体过程如下:
 
-A. 根据硬盘参数表中的信息设置hd_info
+根据硬盘参数表中的信息设置hd_info; 根据hd_info中的硬盘参数描述符中的信息设置hd
 
-B. 根据hd_info中的硬盘参数描述符中的信息设置hd
+具体实现如下所示:
+
+path: kernel/blk_drv/hd.c
+```
+/* This may be used only once, enforced by 'static int callable' */
+int sys_setup(void * BIOS)
+{
+    static int callable = 1;
+    int i,drive;
+    unsigned char cmos_disks;
+    struct partition *p;
+    struct buffer_head * bh;
+
+    if (!callable)
+        return -1;
+    callable = 0;
+#ifndef HD_TYPE
+    /* A. 读取drive_info设置hd_info */
+    for (drive=0 ; drive<2 ; drive++) {
+        hd_info[drive].cyl = *(unsigned short *) BIOS;
+        hd_info[drive].head = *(unsigned char *) (2+BIOS);
+        hd_info[drive].wpcom = *(unsigned short *) (5+BIOS);
+        hd_info[drive].ctl = *(unsigned char *) (8+BIOS);
+        hd_info[drive].lzone = *(unsigned short *) (12+BIOS);
+        hd_info[drive].sect = *(unsigned char *) (14+BIOS);
+        BIOS += 16;
+    }
+    /* 判断有几个硬盘 */
+    if (hd_info[1].cyl)
+        NR_HD=2;
+    else
+        NR_HD=1;
+#endif
+    /* 一个物理硬盘最多可以分为4各逻辑盘,0是物理盘,1~4是逻辑盘,共5个.
+     * 第1个物理盘是0 * 5, 第2个物理盘是1 * 5.
+     */
+    for (i=0 ; i<NR_HD ; i++) {
+        hd[i*5].start_sect = 0;
+        hd[i*5].nr_sects = hd_info[i].head*
+                hd_info[i].sect*hd_info[i].cyl;
+    }
+
+    /*
+        We querry CMOS about hard disks : it could be that
+        we have a SCSI/ESDI/etc controller that is BIOS
+        compatable with ST-506, and thus showing up in our
+        BIOS table, but not register compatable, and therefore
+        not present in CMOS.
+
+        Furthurmore, we will assume that our ST-506 drives
+        <if any> are the primary drives in the system, and
+        the ones reflected as drive 1 or 2.
+
+        The first drive is stored in the high nibble of CMOS
+        byte 0x12, the second in the low nibble.  This will be
+        either a 4 bit drive type or 0xf indicating use byte 0x19
+        for an 8 bit type, drive 1, 0x1a for drive 2 in CMOS.
+
+        Needless to say, a non-zero value means we have
+        an AT controller hard disk for that drive.
+    */
+
+    if ((cmos_disks = CMOS_READ(0x12)) & 0xf0)
+        if (cmos_disks & 0x0f)
+            NR_HD = 2;
+        else
+            NR_HD = 1;
+    else
+        NR_HD = 0;
+    for (i = NR_HD ; i < 2 ; i++) {
+        hd[i*5].start_sect = 0;
+        hd[i*5].nr_sects = 0;
+    }
+
+    /* 第一个物理盘号是0x300, 第2个是0x305, 读每个物理硬盘的0号块，即引导块, 有分区信息 */
+    for (drive=0 ; drive<NR_HD ; drive++) {
+        if (!(bh = bread(0x300 + drive*5,0))) {
+            printk("Unable to read partition table of drive %d\n\r",
+                drive);
+            panic("");
+        }
+        if (bh->b_data[510] != 0x55 || (unsigned char)
+            bh->b_data[511] != 0xAA) {
+            printk("Bad partition table on drive %d\n\r",drive);
+            panic("");
+        }
+        p = 0x1BE + (void *)bh->b_data;
+        for (i=1;i<5;i++,p++) {
+            hd[i+5*drive].start_sect = p->start_sect;
+            hd[i+5*drive].nr_sects = p->nr_sects;
+        }
+        brelse(bh);
+    }
+    ......
+}
+```
 
 ### 读取硬盘引导块.
 
@@ -192,13 +318,150 @@ B. 根据hd_info中的硬盘参数描述符中的信息设置hd
 
 读取硬盘引导块是通过在sys_setup中通过向bread函数传递硬盘设备号和块号0(引导块)来读取的,具体过程如下:
 
-A. 调用getblk在缓冲区中申请一个空闲的缓冲块(struct buffer_head).
+path: kernel/blk_drv/hd.c
+```
+/* This may be used only once, enforced by 'static int callable' */
+int sys_setup(void * BIOS)
+{
+    ......
+    struct partition *p;
+    struct buffer_head * bh;
+    ......
+    for (drive=0 ; drive<NR_HD ; drive++) {
+        /* 第一个物理盘号是0x300, 第2个是0x305, 读每个物理硬盘的0号块，即引导块, 有分区信息 */
+        if (!(bh = bread(0x300 + drive*5,0))) {
+            printk("Unable to read partition table of drive %d\n\r",
+                drive);
+            panic("");
+        }
+        if (bh->b_data[510] != 0x55 || (unsigned char)
+            bh->b_data[511] != 0xAA) {
+            printk("Bad partition table on drive %d\n\r",drive);
+            panic("");
+        }
+        p = 0x1BE + (void *)bh->b_data;
+        for (i=1;i<5;i++,p++) {
+            hd[i+5*drive].start_sect = p->start_sect;
+            hd[i+5*drive].nr_sects = p->nr_sects;
+        }
+        brelse(bh);
+    }
+    if (NR_HD)
+        printk("Partition table%s ok.\n\r",(NR_HD>1)?"s":"");
 
-B. 进入getblk后首先调用get_hash_table查找hash表，检索此前是否有程序把现在要读的硬盘逻辑块
-   (相同设备号和块号)已经读到缓冲区.使用hash表的目的是提高查询速度.
+    rd_load();
+    mount_root();
+    return (0);
+}
+```
 
-C. 进入get_hash_table后调用find_buffer从hash表查找缓冲区中是否有指定设备号,块号的缓冲块,如果能找到指定
-   缓冲块，就直接用.
+进入bread函数中以后调用getblk在缓冲区中申请一个空闲的缓冲块(struct buffer_head):
+
+path: fs/buffer.c
+```
+/*
+ * bread() reads a specified block and returns the buffer that contains
+ * it. It returns NULL if the block was unreadable.
+ */
+struct buffer_head * bread(int dev,int block) // 读制定dev, block, 第一块硬盘是0x300, block是0
+{
+    struct buffer_head * bh;
+
+    if (!(bh=getblk(dev,block)))
+        panic("bread: getblk returned NULL\n");
+    if (bh->b_uptodate)
+        return bh;
+    ll_rw_block(READ,bh);
+    wait_on_buffer(bh);
+    if (bh->b_uptodate)
+        return bh;
+    brelse(bh);
+    return NULL;
+}
+```
+
+进入getblk后首先调用get_hash_table查找hash表，检索此前是否有程序把现在要读的硬盘逻辑块
+(相同设备号和块号)已经读到缓冲区. 使用hash表的目的是提高查询速度:
+
+path: fs/buffer.c
+```
+struct buffer_head * getblk(int dev,int block)
+{
+    struct buffer_head * tmp, * bh;
+
+repeat:
+    if ((bh = get_hash_table(dev,block)))
+        return bh;
+    tmp = free_list;
+    do {
+        if (tmp->b_count)
+            continue;
+        if (!bh || BADNESS(tmp)<BADNESS(bh)) {
+            bh = tmp;
+            if (!BADNESS(tmp))
+                break;
+        }
+    /* and repeat until we find something good */
+    } while ((tmp = tmp->b_next_free) != free_list);
+    if (!bh) {
+        sleep_on(&buffer_wait);
+        goto repeat;
+    }
+    wait_on_buffer(bh);
+    if (bh->b_count)
+        goto repeat;
+
+    while (bh->b_dirt) {
+        sync_dev(bh->b_dev);
+        wait_on_buffer(bh);
+        if (bh->b_count)
+            goto repeat;
+    }
+
+    /* NOTE!! While we slept waiting for this block, somebody else might */
+    /* already have added "this" block to the cache. check it */
+    if (find_buffer(dev,block))
+        goto repeat;
+    /* OK, FINALLY we know that this buffer is the only one of it's kind, */
+    /* and that it's unused (b_count=0), unlocked (b_lock=0), and clean */
+    bh->b_count=1;
+    bh->b_dirt=0;
+    bh->b_uptodate=0;
+    remove_from_queues(bh);
+    bh->b_dev=dev;
+    bh->b_blocknr=block;
+    insert_into_queues(bh);
+    return bh;
+}
+```
+
+进入get_hash_table后调用find_buffer从hash表查找缓冲区中是否有指定设备号,块号的缓冲块,
+如果能找到指定缓冲块，就直接用:
+
+path: fs/buffer.c
+```
+/*
+ * Why like this, I hear you say... The reason is race-conditions.
+ * As we don't lock buffers (unless we are readint them, that is),
+ * something might happen to it while we sleep (ie a read-error
+ * will force it bad). This shouldn't really happen currently, but
+ * the code is ready.
+ */
+struct buffer_head * get_hash_table(int dev, int block)
+{
+    struct buffer_head * bh;
+
+    for (;;) {
+        if (!(bh=find_buffer(dev,block)))
+            return NULL;
+        bh->b_count++;
+        wait_on_buffer(bh);
+        if (bh->b_dev == dev && bh->b_blocknr == block)
+            return bh;
+        bh->b_count--;
+    }
+}
+```
 
 #### 块高速缓存(struct buffer_head)
 
