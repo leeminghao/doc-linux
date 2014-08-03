@@ -197,7 +197,7 @@ A. 调用getblk在缓冲区中申请一个空闲的缓冲块(struct buffer_head)
 B. 进入getblk后首先调用get_hash_table查找hash表，检索此前是否有程序把现在要读的硬盘逻辑块
    (相同设备号和块号)已经读到缓冲区.使用hash表的目的是提高查询速度.
 
-C. 进入get_hash_table后调用find_buffer查找缓冲区中是否有指定设备号,块号的缓冲块,如果能找到指定
+C. 进入get_hash_table后调用find_buffer从hash表查找缓冲区中是否有指定设备号,块号的缓冲块,如果能找到指定
    缓冲块，就直接用.
 
 #### 块高速缓存(struct buffer_head)
