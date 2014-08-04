@@ -366,11 +366,12 @@ path: fs/buffer.c
 struct buffer_head * bread(int dev,int block) // 读制定dev, block, 第一块硬盘是0x300, block是0
 {
     struct buffer_head * bh;
-
+    /* 申请一个空闲缓冲块 */
     if (!(bh=getblk(dev,block)))
         panic("bread: getblk returned NULL\n");
     if (bh->b_uptodate)
         return bh;
+
     ll_rw_block(READ,bh);
     wait_on_buffer(bh);
     if (bh->b_uptodate)
@@ -499,11 +500,91 @@ repeat:
     bh->b_count=1;
     bh->b_dirt=0;
     bh->b_uptodate=0;
+    /* 将空闲缓冲块从空闲链表中移出 */
     remove_from_queues(bh);
     bh->b_dev=dev;
     bh->b_blocknr=block;
+    /* 将空闲缓冲块添加到hash表中去 */
     insert_into_queues(bh);
     return bh;
+}
+```
+
+remove_from_queues与insert_into_queues函数用于将缓冲块挂接在hash_table中，具体实现如下所示:
+
+path: fs/buffer.c
+```
+static inline void remove_from_queues(struct buffer_head * bh)
+{
+    /* remove from hash-queue */
+    if (bh->b_next)
+        bh->b_next->b_prev = bh->b_prev;
+    if (bh->b_prev)
+        bh->b_prev->b_next = bh->b_next;
+    if (hash(bh->b_dev,bh->b_blocknr) == bh)
+        hash(bh->b_dev,bh->b_blocknr) = bh->b_next;
+    /* remove from free list */
+    if (!(bh->b_prev_free) || !(bh->b_next_free))
+        panic("Free block list corrupted");
+    bh->b_prev_free->b_next_free = bh->b_next_free;
+    bh->b_next_free->b_prev_free = bh->b_prev_free;
+    if (free_list == bh)
+        free_list = bh->b_next_free;
+}
+
+static inline void insert_into_queues(struct buffer_head * bh)
+{
+    /* put at end of free list */
+    bh->b_next_free = free_list;
+    bh->b_prev_free = free_list->b_prev_free;
+    free_list->b_prev_free->b_next_free = bh;
+    free_list->b_prev_free = bh;
+    /* put the buffer in new hash-queue if it has a device */
+    bh->b_prev = NULL;
+    bh->b_next = NULL;
+    if (!bh->b_dev)
+        return;
+    bh->b_next = hash(bh->b_dev,bh->b_blocknr);
+    hash(bh->b_dev,bh->b_blocknr) = bh;
+    bh->b_next->b_prev = bh;
+}
+```
+
+接着返回到bread函数之后,调用ll_rw_block这个函数,将缓冲块与请求项挂接.如下所示:
+
+path: fs/buffer.c
+```
+struct buffer_head * bread(int dev,int block)
+{
+    struct buffer_head * bh;
+
+    if (!(bh=getblk(dev,block)))
+        panic("bread: getblk returned NULL\n");
+    if (bh->b_uptodate)
+        return bh;
+    ll_rw_block(READ,bh);
+    wait_on_buffer(bh);
+    if (bh->b_uptodate)
+        return bh;
+    brelse(bh);
+    return NULL;
+}
+```
+
+path: kernel/blk_drv/ll_rw_block.c
+```
+void ll_rw_block(int rw, struct buffer_head * bh)
+{
+    unsigned int major;
+
+    /* 判断对应缓冲块对应的设备是否存在，存在的话需要判断对应的设备请求项函数是否挂接正常 */
+    if ((major=MAJOR(bh->b_dev)) >= NR_BLK_DEV ||
+    !(blk_dev[major].request_fn)) {
+        printk("Trying to read nonexistent block-device\n\r");
+        return;
+    }
+    /* 调用make_request函数，将缓冲块与请求项建立联系 */
+    make_request(major,rw,bh);
 }
 ```
 

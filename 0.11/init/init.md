@@ -209,3 +209,131 @@ void buffer_init(long buffer_end)
         hash_table[i]=NULL;
 }
 ```
+
+### 初始化块设备请求项数据结构
+
+Linux 0.11将外设分为两类:
+块设备: 将存储空间分为若干同样大小的称为块的存储空间,每个块有块号,可以独立,随机读写.
+字符设备: 以字符为单位进行I/O通信.
+
+进程要想与块设备进行沟通,必须经过主机内存中的缓冲区，请求项管理结构request[32]就是操作系统
+与块设备上逻辑块之间读写关系的数据结构,如下所示:
+
+kernel/blk_dev/blk.h
+```
+/*
+ * NR_REQUEST is the number of entries in the request-queue.
+ * NOTE that writes may use only the low 2/3 of these: reads
+ * take precedence.
+ *
+ * 32 seems to be a reasonable number: enough to get some benefit
+ * from the elevator-mechanism, but not so much as to lock a lot of
+ * buffers when they are in the queue. 64 seems to be too many (easily
+ * long pauses in reading when heavy writing/syncing is going on)
+ */
+#define NR_REQUEST    32
+
+/*
+ * Ok, this is an expanded form so that we can use the same
+ * request for paging requests when that is implemented. In
+ * paging, 'bh' is NULL, and 'waiting' is used to wait for
+ * read/write completion.
+ */
+struct request {
+    int dev;        /* -1 if no request */
+    int cmd;        /* READ or WRITE */
+    int errors;
+    unsigned long sector;
+    unsigned long nr_sectors;
+    char * buffer;
+    struct task_struct * waiting;
+    struct buffer_head * bh;
+    struct request * next;
+};
+```
+
+path: kernel/blk_drv/ll_rw_blk.c
+```
+/*
+ * The request-struct contains all necessary data
+ * to load a nr of sectors into memory
+ */
+struct request request[NR_REQUEST];
+```
+
+OS根据所有进程读写任务的轻重缓急,决定缓冲块与块设备之间的读写操作,并把需要操作的缓冲块
+记录在请求项链表中，得到读写块设备的操作指令之后，只根据请求项中的记录来决定当前需要处理
+哪个设备的哪个逻辑块. 请求项链表初始化过程如下所示:
+
+path: init/main.c
+```
+void main(void)
+{
+    ......
+    blk_dev_init();
+    ......
+}
+```
+
+path: kernel/blk_drv/ll_rw_blk.c
+```
+void blk_dev_init(void)
+{
+    int i;
+
+    /* request[32]是一个由数组组成的链表 */
+    for (i=0 ; i<NR_REQUEST ; i++) {
+        request[i].dev = -1;
+        request[i].next = NULL;
+    }
+}
+```
+
+### 初始化硬盘
+
+path: init/main.c
+```
+void main(void)
+{
+    ......
+    hd_init();
+    ......
+}
+```
+
+path: kernel/blk_drv/blk.h
+```
+#if (MAJOR_NR == 1)
+/* ram disk */
+......
+#elif (MAJOR_NR == 2)
+/* floppy */
+......
+#elif (MAJOR_NR == 3)
+/* harddisk */
+#define DEVICE_NAME "harddisk"
+#define DEVICE_INTR do_hd
+#define DEVICE_REQUEST do_hd_request
+#define DEVICE_NR(device) (MINOR(device)/5)
+#define DEVICE_ON(device)
+#define DEVICE_OFF(device)
+#elif
+/* unknown blk device */
+#error "unknown blk device"
+#endif
+```
+
+path: kernel/blk_drv/hd.c
+```
+void hd_init(void)
+{
+    /* 挂接do_hd_request函数 */
+    blk_dev[MAJOR_NR].request_fn = DEVICE_REQUEST;
+    /* 设置硬盘中断 */
+    set_intr_gate(0x2E,&hd_interrupt);
+    /* 允许8259A发出中断请求 */
+    outb_p(inb_p(0x21)&0xfb,0x21);
+    /* 允许硬盘发送中断请求 */
+    outb(inb_p(0xA1)&0xbf,0xA1);
+}
+```
