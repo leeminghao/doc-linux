@@ -571,7 +571,7 @@ struct buffer_head * bread(int dev,int block)
 }
 ```
 
-path: kernel/blk_drv/ll_rw_block.c
+path: kernel/blk_drv/ll_rw_blk.c
 ```
 void ll_rw_block(int rw, struct buffer_head * bh)
 {
@@ -583,10 +583,350 @@ void ll_rw_block(int rw, struct buffer_head * bh)
         printk("Trying to read nonexistent block-device\n\r");
         return;
     }
-    /* 调用make_request函数，将缓冲块与请求项建立联系 */
+
     make_request(major,rw,bh);
 }
 ```
+
+接下来,调用make_request函数，将缓冲块与请求项建立联系:
+
+path: kernel/blk_drv/ll_rw_blk.c
+```
+static void make_request(int major,int rw, struct buffer_head * bh)
+{
+    struct request * req;
+    int rw_ahead;
+
+    /* WRITEA/READA is special case - it is not really needed, so if the */
+    /* buffer is locked, we just forget about it, else it's a normal read */
+    /* 检查传递进来的缓冲块是否已经加锁 */
+    if ((rw_ahead = (rw == READA || rw == WRITEA))) {
+        if (bh->b_lock)  // 现在还没有加锁
+            return;
+        if (rw == READA) // 放弃预读写,改为普通读写
+            rw = READ;
+        else
+            rw = WRITE;
+    }
+    if (rw!=READ && rw!=WRITE)
+        panic("Bad block dev command, must be R/W/RA/WA");
+    /* 先将这个缓冲块加锁,目的是保护这个缓冲块在解锁之前将不再被任何进程操作,
+     * 这是因为这个缓冲块现在已经被使用,如果此后再被挪作它用，里面数据会发生混乱.
+     */
+    lock_buffer(bh);
+    if ((rw == WRITE && !bh->b_dirt) || (rw == READ && bh->b_uptodate)) {
+        unlock_buffer(bh);
+        return;
+    }
+
+repeat:
+   /* we don't allow the write-requests to fill up the queue completely:
+    * we want some room for reads: they take precedence. The last third
+    * of the requests are only for reads.
+    */
+    /* 如果是读请求,则从整个请求项结构的最末端开始寻找空闲请求项; 如果是写请求,则从这个结构的
+     * 2/3处,申请空闲请求项. 这是从用户使用的系统心里学来说，用户更希望读取的数据能更快的显现
+     * 出来，所以给读取操作更大空间.
+     */
+    if (rw == READ)
+        req = request+NR_REQUEST;
+    else
+        req = request+((NR_REQUEST*2)/3);
+
+    /* find an empty request */
+    /* 从后向前搜索空闲缓冲块 */
+    while (--req >= request)
+        if (req->dev<0)
+            break;
+
+    /* if none found, sleep on new requests: check for rw_ahead */
+    if (req < request) {
+        if (rw_ahead) {
+            unlock_buffer(bh);
+            return;
+        }
+        sleep_on(&wait_for_request);
+        goto repeat;
+    }
+
+    /* fill up the request-info, and add it to the queue */
+    /* 设置请求项 */
+    req->dev = bh->b_dev;
+    req->cmd = rw;
+    req->errors=0;
+    req->sector = bh->b_blocknr<<1;
+    req->nr_sectors = 2;
+    req->buffer = bh->b_data;
+    req->waiting = NULL;
+    req->bh = bh;
+    req->next = NULL;
+
+    /* 调用add_request函数，向请求队列中加载该请求项, 在这里blk_dev+major指向的是硬盘设备 */
+    add_request(major+blk_dev,req);
+}
+```
+
+path: kernel/blk_drv/blk.h
+```
+struct blk_dev_struct {
+    void (*request_fn)(void);
+    struct request * current_request;
+};
+```
+
+path: kernel/blk_drv/ll_rw_blk.c
+```
+/* blk_dev_struct is:
+ *    do_request-address
+ *    next-request
+ */
+struct blk_dev_struct blk_dev[NR_BLK_DEV] = {
+    { NULL, NULL },        /* no_dev */
+    { NULL, NULL },        /* dev mem */
+    { NULL, NULL },        /* dev fd */
+    { NULL, NULL },        /* dev hd */
+    { NULL, NULL },        /* dev ttyx */
+    { NULL, NULL },        /* dev tty */
+    { NULL, NULL },        /* dev lp */
+};
+```
+
+add_request的具体实现如下所示:
+
+path: kernel/blk_drv/ll_rw_blk.c
+```
+/*
+ * add-request adds a request to the linked list.
+ * It disables interrupts so that it can muck with the
+ * request-lists in peace.
+ */
+static void add_request(struct blk_dev_struct * dev, struct request * req)
+{
+    struct request * tmp;
+
+    req->next = NULL;
+    cli();
+    if (req->bh)
+        req->bh->b_dirt = 0;
+    /* 如果当前硬盘设备当前请求项为空，没有进程发起请求，则设置硬盘设备的当前请求项为
+     * 前面设置的请求项, 并调用硬盘请求项处理函数 */
+    if (!(tmp = dev->current_request)) {
+        dev->current_request = req;
+        sti();
+        (dev->request_fn)();  // do_hd_request
+        return;
+    }
+    /* 如果当前硬盘设备有请求项，那么利用电梯算法将前面设置的请求项挂在请求项队列中 */
+    for ( ; tmp->next ; tmp=tmp->next)
+        if ((IN_ORDER(tmp,req) ||
+            !IN_ORDER(tmp,tmp->next)) &&
+            IN_ORDER(req,tmp->next))
+            break;
+    req->next=tmp->next;
+    tmp->next=req;
+    sti();
+}
+```
+
+接下来，进入do_hd_request函数去执行,为读硬盘做最后准备工作, 具体实现如下所示:
+
+path: kernel/blk_drv/blk.h
+```
+#define CURRENT (blk_dev[MAJOR_NR].current_request)
+#define CURRENT_DEV DEVICE_NR(CURRENT->dev)
+```
+
+path: kernel/blk_drv/hd.c
+```
+static int recalibrate = 1;
+static int reset = 1;
+
+void do_hd_request(void)
+{
+    int i,r = 0;
+    unsigned int block,dev;
+    unsigned int sec,head,cyl;
+    unsigned int nsect;
+
+    /* 通过对当前请求项数据成员的分析,解析出需要操作的磁头,扇区,柱面,操作多少个扇区.
+     * 之后,建立硬盘读盘必要的参数,将磁头移动到0柱面
+     */
+    INIT_REQUEST;
+    dev = MINOR(CURRENT->dev);
+    block = CURRENT->sector;
+    if (dev >= 5*NR_HD || block+2 > hd[dev].nr_sects) {
+        end_request(0);
+        goto repeat;
+    }
+    block += hd[dev].start_sect;
+    dev /= 5;
+    __asm__("divl %4":"=a" (block),"=d" (sec):"0" (block),"1" (0),
+        "r" (hd_info[dev].sect));
+    __asm__("divl %4":"=a" (cyl),"=d" (head):"0" (block),"1" (0),
+        "r" (hd_info[dev].head));
+    sec++;
+    nsect = CURRENT->nr_sectors;
+
+    if (reset) {
+        reset = 0;         /* 防止多次执行if(reset) */
+        recalibrate = 1;   /* 确保执行下面if(recalibrate)*/
+        /* 将通过调用hd_out向硬盘发送WIN_SPECIFY命令,建立硬盘读盘必要的参数 */
+        reset_hd(CURRENT_DEV);
+        return;
+    }
+
+    if (recalibrate) {
+        recalibrate = 0; /* 防止多次执行if (recalibrate) */
+        /* 将向硬盘发送WIN_RESTORE命令，将磁头移动到0柱面，以便从硬盘上读取数据 */
+        hd_out(dev,hd_info[CURRENT_DEV].sect,0,0,0,
+            WIN_RESTORE,&recal_intr);
+        return;
+    }
+
+    /* 针对命令的性质给硬盘发送操作命令 */
+    if (CURRENT->cmd == WRITE) {
+        hd_out(dev,nsect,sec,head,cyl,WIN_WRITE,&write_intr);
+        for(i=0 ; i<3000 && !(r=inb_p(HD_STATUS)&DRQ_STAT) ; i++)
+            /* nothing */ ;
+        if (!r) {
+            bad_rw_intr();
+            goto repeat;
+        }
+        port_write(HD_DATA,CURRENT->buffer,256);
+    /* 因为是读盘操作，所以接下来调用hd_out函数来下达最后的硬盘操作指令.
+     * WIN_READ表示接下来要进行读操作,read_intr是读盘操作对应的中断服务程序
+     * 所以要提取它的函数地址，准备挂接，这是通过hd_out来实现的.
+     */
+    } else if (CURRENT->cmd == READ) {
+        hd_out(dev,nsect,sec,head,cyl,WIN_READ,&read_intr);
+    } else
+        panic("unknown hd-command");
+}
+```
+
+进入hd_out函数中去执行读盘的最后一步,下达读盘命令.
+
+```
+static void hd_out(unsigned int drive,unsigned int nsect,unsigned int sect,
+        unsigned int head,unsigned int cyl,unsigned int cmd,
+        void (*intr_addr)(void))
+{
+    register int port asm("dx");
+
+    if (drive>1 || head>15)
+        panic("Trying to write bad sector");
+    if (!controller_ready())
+        panic("HD controller not ready");
+    do_hd = intr_addr; // do_hd被设置为read_intr
+    outb_p(hd_info[drive].ctl,HD_CMD);
+    port=HD_DATA;
+    outb_p(hd_info[drive].wpcom>>2,++port);
+    outb_p(nsect,++port);
+    outb_p(sect,++port);
+    outb_p(cyl,++port);
+    outb_p(cyl>>8,++port);
+    outb_p(0xA0|(drive<<4)|head,++port);
+    outb(cmd,++port);
+}
+```
+
+向硬盘发送一个命令之后,硬盘控制器接受到命令,然后开始执行,命令执行完毕之后,将触发硬盘中断:
+
+path: kernel/system_call.s
+```
+hd_interrupt:
+    pushl %eax
+    pushl %ecx
+    pushl %edx
+    push %ds
+    push %es
+    push %fs
+    movl $0x10,%eax
+    mov %ax,%ds
+    mov %ax,%es
+    movl $0x17,%eax
+    mov %ax,%fs
+    movb $0x20,%al
+    outb %al,$0xA0        # EOI to interrupt controller #1
+    jmp 1f            # give port chance to breathe
+1:    jmp 1f
+1:    xorl %edx,%edx
+    xchgl do_hd,%edx # do_hd=read_intr,在硬盘中断服务程序中将执行do_hd函数.
+    testl %edx,%edx
+    jne 1f
+    movl $unexpected_hd_interrupt,%edx
+1:    outb %al,$0x20
+    call *%edx        # "interesting" way of handling intr.
+    pop %fs
+    pop %es
+    pop %ds
+    popl %edx
+    popl %ecx
+    popl %eax
+    iret
+```
+
+硬盘开始将引导块中的数据不断读入它的缓存中,同时,程序也返回了，将会沿着前面调用的反方向,即:
+
+```
+hd_out --> do_hd_request --> add_request --> make_request --> ll_rw_block --> bread
+```
+
+path: fs/buffer.c
+```
+struct buffer_head * bread(int dev,int block)
+{
+    struct buffer_head * bh;
+
+    if (!(bh=getblk(dev,block)))
+        panic("bread: getblk returned NULL\n");
+    if (bh->b_uptodate)
+        return bh;
+    ll_rw_block(READ,bh);
+    wait_on_buffer(bh);  // 将等待缓冲块解锁的进程挂起,现在是进程1
+    if (bh->b_uptodate)
+        return bh;
+    brelse(bh);
+    return NULL;
+}
+```
+
+现在,硬盘正在继续读引导块.如果程序继续执行,则需要对引导块中的数据进行操作.但这些数据还没有从
+硬盘中读完，所以调用wait_on_buffer函数，挂起等待.
+
+path: fs/buffer.c
+```
+static inline void wait_on_buffer(struct buffer_head * bh)
+{
+    cli();
+    /* 判断刚才申请到的缓冲块是否被加锁,现在,缓冲块确实加锁了,调用sleep_on函数. */
+    while (bh->b_lock)
+        sleep_on(&bh->b_wait);
+    sti();
+}
+```
+
+path: kernel/sched.c
+```
+void sleep_on(struct task_struct **p)
+{
+    struct task_struct *tmp;
+
+    if (!p)
+        return;
+    if (current == &(init_task.task))
+        panic("task[0] trying to sleep");
+    /* 将进程1设置为不可中断等待状态,进程1挂起，然后调用shedule()函数 */
+    tmp = *p;
+    *p = current;
+    current->state = TASK_UNINTERRUPTIBLE;
+    schedule();
+    if (tmp)
+        tmp->state=0;
+}
+```
+
+在等待硬盘读数据时,进程调度切换到进程0执行.
 
 #### 块高速缓存(struct buffer_head)
 
