@@ -106,4 +106,141 @@ B. 对BIOS而言, "约定"接到启动操作系统的命令, "定位"只从启�
 至于这个扇区中是否是启动程序, 是什么操作系统, 则不闻不问, 一视同仁. 如果不是启动代码, 只会
 提示错误, 其余是用户的责任, 与BIOS无关。
 
-### BOOTSECT
+### bootsect
+
+BIOS已经把bootsect也就是引导程序载入内存了,现在它的作用就是把第二批和第三批程序陆续加载到内存中。
+为了把第二批和第三批程序加载到内存中的适当位置，bootsect首先做的工作就是规划内存.
+
+通常，我们是用高级语言编写应用程序的，这些程序是在操作系统的平台上运行的。我们只管写高级语言的
+代码、数据。至于这些代码、数据在运行的时候放在内存的什么地方，是否会相互覆盖，我们都不用操心，
+因为操作系统和高级语言的编译器替我们做了大量的看护工作，确保不会出错。现在我们讨论的是，操作系统
+本身使用的是汇编语言，没有高级语言编译器替操作系统提供保障，只有靠操作系统的设计者把内存的安排想
+清楚，确保无论操作系统如何运行，都不会出现代码与代码、数据与数据、代码与数据之间相互覆盖的情况。
+为了更准确地理解操作系统的运行机制，我们必须清楚操作系统的设计者是如何规划内存的。
+
+##### 规划内存
+
+在实模式状态下,寻址的最大范围是1 MB.为了规划内存, bootsect首先设计了如下代码：
+
+path: boot/bootsect.s
+```
+.globl begtext, begdata, begbss, endtext, enddata, endbss
+.text
+begtext:
+.data
+begdata:
+.bss
+begbss:
+.text
+
+! 将要加载的SETUP程序的扇区数.
+SETUPLEN = 4                 ! nr of setup-sectors
+! 启动扇区被BIOS加载的位置
+BOOTSEG  = 0x07c0            ! original address of boot-sector
+! 启动扇区将要移动到的新位置
+INITSEG  = 0x9000            ! we move boot here - out of the way
+! SETUP将被加载到的位置
+SETUPSEG = 0x9020            ! setup starts here
+! 内核代码(kernel)被加载的位置
+SYSSEG   = 0x1000            ! system loaded at 0x10000 (65536).
+! 内核的末尾位置
+ENDSEG   = SYSSEG + SYSSIZE  ! where to stop loading
+
+! ROOT_DEV:    0x000 - same type of floppy as boot.
+!        0x301 - first partition on first drive etc
+! 根文件系统设备号
+ROOT_DEV = 0x306
+```
+
+**注意**: 操作系统的设计者是要全面地、整体地考虑内存的规划的, 精心安排内存是操作系统设计者时时刻刻都要关心的事.
+
+##### 复制bootsect
+
+接下来, bootsect启动程序将它自身(全部的512 B内容)从内存0x07C00(BOOTSEG)处复制至内存
+0x90000(INITSEG)处。
+
+path: boot/bootsect.s
+```
+entry _start
+_start:
+    mov    ax,#BOOTSEG
+    mov    ds,ax
+    mov    ax,#INITSEG
+    mov    es,ax
+    mov    cx,#256
+    sub    si,si
+    sub    di,di
+    rep
+    movw
+```
+
+在这次复制过程中, ds(0x07C0)和si(0x0000)联合使用，构成了源地址0x07C00;
+es(0x9000)和di(0x0000)联合使用，构成了目的地址0x90000. 而mov cx, #256这一行循环控制量, 提供了
+需要复制的"字"数(一个字为2字节，256个字正好是512字节，也就是第一扇区的字节数).
+
+**注意**: 此时CPU的段寄存器(CS)指向0x07C0(BOOTSEG), 即原来bootsect程序所在的位置。
+
+由于“两头约定”和“定位识别”, 所以在开始时bootsect“被迫”加载到0x07C00位置。现在将自身移至0x90000处,
+说明操作系统开始根据自己的需要安排内存了。
+
+##### 加载setup
+
+bootsect复制到新位置完毕后，会执行下面的代码:
+
+path: boot/bootsect.s
+```
+    rep
+    movw
+    jmpi    go,INITSEG
+go: mov    ax,cs
+    mov    ds,ax
+```
+
+当前CS的值为0x07C0, 执行完这个跳转后, CS值变为0x9000(INITSEG), IP的值为从0x9000(INITSEG)到go.
+
+```
+mov ax, cs
+```
+
+这一行对应指令的偏移。换句话说，此时CS:IP指向go: mov ax, cs这一行，程序从这一行开始往下执行。
+此前的0x07C00这个位置是根据"两头约定"和"定位识别"而确定的. 从现在起，操作系统已经不需要完全依赖
+BIOS，可以按照自己的意志把自己的代码安排在内存中自己想要的位置。
+
+```
+    jmpi go, INITSEG
+go: mov ax, cs
+```
+
+这两行代码写得很巧. 复制bootsect完成后，在内存的0x07C00和0x90000位置有两段完全相同的代码。
+复制代码这件事本身也是要靠指令执行的，执行指令的过程就是CS和IP不断变化的过程。执行到
+"jmpi go, INITSEG"这行之前，代码的作用就是复制代码自身; 执行了jmpi go, INITSEG之后，程序就
+转到执行0x90000这边的代码了。Linus的设计意图是想跳转之后，在新位置接着执行后面的mov ax, cs,
+而不是死循环。"jmpi go, INITSEG"与"go: mov ax, cs"配合，巧妙地实现了**到新位置后接着原来的执行序继续执行下去**的目的。
+
+bootsect复制到了新的地方，并且要在新的地方继续执行。因为代码的整体位置发生了变化，所以代码中的
+各个段也会发生变化。前面已经改变了CS，现在对DS、ES、SS和SP进行调整。我们看看下面的代码:
+
+path: boot/bootsect.s
+```
+go: mov    ax,cs
+    mov    ds,ax
+    mov    es,ax
+    ! put stack at 0x9ff00.
+    mov    ss,ax
+    mov    sp,#0xFF00        ! arbitrary value >>512
+```
+
+上述代码的作用是通过ax, 用CS的值0x9000来把数据段寄存器(DS), 附加段寄存器(ES), 栈基址寄存器(SS)
+设置成与代码段寄存器(CS)相同的位置，并将栈顶指针SP指向偏移地址为0xFF00处。
+
+**注意**:
+SS和SP联合使用,就构成了栈数据在内存中的位置值。对这两个寄存器的设置为后面程序的栈操作
+(如push、pop等)打下了基础.现在可以观察一下bootsect中的程序，在执行设置SS和SP的代码之前,
+没有出现过栈操作指令，而在此之后就陆续使用。**这里对SS和SP进行的设置是分水岭**: 它标志着从现在
+开始，程序可以执行一些更为复杂的数据运算类指令了.
+
+栈操作是有方向的注意是由高地址到低地址的方向.
+DS/ES/FS/GS/SS: 这些段寄存器存在于CPU中,其中SS(Stack Segment)指向栈段,此区域将按栈机制进行管理.
+SP(Stack Pointer): 栈顶指针寄存器，指向栈段的当前栈顶.
+
+##### 加载setup程序
