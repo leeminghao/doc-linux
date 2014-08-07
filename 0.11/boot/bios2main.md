@@ -470,10 +470,97 @@ BIOS数据区完全覆盖，使它们不复存在。直到新的中断服务体�
 
 这样做能取得“一箭三雕”的效果：
  A. 废除BIOS的中断向量表,等同于废除了BIOS提供的实模式下的中断服务程序;
+
  B. 收回刚刚结束使用寿命的程序所占内存空间;
+
  C. 让内核代码占据内存物理地址最开始的,天然的,有利的位置.
 
 "破旧立新" 这个成语用在这里特别贴切. system模块复制到0x00000这个动作, 废除了BIOS的中断向量表,
 也就是废除了16位的中断机制. 操作系统是不能没有中断的，对外设的使用,系统调用,进程调度都离不开
 中断. Linux操作系统是32位的现代操作系统，16位的中断机制对32位的操作系统而言,显然是不合适的，
 这也是废除16位中断机制的根本原因. 为了建立32位的操作系统, 我们不但要"破旧"，还要"立新" -- 建立新的中断机制.
+
+##### 设置中断描述符表和全局描述符表
+
+setup程序继续为保护模式做准备. 此时要通过setup程序自身提供的数据信息对中断描述符表寄存器(IDTR)
+和全局描述符表寄存器(GDTR)进行初始化设置.
+
+* GDT(Global Descriptor Table，全局描述符表): 在系统中唯一的存放段寄存器内容(段描述符)的数组,配合
+程序进行保护模式下的段寻址.它在操作系统的进程切换中具有重要意义,可理解为所有进程的总目录表, 其中
+存放每一个任务(task)局部描述符表(LDT，Local Descriptor Table)地址和任务状态段(TSS,Task Structure
+Segment)地址,完成进程中各段的寻址,现场保护与现场恢复.
+* GDTR(Global Descriptor Table Register，GDT基地址寄存器), GDT可以存放在内存的任何位置. 当程序
+通过段寄存器引用一个段描述符时, 需要取得GDT的入口, GDTR标识的即为此入口. 在操作系统对GDT的初始化
+完成后,可以用LGDT(Load GDT)指令将GDT基地址加载至GDTR.
+* IDT(Interrupt Descriptor Table，中断描述符表),保存保护模式下所有中断服务程序的入口地址,类似于
+实模式下的中断向量表.
+* IDTR(Interrupt Descriptor Table Register，IDT基地址寄存器)，保存IDT的起始地址.
+
+代码实现如下所示:
+
+path: boot/setup.s
+```
+! then we load the segment descriptors
+
+end_move:
+    mov     ax,#SETUPSEG  ! right, forgot this at first. didn't work :-)
+    mov     ds,ax
+    lidt    idt_48        ! load idt with 0,0
+    lgdt    gdt_48        ! load gdt with whatever appropriate
+......
+gdt:
+    .word    0,0,0,0      ! dummy
+
+    .word    0x07FF        ! 8Mb - limit=2047 (2048*4096=8Mb)
+    .word    0x0000        ! base address=0
+    .word    0x9A00        ! code read/exec
+    .word    0x00C0        ! granularity=4096, 386
+
+    .word    0x07FF        ! 8Mb - limit=2047 (2048*4096=8Mb)
+    .word    0x0000        ! base address=0
+    .word    0x9200        ! data read/write
+    .word    0x00C0        ! granularity=4096, 386
+
+idt_48:
+    .word    0            ! idt limit=0
+    .word    0,0            ! idt base=0L
+
+gdt_48:
+    .word    0x800        ! gdt limit=2048, 256 GDT entries
+    .word    512+gdt,0x9    ! gdt base = 0X9xxxx
+
+.text
+endtext:
+.data
+enddata:
+.bss
+endbss:
+```
+
+32位的中断机制和16位的中断机制,在原理上有比较大的差别:
+
+A. 最明显的是16位的中断机制用的是中断向量表,中断向量表的起始位置在0x00000处,这个位置是固定的;
+
+B. 32位的中断机制用的是中断描述符表(IDT), 位置是不固定的, 可以由操作系统的设计者根据设计要求灵活安排, 由IDTR来锁定其位置.
+
+GDT是保护模式下管理段描述符的数据结构，对操作系统自身的运行以及管理、调度进程有重大意义.
+因为, 此时此刻内核尚未真正运行起来, 还没有进程,所以现在创建的GDT第一项为空,第二项为内核代码段描述符第三项为内核数据段描述符,其余项皆为空.
+
+IDT虽然已经设置,实为一张空表,原因是目前已关中断,无需调用中断服务程序.此处反映的是数据"够用即得"的思想.
+
+创建这两个表的过程可理解为是分两步进行的:
+
+A. 在设计内核代码时,已经将两个表写好,并且把需要的数据也写好.
+
+B. 将专用寄存器(IDTR,GDTR)指向表.
+
+此处的数据区域是在内核源代码中设定,编译并直接加载至内存形成的一块数据区域.专用寄存器的指向由
+程序中的lidt和lgdt指令完成.
+
+值得一提的是,在内存中做出数据的方法有两种:
+
+A. 划分一块内存区域并初始化数据,"看住"这块内存区域,使之能被找到;
+
+B. 由代码做出数据,如用push代码压栈,"做出"数据.
+
+此处采用的是第一种方法.
