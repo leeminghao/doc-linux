@@ -707,3 +707,11 @@ LDT; 1000的1表示所选的表(在此就是GDT)的1项(GDT项号排序为0项,1
 从下图我们可以看到,代码是从段基址0x00000000,偏移为0处,也就是head程序的开始位置开始执行的,这意味着执行head程序.
 
 https://github.com/leeminghao/doc-linux/blob/master/0.11/boot/gdt_item.jpg
+
+### head
+
+在执行main函数之前,先要执行三个由汇编代码生成的程序,即bootsect,setup和head.之后,才执行由
+main函数开始的用C语言编写的操作系统内核程序.
+第一步，加载bootsect到0x07C00，然后复制到0x90000；第二步，加载setup到0x90200。值得注意的是，这两段程序是分别加载、分别执行的。
+
+head程序与它们的加载方式有所不同。大致的过程是，先将head.s汇编成目标代码，将用C语言编写的内核程序编译成目标代码，然后链接成system模块。也就是说，system模块里面既有内核程序，又有head程序。两者是紧挨着的。要点是，head程序在前，内核程序在后，所以head程序名字为“head”。head程序在内存中占有25 KB?+?184 B的空间。前面讲解过，system模块加载到内存后，setup将system模块复制到0x00000位置，由于head程序在system的前面，所以实际上，head程序就在0x00000这个位置。
