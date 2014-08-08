@@ -654,7 +654,7 @@ CPU在保护模式下, int 0x00～int 0x1F被Intel保留作为内部(不可屏�
 应的中断号重新分布,即在保护模式下,IRQ0x00～IRQ0x0F的中断号是int 0x20～int 0x2F。
 重新编程的结果如下图所示:
 
-https://github.com/leeminghao/doc-linux/blob/master/0.11/boot/int_8259a.jpeg
+https://github.com/leeminghao/doc-linux/blob/master/0.11/boot/int_8259a.jpg
 
 ##### 设置CPU工作模式为保护模式
 
