@@ -706,4 +706,4 @@ LDT; 1000的1表示所选的表(在此就是GDT)的1项(GDT项号排序为0项,1
 
 从下图我们可以看到,代码是从段基址0x00000000,偏移为0处,也就是head程序的开始位置开始执行的,这意味着执行head程序.
 
-https://github.com/leeminghao/doc-linux/blob/master/0.11/boot/gdtitem.jpg
+https://github.com/leeminghao/doc-linux/blob/master/0.11/boot/gdt_item.jpg
