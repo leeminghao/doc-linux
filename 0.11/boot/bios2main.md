@@ -654,7 +654,7 @@ CPU在保护模式下, int 0x00～int 0x1F被Intel保留作为内部(不可屏�
 应的中断号重新分布,即在保护模式下,IRQ0x00～IRQ0x0F的中断号是int 0x20～int 0x2F。
 重新编程的结果如下图所示:
 
-[image]: https://github.com/leeminghao/doc-linux/blob/master/0.11/boot/int_8259a.jpeg "int_8259a"
+https://github.com/leeminghao/doc-linux/blob/master/0.11/boot/int_8259a.jpeg
 
 ##### 设置CPU工作模式为保护模式
 
@@ -683,7 +683,7 @@ path: boot/setup.s
 CPU工作方式转变为保护模式,一个重要的特征就是要根据GDT决定后续执行哪里的程序.
 开启保护模式前后工作对比图如下所示:
 
-[image]: https://github.com/leeminghao/doc-linux/blob/master/0.11/boot/protect_before_and_after.jpg "protect_before_and_after"
+https://github.com/leeminghao/doc-linux/blob/master/0.11/boot/protect_before_and_after.jpg
 
 setup程序在完成如下流程后:
 
@@ -706,4 +706,4 @@ LDT; 1000的1表示所选的表(在此就是GDT)的1项(GDT项号排序为0项,1
 
 从下图我们可以看到,代码是从段基址0x00000000,偏移为0处,也就是head程序的开始位置开始执行的,这意味着执行head程序.
 
-[image]: https://github.com/leeminghao/doc-linux/blob/master/0.11/boot/gdtitem.jpeg "gdtitem"
+https://github.com/leeminghao/doc-linux/blob/master/0.11/boot/gdtitem.jpeg
