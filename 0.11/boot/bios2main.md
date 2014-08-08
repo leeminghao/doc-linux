@@ -415,7 +415,7 @@ path: boot/bootsect.s
 
 ### setup
 
-##### 移动system到内存起始位置0x00000
+##### 移动system模块到内存起始位置0x00000
 
 这个准备工作先要关闭中断，即将CPU的标志寄存器(EFLAGS)中的中断允许标志(IF)置0。这意味着，程序在
 接下来的执行过程中,无论是否发生中断，系统都不再对此中断进行响应，直到main函数中能够适应保护模式
@@ -564,3 +564,146 @@ A. 划分一块内存区域并初始化数据,"看住"这块内存区域,使之�
 B. 由代码做出数据,如用push代码压栈,"做出"数据.
 
 此处采用的是第一种方法.
+
+##### 打开A20,实现32位寻址
+
+打开A20,意味着CPU可以进行32位寻址,最大寻址空间为4 GB. 内存范围变化: 从5个F扩展到8个F,即:0xFFFFFFFF--4 GB.
+Linux 0.11最大只能支持16 MB的物理内存，但是其线性寻址空间已经是不折不扣的4 GB.
+具体实现如下所示:
+
+path: boot/setup.s
+```
+! that was painless, now we enable A20
+
+    call    empty_8042
+    mov     al,#0xD1        ! command write
+    out     #0x64,al
+    call    empty_8042
+    mov     al,#0xDF        ! A20 on
+    out     #0x60,al
+    call    empty_8042
+......
+! This routine checks that the keyboard command queue is empty
+! No timeout is used - if this hangs there is something wrong with
+! the machine, and we probably couldn't proceed anyway.
+empty_8042:
+    .word    0x00eb,0x00eb
+    in       al,#0x64    ! 8042 status port
+    test     al,#2       ! is input buffer full?
+    jnz      empty_8042  ! yes - loop
+    ret
+```
+实模式下CPU寻址范围为0～0xFFFFF,共1 MB寻址空间,需要0～19号共20根地址线.进入保护模式后,将使用32
+位寻址模式,即采用32根地址线进行寻址,第21根(A20)至第32根地址线的选通控制将意味着寻址模式的切换.
+
+实模式下,当程序寻址超过0xFFFFF时,CPU将"回滚"至内存地址起始处寻址(注意,在只有20根地址线的条件下,
+0xFFFFF+1=0x00000，最高位溢出).例如，系统的段寄存器(CS)的最大允许地址为0xFFFF,指令指针(IP)的
+最大允许段内偏移也为0xFFFF,两者确定的最大绝对地址为0x10FFEF,这将意味着程序中可产生的实模式下的
+寻址范围比1 MB多出将近64 KB(一些特殊寻址要求的程序就利用了这个特点). 这样，此处对A20地址线的启用
+相当于关闭CPU在实模式下寻址的"回滚"机制。在后续代码中也将看到利用此特点来验证A20地址线是否确实
+已经打开.
+
+##### 初始化可编程中断控制器8259A
+
+为了建立保护模式下的中断机制，setup程序将对可编程中断控制器8259A进行重新编程。
+8259A: 专门为了对8085A和8086/8088进行中断控制而设计的芯片,是可以用程序控制的中断控制器.单个的
+8259A能管理8级向量优先级中断,在不增加其他电路的情况下,最多可以级联成64级的向量优先级中断系统.
+具体代码如下：
+
+path: boot/setup.s
+```
+! well, that went ok, I hope. Now we have to reprogram the interrupts :-(
+! we put them right after the intel-reserved hardware interrupts, at
+! int 0x20-0x2F. There they won't mess up anything. Sadly IBM really
+! messed this up with the original PC, and they haven't been able to
+! rectify it afterwards. Thus the bios puts interrupts at 0x08-0x0f,
+! which is used for the internal hardware interrupts as well. We just
+! have to reprogram the 8259's, and it isn't fun.
+
+    mov    al,#0x11        ! initialization sequence
+    out    #0x20,al        ! send it to 8259A-1
+    .word    0x00eb,0x00eb        ! jmp $+2, jmp $+2
+    out    #0xA0,al        ! and to 8259A-2
+    .word    0x00eb,0x00eb
+    mov    al,#0x20        ! start of hardware int's (0x20)
+    out    #0x21,al
+    .word    0x00eb,0x00eb
+    mov    al,#0x28        ! start of hardware int's 2 (0x28)
+    out    #0xA1,al
+    .word    0x00eb,0x00eb
+    mov    al,#0x04        ! 8259-1 is master
+    out    #0x21,al
+    .word    0x00eb,0x00eb
+    mov    al,#0x02        ! 8259-2 is slave
+    out    #0xA1,al
+    .word    0x00eb,0x00eb
+    mov    al,#0x01        ! 8086 mode for both
+    out    #0x21,al
+    .word    0x00eb,0x00eb
+    out    #0xA1,al
+    .word    0x00eb,0x00eb
+    mov    al,#0xFF        ! mask off all interrupts for now
+    out    #0x21,al
+    .word    0x00eb,0x00eb
+    out    #0xA1,al
+```
+
+CPU在保护模式下, int 0x00～int 0x1F被Intel保留作为内部(不可屏蔽)中断和异常中断.如果不对8259A
+进行重新编程,int 0x00～int 0x1F中断将被覆盖. 例如,IRQ0(时钟中断)为8号(int 0x08)中断,但在保护模式下
+此中断号是Intel保留的“Double Fault”(双重故障).因此，必须通过8259A编程将原来的IRQ0x00～IRQ0x0F对
+应的中断号重新分布,即在保护模式下,IRQ0x00～IRQ0x0F的中断号是int 0x20～int 0x2F。
+重新编程的结果如下图所示:
+
+[image]: https://github.com/leeminghao/doc-linux/blob/master/0.11/boot/int_8259a.jpeg
+
+##### 设置CPU工作模式为保护模式
+
+setup程序通过下面代码的前两行将CPU工作方式设为保护模式.将CR0寄存器第0位(PE)置1,即设定处理器
+工作方式为保护模式.
+CR0寄存器: 0号32位控制寄存器,存放系统控制标志.第0位为PE(Protected Mode Enable,保护模式使能)标志,
+置1时CPU工作在保护模式下,置0时为实模式.
+具体代码如下:
+
+path: boot/setup.s
+```
+! well, that certainly wasn't fun :-(. Hopefully it works, and we don't
+! need no steenking BIOS anyway (except for the initial loading :-).
+! The BIOS-routine wants lots of unnecessary data, and it's less
+! "interesting" anyway. This is how REAL programmers do it.
+!
+! Well, now's the time to actually move into protected mode. To make
+! things as simple as possible, we do no register set-up or anything,
+! we let the gnu-compiled 32-bit programs do that. We just jump to
+! absolute address 0x00000, in 32-bit protected mode.
+    mov    ax,#0x0001    ! protected mode (PE) bit
+    lmsw    ax        ! This is it!
+    jmpi    0,8        ! jmp offset 0 of segment 8 (cs)
+```
+
+CPU工作方式转变为保护模式,一个重要的特征就是要根据GDT决定后续执行哪里的程序.
+开启保护模式前后工作对比图如下所示:
+
+[image]: https://github.com/leeminghao/doc-linux/blob/master/0.11/boot/protect_before_and_after.jpg
+
+setup程序在完成如下流程后:
+
+**移动system模块到内存0x00000** --> **设置IDT与GDT** --> **打开A20,实现32位寻址** --> **初始化可编程中断控制器8259A** --> **设置CPU工作模式为保护模式**
+
+接下来将要跳转到system模块中的head程序执行,如下所示:
+
+path: boot/setup.s
+```
+jmpi 0,8
+```
+
+这一行代码中的"0"是段内偏移,"8"是保护模式下的段选择符,用于选择描述符表和描述符表项以及所要求的
+特权级. 这里"8"的解读方式很有意思. 如果把"8"当做6,7,8...中的"8"这个数来看待,这行程序的意思就
+很难理解了. 必须把"8"看成二进制的1000,再把前后相关的代码联合起来当做一个整体看, 注意：这是一个
+以位为操作单位的数据使用方式,4 bit的每一位都有明确的意义，这是底层源代码的一个特点.
+这里1000的最后两位(00)表示内核特权级,与之相对的用户特权级是11; 第三位的0表示GDT,如果是1,则表示
+LDT; 1000的1表示所选的表(在此就是GDT)的1项(GDT项号排序为0项,1项,2项,这里也就是第2项)来确定
+代码段的段基址和段限长等信息.
+
+从下图我们可以看到,代码是从段基址0x00000000,偏移为0处,也就是head程序的开始位置开始执行的,这意味着执行head程序.
+
+[image]: https://github.com/leeminghao/doc-linux/blob/master/0.11/boot/gdtitem.jpeg
