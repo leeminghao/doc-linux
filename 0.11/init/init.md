@@ -289,6 +289,10 @@ void blk_dev_init(void)
 }
 ```
 
+### 初始化进程0
+
+https://github.com/leeminghao/doc-linux/blob/master/0.11/process/init_process0.md
+
 ### 初始化硬盘
 
 path: init/main.c
