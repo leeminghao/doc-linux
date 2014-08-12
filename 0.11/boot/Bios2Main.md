@@ -415,6 +415,91 @@ path: boot/bootsect.s
 
 ### setup
 
+### 利用ROM BIOS中断读取机器系统数据
+
+setup程序的作用主要是利用ROM BIOS中断读取机器系统数据,并将这些数据保存到0x90000开始的位置
+(覆盖掉了bootsect 程序所在的地方).这些参数将被内核中相关程序使用.
+
+```
+    mov    ax,#INITSEG    ! this is done in bootsect already, but...
+                          ! 将 ds 置成#INITSEG(0x9000)。这已经在 bootsect 程序中
+                          ! 设置过,但是现在是 setup 程序,Linus 觉得需要再重新
+                          ! 设置一下。
+
+    mov    ds,ax
+    mov    ah,#0x03    ! read cursor pos
+    xor    bh,bh
+    int    0x10        ! save it in known place, con_init fetches
+    mov    [0],dx        ! it from 0x90000.
+! Get memory size (extended mem, kB)
+
+    mov    ah,#0x88
+    int    0x15
+    mov    [2],ax
+
+! Get video-card data:
+
+    mov    ah,#0x0f
+    int    0x10
+    mov    [4],bx        ! bh = display page
+    mov    [6],ax        ! al = video mode, ah = window width
+
+! check for EGA/VGA and some config parameters
+
+    mov    ah,#0x12
+    mov    bl,#0x10
+    int    0x10
+    mov    [8],ax
+    mov    [10],bx
+    mov    [12],cx
+
+! Get hd0 data
+
+    mov    ax,#0x0000
+    mov    ds,ax
+    lds    si,[4*0x41]
+    mov    ax,#INITSEG
+    mov    es,ax
+    mov    di,#0x0080
+    mov    cx,#0x10
+    rep
+    movsb
+
+! Get hd1 data
+
+    mov    ax,#0x0000
+    mov    ds,ax
+    lds    si,[4*0x46]
+    mov    ax,#INITSEG
+    mov    es,ax
+    mov    di,#0x0090
+    mov    cx,#0x10
+    rep
+    movsb
+
+! Check that there IS a hd1 :-)
+
+    mov    ax,#0x01500
+    mov    dl,#0x81
+    int    0x13
+    jc    no_disk1
+    cmp    ah,#3
+    je    is_disk1
+no_disk1:
+    mov    ax,#INITSEG
+    mov    es,ax
+    mov    di,#0x0090
+    mov    cx,#0x10
+    mov    ax,#0x00
+    rep
+    stosb
+is_disk1:
+```
+
+执行完上述程序以后, setup获取到的系统参数信息如下图所示:
+
+https://github.com/leeminghao/doc-linux/blob/master/0.11/boot/system_machine_table.png
+
 ##### 移动system模块到内存起始位置0x00000
 
 这个准备工作先要关闭中断，即将CPU的标志寄存器(EFLAGS)中的中断允许标志(IF)置0。这意味着，程序在
@@ -688,7 +773,7 @@ https://github.com/leeminghao/doc-linux/blob/master/0.11/boot/protect_before_and
 
 setup程序在完成如下流程后:
 
-**移动system模块到内存0x00000** --> **设置IDT与GDT** --> **打开A20,实现32位寻址** --> **初始化可编程中断控制器8259A** --> **设置CPU工作模式为保护模式**
+**利用ROM BIOS获取系统机器数据** --> **移动system模块到内存0x00000** --> **设置IDT与GDT** --> **打开A20,实现32位寻址** --> **初始化可编程中断控制器8259A** --> **设置CPU工作模式为保护模式**
 
 接下来将要跳转到system模块中的head程序执行,如下所示:
 
@@ -1178,7 +1263,7 @@ https://github.com/leeminghao/doc-linux/blob/master/0.11/init/StartMainInit.md
 
 ## setup --> head
 
-**移动system模块到内存0x00000** --> **设置IDT与GDT** --> **打开A20,实现32位寻址** --> **初始化可编程中断控制器8259A** --> **设置CPU工作模式为保护模式**
+**利用ROM BIOS获取系统机器数据** --> **移动system模块到内存0x00000** --> **设置IDT与GDT** --> **打开A20,实现32位寻址** --> **初始化可编程中断控制器8259A** --> **设置CPU工作模式为保护模式**
 
 ## head --> main
 

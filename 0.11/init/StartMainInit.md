@@ -9,9 +9,12 @@ https://github.com/leeminghao/doc-linux/blob/master/0.11/boot/Bios2Main.md
 跳转到main函数以后
 --------------------------------------------------------------------------------
 
-系统之前所做的一切准备工作的核心目的就是让用户程序能够以“进程”的方式正常运行。能够实现这一目的的标准包括三方面的内容：用户程序能够在主机上进行运算，能够与外设进行交互，以及能够让用户以它为媒介进行人机交互。本章讲解的内容就是为了实现这个目标，对设备环境进行初始化，并激活第一个进程——进程0。
+系统之前所做的一切准备工作的核心目的就是让用户程序能够以“进程”的方式正常运行, 能够实现这一目的的标准包括三方面的内容:
+* 用户程序能够在主机上进行运算;
+* 能够与外设进行交互;
+* 能够让用户以它为媒介进行人机交互.
 
-Linux 0.11是一个支持多进程的现代操作系统。这就意味着，各个用户进程在运行过程中，彼此不能相互干扰，这样才能保证进程在主机中正常地运算。然而，进程自身并没有一个天然的“边界”来对其进行保护，要靠系统“人为”地给它设计一套“边界”来对其进行保护。这套“边界”就是系统为进程提供的进程管理信息数据结构。进程管理信息数据结构包括：task_struct、task[64]、GDT等。task_struct是每个进程所独有的结构。它标识了进程的各项属性值，包括剩余时间片、进程执行状态、局部数据描述符表（LDT）和任务状态描述符表（TSS）等。task[64]和GDT是为管理多进程提供的数据结构。task[64]结构中存储着系统中所有进程的task_struct指针。如果操作系统需要对多个进程加以比较并选择，就可以通过遍历task[64]结构来实现。GDT中存储着一套针对所有进程的索引结构。通过索引项，操作系统可以间接地与每个进程中的LDT和TSS建立关系。
+为了实现这个目标, 如下所示的分析是对设备环境进行初始化, 并激活第一个进程——进程0.
 
 ### 设置根设备,硬盘参数表
 
@@ -22,7 +25,7 @@ path: init/main.c
 
 ......
 
-struct drive_info { char dummy[32]; } drive_info;
+struct drive_info { char dummy[32]; } drive_info;   // 存放硬盘参数表的数据结构
 
 /* This really IS void, no error here. */
 /* The startup routine assumes (well, ...) this */
@@ -293,6 +296,17 @@ void blk_dev_init(void)
 
 ### 初始化进程0
 
+path: init/main.c
+```
+/* This really IS void, no error here. */
+/* The startup routine assumes (well, ...) this */
+void main(void)
+{
+    sched_init();
+}
+```
+
+sched_init创建初始化进程0的过程如下所示:
 https://github.com/leeminghao/doc-linux/blob/master/0.11/process/CreateProcess0.md
 
 ### 初始化硬盘
