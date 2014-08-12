@@ -35,7 +35,7 @@ void main(void)
     * Interrupts are still disabled. Do necessary setups, then
     * enable them
     */
-    ROOT_DEV = ORIG_ROOT_DEV;
+    ROOT_DEV = ORIG_ROOT_DEV; // 根据setup中写入机器系统数据的信息设置根设备为软盘
     drive_info = DRIVE_INFO;
     ...
 }
@@ -43,8 +43,17 @@ void main(void)
 
 ### 规划物理内存格局,设置缓冲区,虚拟盘,主内存
 
+接下来设置缓冲区, 虚拟盘, 主内存. 主机中的运算需要CPU, 内存相互配合工作才能实现, 内存也是参与
+运算的重要部件. 对内存中缓冲区, 主内存的设置, 规划, 从根本上决定了所有进程使用内存的数量和方式，
+必然会影响到进程在主机中的运算速度。
+
 具体规划如下:
-除内核代码和数据所占的内存空间外,其余物理内存主要分为三部分: 主内存区, 缓冲区和虚拟盘
+* 内核代码和数据所占内存空间
+* 除了内核代码数据所占内存空间, 其余物理内存主要分为三部分: 分别是主内存区, 缓冲区和虚拟盘.
+主内存区: 是进程代码运行的空间，也包括内核管理进程的数据结构;
+缓冲区: 主要作为主机与外设进行数据交互的中转站;
+虚拟盘区: 是一个可选的区域, 如果选择使用虚拟盘, 就可以将外设上的数据先复制进虚拟盘区, 然后加以
+使用. 由于从内存中操作数据的速度远高于外设, 因此这样可以提高系统执行效率.
 
 path: init/main.c
 ```
@@ -77,7 +86,25 @@ void main(void)
 }
 ```
 
+先根据内存大小对缓冲区和主内存区的位置和大小的初步设置如下图所示:
+
+https://github.com/leeminghao/doc-linux/blob/master/0.11/init/memory_layout0.jpg
+
 ### 初始化虚拟盘(rd_init)
+
+接下来将对外设中的虚拟盘区进行设置. 检查makefile文件中"虚拟盘使用标志"是否设置, 以此确定本系统
+是否使用了虚拟盘. 我们在开始假设了所用计算机有16 MB的内存, 有虚拟盘, 且将虚拟盘大小设置为2 MB.
+操作系统从缓冲区的末端起开辟2 MB内存空间设置为虚拟盘, 主内存起始位置后移2 MB至虚拟盘的末端.
+
+path: init/main.c
+```
+void main(void)
+{
+#ifdef RAMDISK
+    main_memory_start += rd_init(main_memory_start, RAMDISK*1024);
+#endif
+}
+```
 
 path: kernel/blk_drv/blk.h
 ```
@@ -113,6 +140,9 @@ path: kernel/blk_drv/ll_rw_blk.c
  * do_request-address
  * next-request
  */
+/* blk_dev的主要功能是将某一类设备与它对应的请求项处理函数挂钩, 可以看出我们讨论的操作系统最多
+ * 可以管理6类设备.
+ */
 struct blk_dev_struct blk_dev[NR_BLK_DEV] = {
     { NULL, NULL },        /* no_dev */
     { NULL, NULL },        /* dev mem */
@@ -135,16 +165,83 @@ long rd_init(long mem_start, int length)
 {
     int    i;
     char    *cp;
-
+    /* 先要将虚拟盘区的请求项处理函数do_rd_request()与请求项函数控制结构blk_dev的第二项挂接
+     * 这个挂接动作意味着以后内核能够通过调用do_rd_request函数处理与虚拟盘相关的请求项操作,
+     * 挂接之后，将虚拟盘所在的内存区域全部初始化为0.
+     */
     blk_dev[MAJOR_NR].request_fn = DEVICE_REQUEST;
     rd_start = (char *) mem_start;
     rd_length = length;
     cp = rd_start;
     for (i=0; i < length; i++)
         *cp++ = '\0'; /* 初始化为0 */
+    /* 最后将虚拟盘区的长度值返回,这个返回值将用来重新设置主内存区的起始位置. */
     return(length);
 }
 ```
+
+设置完成后的物理内存的规划格局:
+https://github.com/leeminghao/doc-linux/blob/master/0.11/init/memory_layout1.jpg
+
+### 初始化内存管理结构mem_map
+
+对主内存区起始位置的重新确定, 标志着主内存区和缓冲区的位置和大小已经全都确定了,
+于是系统开始调用mem_init()函数, 先对主内存区的管理结构进行设置, 该过程如下所示:
+
+path: init/main.c
+```
+void main(void)
+{
+    ......
+    mem_init(main_memory_start,memory_end);
+    ......
+}
+```
+
+path: mm/memory.c
+```
+/* these are not to be changed without changing head.s etc */
+#define LOW_MEM 0x100000                     // 16 MB的页数
+#define PAGING_MEMORY (15*1024*1024)         // 分页内存 15MB,主内存区最多 15M.
+#define PAGING_PAGES (PAGING_MEMORY>>12)     // 分页后的物理内存页数.
+#define MAP_NR(addr) (((addr)-LOW_MEM)>>12)  // 指定内存地址映射为页号.
+#define USED 100
+......
+static long HIGH_MEMORY = 0;                 // 全局变量,存放实际物理内存最高端地址.
+......
+static unsigned char mem_map [ PAGING_PAGES ] = {0,};
+......
+void mem_init(long start_mem, long end_mem)
+{
+    int i;
+
+    HIGH_MEMORY = end_mem; // 设置内存最高端。
+    for (i=0 ; i<PAGING_PAGES ; i++) // 首先置所有页面为已占用(USED=100)状态,
+        mem_map[i] = USED; // 即将页面映射数组全置成 USED。
+    i = MAP_NR(start_mem); // 然后计算可使用起始内存的页面号。
+    // 再计算可分页处理的内存块大小,从而计算出可用于分页处理的页面数.
+    end_mem -= start_mem;  // start_mem为6 MB(虚拟盘之后)
+    end_mem >>= 12;        // 16 MB的页数
+    // 最后将这些可用页面对应的页面映射数组清零.
+    while (end_mem-->0)
+        mem_map[i++]=0;
+}
+```
+
+系统通过mem_map[]对1 MB以上的内存分页进行管理,记录一个页面的使用次数.
+mem_init()函数先将所有的内存页面使用计数均设置成USED(100,即被使用),然后再将主内存中的所有页面
+使用计数全部清零, 系统以后只把使用计数为0的页面视为空闲页面.
+
+那么为什么系统对1 MB以内的内存空间不用这种分页方法管理呢?
+这是因为操作系统的设计者对内核和用户进程采用了两套不同的分页管理方法:
+* 内核采用分页管理方法,线性地址和物理地址是完全一样的,是一一映射的,等价于内核可以直接获得物理地址.
+* 用户进程则不然, 线性地址和物理地址差异很大, 之间没有可递推的逻辑关系, 操作系统设计者的目的就是
+让用户进程无法通过线性地址推算出具体的物理地址, 让内核能够访问用户进程，用户进程不能访问其他的
+用户进程，更不能访问内核。
+
+1 MB以内是内核代码和只有由内核管控的大部分数据所在内存空间, 是绝对不允许用户进程访问的.
+1 MB以上,特别是主内存区主要是用户进程的代码,数据所在内存空间, 所以采用专门用来管理用户进程的
+分页管理方法, 这套方法当然不能用在内核上.
 
 ### 初始化缓冲区
 
