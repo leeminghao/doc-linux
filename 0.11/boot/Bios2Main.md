@@ -415,7 +415,7 @@ path: boot/bootsect.s
 
 ### setup
 
-### 利用ROM BIOS中断读取机器系统数据
+##### 利用ROM BIOS中断读取机器系统数据
 
 setup程序的作用主要是利用ROM BIOS中断读取机器系统数据,并将这些数据保存到0x90000开始的位置
 (覆盖掉了bootsect 程序所在的地方).这些参数将被内核中相关程序使用.
