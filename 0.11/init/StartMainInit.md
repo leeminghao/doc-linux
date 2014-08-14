@@ -752,7 +752,7 @@ static void time_init(void)
     BCD_TO_BIN(time.tm_mon);
     BCD_TO_BIN(time.tm_year);
     time.tm_mon--;
-    startup_time = kernel_mktime(&time);
+    startup_time = kernel_mktime(&time); // 开机时间, 从1970年1月1日0时计算
 }
 
 ...
@@ -763,6 +763,24 @@ void main(void)
 {
     time_init();
 }
+```
+
+path: include/asm/io.h
+```
+#define outb_p(value,port) \  // 将value写到port
+__asm__ ("outb %%al,%%dx\n" \
+         "\tjmp 1f\n" \       // jmp到下面的第一个1:处, 目的是延迟
+         "1:\tjmp 1f\n" \
+         "1:"::"a" (value),"d" (port))
+
+#define inb_p(port) ({ \
+unsigned char _v; \
+__asm__ volatile ("inb %%dx,%%al\n" \ // volatile，禁止编译器优化下列代码
+                  "\tjmp 1f\n" \      // 延迟
+                  "1:\tjmp 1f\n" \
+                  "1:":"=a" (_v):"d" (port)); \
+                  _v; \
+                  })
 ```
 
 ### 初始化进程0
@@ -778,6 +796,7 @@ void main(void)
 ```
 
 sched_init创建初始化进程0的过程如下所示:
+
 https://github.com/leeminghao/doc-linux/blob/master/0.11/process/CreateProcess0.md
 
 ### 初始化缓冲区
@@ -895,5 +914,53 @@ void hd_init(void)
     outb_p(inb_p(0x21)&0xfb,0x21);
     /* 允许硬盘发送中断请求 */
     outb(inb_p(0xA1)&0xbf,0xA1);
+}
+```
+
+### 初始化软盘
+
+软盘和软盘驱动器可以分离, 合在一起才是一个整体, 为了方便起见, 软盘除特别声明之外都是指软盘驱动器
+加软盘的整体. 软盘的初始化与硬盘的初始化类似, 区别是挂接的函数是do_fd_request, 初始化的是与软盘
+相关的中断.
+执行代码如下:
+
+path: init/main.c
+```
+void main(void)
+{
+    ...
+    floppy_init (); // 与hd_init()类似
+    ...
+}
+```
+
+path: kernel/floppy.c
+```
+void floppy_init(void)
+{
+    blk_dev[MAJOR_NR].request_fn= DEVICE_REQUEST; // 挂接do_fd_request()
+    set_trap_gate(0x26,&floppy_interrupt);        // 设置软盘中断
+    outb(inb_p(0x21)&～0x40,0x21);                // 允许软盘发送中断
+}
+```
+
+### 开启中断
+
+现在, 系统中所有中断服务程序都已经和IDT正常挂接, 这意味着中断服务体系已经构建完毕, 系统可以
+在32位保护模式下处理中断, 重要意义之一是可以使用系统调用。
+执行代码如下:
+
+path: include/asm/system.h
+```
+#define sti() __asm__ ("sti"::)
+```
+
+path: init/main.c
+```
+void main(void)
+{
+    ...
+    sti();
+    ...
 }
 ```
