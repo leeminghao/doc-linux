@@ -368,82 +368,17 @@ set_system_gate(n,addr)与set_trap_gate(n,addr)用的_set_gate(gate_addr,type,dp
 
 最原始的设计不是这样，那时候CPU每隔一段时间就要对所有硬件进行轮询，以检测它的工作是否完成，如果没有完成就继续轮询，这样就消耗了CPU处理用户程序的时间，降低了系统的综合效率。可见，CPU以“主动轮询”的方式来处理信号是非常不划算的。以“被动响应”模式替代“主动轮询”模式来处理主机与外设的I/O问题，是计算机历史上的一大进步。
 
-### 初始化缓冲区
-
-Linux 0.11通过hash_table[NR_HASH], buffer_head双向循环链表组成的复杂哈希表管理缓冲区.
-缓冲区的初始化是通过buffer_init函数对缓冲区进行设置的，如下所示：
-
-path: init/main.c
-```
-void main(void)
-{
-    ......
-    buffer_init(buffer_memory_end);
-    ......
-}
-```
-
-path: fs/buffer.c
-```
-/* 这个end是内核代码末端的地址,这个值是在内核模块链接期间设置end这个值,
-** 然后在这里使用.
-*/
-struct buffer_head * start_buffer = (struct buffer_head *) &end;
-struct buffer_head * hash_table[NR_HASH];
-static struct buffer_head * free_list;
-......
-/* 在buffer_init函数里,从内核的末端及缓冲区的末端开始,方向相对增长,配对的做出buffer_head,缓冲块
-** 直到不足一对buffer_head, 缓冲块.
-*/
-void buffer_init(long buffer_end)
-{
-    struct buffer_head * h = start_buffer;
-    void * b;
-    int i;
-
-    if (buffer_end == 1<<20)
-        b = (void *) (640*1024);
-    else
-        b = (void *) buffer_end;
-    /* h, b分别从缓冲区的低地址和高地址开始,每次取buffer_head, 缓冲块各一个.
-     * 忽略剩余不足一对buffer_head, 缓冲块的空间
-     */
-    while ( (b -= BLOCK_SIZE) >= ((void *) (h+1)) ) {
-        h->b_dev = 0;
-        h->b_dirt = 0;
-        h->b_count = 0;
-        h->b_lock = 0;
-        h->b_uptodate = 0;
-        h->b_wait = NULL;
-        /* 这两项初始化为NULL, 后续使用将与hash_table挂接 */
-        h->b_next = NULL;
-        h->b_prev = NULL;
-        /* 每个buffer_head关联一个缓冲块 */
-        h->b_data = (char *) b;
-        /* 这两项使buffer_head分别与前,后buffer_head链接形成双链表 */
-        h->b_prev_free = h-1;
-        h->b_next_free = h+1;
-        h++;
-        NR_BUFFERS++;
-        if (b == (void *) 0x100000) // 避开ROMBIOS & VGA
-            b = (void *) 0xA0000;
-    }
-    h--;
-    free_list = start_buffer;
-    free_list->b_prev_free = h;
-    h->b_next_free = free_list;
-    for (i=0;i<NR_HASH;i++)
-        hash_table[i]=NULL;
-}
-```
-
 ### 初始化块设备请求项数据结构
 
 Linux 0.11将外设分为两类:
-块设备: 将存储空间分为若干同样大小的称为块的存储空间,每个块有块号,可以独立,随机读写.
-字符设备: 以字符为单位进行I/O通信.
 
-进程要想与块设备进行沟通,必须经过主机内存中的缓冲区，请求项管理结构request[32]就是操作系统
+* 块设备: 将存储空间分为若干同样大小的称为块的存储空间,每个块有块号,可以独立,随机读写.
+* 字符设备: 以字符为单位进行I/O通信.
+
+操作系统根据所有进程读写任务的轻重缓急, 决定缓冲块与块设备之间的读写操作, 并把需要操作的缓冲块记录在请求项上,
+得到读写块设备操作指令后, 只根据请求项中的记录来决定当前需要处理哪个设备的哪个逻辑块.
+
+进程要想与块设备进行沟通, 必须经过主机内存中的缓冲区, 请求项管理结构request[32]就是操作系统
 与块设备上逻辑块之间读写关系的数据结构,如下所示:
 
 kernel/blk_dev/blk.h
@@ -516,6 +451,320 @@ void blk_dev_init(void)
 }
 ```
 
+### 初始化外设
+
+Linus在操作系统源代码中本来设计了chr_dev_init()函数, 明显是要用这个函数初始化字符设备,但我们可以
+看到这是一个空函数. Linus又设计了tty_init()函数, 内容就是初始化字符设备.
+字符设备的初始化为进程与串行口(可以通信,连接鼠标...), 显示器以及键盘进行I/O通信准备工作环境,
+主要是对串行口, 显示器, 键盘进行初始化设置, 以及与此相关的中断服务程序与IDT挂接.
+
+path: init/main.c
+```
+/* This really IS void, no error here. */
+/* The startup routine assumes (well, ...) this */
+void main(void)
+{
+    tty_init();
+}
+```
+
+在tty_init()函数中, 先调用rs_init()函数来设置串行口,再调用con_init()函数来设置显示器,
+具体执行代码如下:
+
+path: kernel/chr_drv/tty_io.c
+```
+void tty_init(void)
+{
+    rs_init();
+    con_init();
+}
+```
+
+#### 初始化串行口
+
+path: kernel/chr_drv/serial.c
+```
+static void init(int port)
+{
+    outb_p(0x80,port+3);    /* set DLAB of line control reg */
+    outb_p(0x30,port);      /* LS of divisor (48 -> 2400 bps */
+    outb_p(0x00,port+1);    /* MS of divisor */
+    outb_p(0x03,port+3);    /* reset DLAB */
+    outb_p(0x0b,port+4);    /* set DTR,RTS, OUT_2 */
+    outb_p(0x0d,port+1);    /* enable all intrs but writes */
+    (void)inb(port);        /* read data port to reset things (?) */
+}
+
+void rs_init(void)
+{
+    set_intr_gate(0x24,rs1_interrupt); // 设置串行口1中断
+    set_intr_gate(0x23,rs2_interrupt); // 设置串行口2中断
+
+    init(tty_table[1].read_q.data); // 初始化串行口1
+    init(tty_table[2].read_q.data); // 初始化串行口2
+
+    outb(inb_p(0x21)&0xE7,0x21); // 允许IRQ3, IRQ4
+}
+```
+
+tty_table的定义如下所示:
+
+path: kernel/chr_drv/tty_io.c
+```
+struct tty_struct tty_table[] = {
+    {
+        {ICRNL,        /* change incoming CR to NL */
+        OPOST|ONLCR,    /* change outgoing NL to CRNL */
+        0,
+        ISIG | ICANON | ECHO | ECHOCTL | ECHOKE,
+        0,        /* console termio */
+        INIT_C_CC},
+        0,            /* initial pgrp */
+        0,            /* initial stopped */
+        con_write,
+        {0,0,0,0,""},        /* console read-queue */
+        {0,0,0,0,""},        /* console write-queue */
+        {0,0,0,0,""}        /* console secondary queue */
+    },{
+        {0, /* no translation */
+        0,  /* no translation */
+        B2400 | CS8,
+        0,
+        0,
+        INIT_C_CC},
+        0,
+        0,
+        rs_write,
+        {0x3f8,0,0,0,""},        /* rs 1 */
+        {0x3f8,0,0,0,""},
+        {0,0,0,0,""}
+    },{
+        {0, /* no translation */
+        0,  /* no translation */
+        B2400 | CS8,
+        0,
+        0,
+        INIT_C_CC},
+        0,
+        0,
+        rs_write,
+        {0x2f8,0,0,0,""},        /* rs 2 */
+        {0x2f8,0,0,0,""},
+        {0,0,0,0,""}
+    }
+};
+```
+
+path: include/termios.h
+```
+struct termios {
+    unsigned long c_iflag;        /* input mode flags */
+    unsigned long c_oflag;        /* output mode flags */
+    unsigned long c_cflag;        /* control mode flags */
+    unsigned long c_lflag;        /* local mode flags */
+    unsigned char c_line;        /* line discipline */
+    unsigned char c_cc[NCCS];    /* control characters */
+};
+```
+
+path: include/linux/tty.h
+```
+struct tty_queue {
+    unsigned long data;
+    unsigned long head;
+    unsigned long tail;
+    struct task_struct * proc_list;
+    char buf[TTY_BUF_SIZE];
+};
+
+......
+
+struct tty_struct {
+    struct termios termios;
+    int pgrp;
+    int stopped;
+    void (*write)(struct tty_struct * tty);
+    struct tty_queue read_q;
+    struct tty_queue write_q;
+    struct tty_queue secondary;
+};
+```
+
+#### 初始化显示器 & 键盘
+
+A. 根据机器系统数据提供的显卡是“单色”还是“彩色”来设置配套信息。由于在Linux 0.11那个时代, 大部分
+显卡器是单色的. 所以,
+
+我们假设显卡的属性是:
+单色EGA. 那么显存的位置就要被设置为0xb0000～0xb8000,索引寄存器端口被设置为0x3b4，数据寄存器端口
+被设置为0x3b5, 再将显卡的属性——EGA这三个字符, 显示在屏幕上, 另外, 再初始化一些用于滚屏的变量,
+其中包括滚屏的起始显存地址, 滚屏结束显存地址, 最顶端行号以及最低端行号.
+
+B. 对键盘进行设置是先将键盘中断服务程序与IDT相挂接, 然后取消8259A中对键盘中断的屏蔽,
+允许IRQ1发送中断信号, 通过先禁止键盘工作, 再允许键盘工作, 键盘便能够使用了.
+
+初始化键盘和显示器的工作都是在con_init函数中实现的，具体实现如下所示:
+
+path: kernel/chr_dev/console.c
+```
+/*
+ * These are set up by the setup-routine at boot-time:
+ */
+
+#define ORIG_X               (*(unsigned char *)0x90000)
+#define ORIG_Y               (*(unsigned char *)0x90001)
+#define ORIG_VIDEO_PAGE      (*(unsigned short *)0x90004)
+#define ORIG_VIDEO_MODE      ((*(unsigned short *)0x90006) & 0xff)
+#define ORIG_VIDEO_COLS      (((*(unsigned short *)0x90006) & 0xff00) >> 8)
+#define ORIG_VIDEO_LINES     (25)
+#define ORIG_VIDEO_EGA_AX    (*(unsigned short *)0x90008)
+#define ORIG_VIDEO_EGA_BX    (*(unsigned short *)0x9000a)
+#define ORIG_VIDEO_EGA_CX    (*(unsigned short *)0x9000c)
+
+#define VIDEO_TYPE_MDA         0x10    /* Monochrome Text Display    */
+#define VIDEO_TYPE_CGA         0x11    /* CGA Display             */
+#define VIDEO_TYPE_EGAM        0x20    /* EGA/VGA in Monochrome Mode    */
+#define VIDEO_TYPE_EGAC        0x21    /* EGA/VGA in Color Mode    */
+
+/*
+ *  void con_init(void);
+ *
+ * This routine initalizes console interrupts, and does nothing
+ * else. If you want the screen to clear, call tty_write with
+ * the appropriate escape-sequece.
+ *
+ * Reads the information preserved by setup.s to determine the current display
+ * type and sets everything accordingly.
+ */
+void con_init(void)
+{
+    register unsigned char a;
+    char *display_desc = "????";
+    char *display_ptr;
+
+    video_num_columns = ORIG_VIDEO_COLS;
+    video_size_row = video_num_columns * 2;
+    video_num_lines = ORIG_VIDEO_LINES;
+    video_page = ORIG_VIDEO_PAGE;
+    video_erase_char = 0x0720;
+
+    if (ORIG_VIDEO_MODE == 7)            /* Is this a monochrome display? */
+    {
+        video_mem_start = 0xb0000;
+        video_port_reg = 0x3b4;
+        video_port_val = 0x3b5;
+        if ((ORIG_VIDEO_EGA_BX & 0xff) != 0x10)
+        {
+            video_type = VIDEO_TYPE_EGAM;
+            video_mem_end = 0xb8000;
+            display_desc = "EGAm";
+        }
+        else
+        {
+            video_type = VIDEO_TYPE_MDA;
+            video_mem_end    = 0xb2000;
+            display_desc = "*MDA";
+        }
+    }
+    else                                /* If not, it is color. */
+    {
+        video_mem_start = 0xb8000;
+        video_port_reg    = 0x3d4;
+        video_port_val    = 0x3d5;
+        if ((ORIG_VIDEO_EGA_BX & 0xff) != 0x10)
+        {
+            video_type = VIDEO_TYPE_EGAC;
+            video_mem_end = 0xbc000;
+            display_desc = "EGAc";
+        }
+        else
+        {
+            video_type = VIDEO_TYPE_CGA;
+            video_mem_end = 0xba000;
+            display_desc = "*CGA";
+        }
+    }
+
+    /* Let the user known what kind of display driver we are using */
+
+    display_ptr = ((char *)video_mem_start) + video_size_row - 8;
+    while (*display_desc)
+    {
+        *display_ptr++ = *display_desc++;
+        display_ptr++;
+    }
+
+    /* Initialize the variables used for scrolling (mostly EGA/VGA)    */
+
+    origin    = video_mem_start;
+    scr_end    = video_mem_start + video_num_lines * video_size_row;
+    top    = 0;
+    bottom    = video_num_lines;
+
+    gotoxy(ORIG_X,ORIG_Y);
+
+    set_trap_gate(0x21,&keyboard_interrupt); // 设置键盘中断
+    outb_p(inb_p(0x21)&0xfd,0x21); // 取消对键盘中断的屏蔽
+    a=inb_p(0x61);
+    outb_p(a|0x80,0x61); // 禁止键盘工作
+    outb(a,0x61); // 再允许键盘工作
+}
+```
+
+### 初始化开机启动时间
+
+开机启动时间是大部分与时间相关的计算的基础:
+操作系统中一些程序的运算需要时间参数; 很多事务的处理也都要用到时间, 比如文件修改的时间,
+文件最近访问的时间, i节点自身的修改时间等.
+有了开机启动时间, 其他时间就可据此推算出来.
+
+具体执行步骤是:
+CMOS是主板上的一个小存储芯片, 系统通过调用time_init()函数, 先对它上面记录的时间数据进行采集,
+提取不同等级的时间要素，比如秒(time.tm_sec),分(time.tm_min),年(time.tm_year)等,然后对这些要素
+进行整合, 并最终得出开机启动时间(startup_time).
+执行代码如下:
+
+path: init/main.c
+```
+#define CMOS_READ(addr) ({ \ // 读CMOS实时时钟信息
+outb_p(0x80|addr,0x70); \    // 0x80|addr读CMOS地址，0x70写端口
+inb_p(0x71); \               // 0x71读端口
+})
+
+#define BCD_TO_BIN(val) ((val)=((val)&15) + ((val)>>4)*10)
+
+static void time_init(void)
+{
+    struct tm time;
+
+    do {
+        time.tm_sec = CMOS_READ(0);
+        time.tm_min = CMOS_READ(2);
+        time.tm_hour = CMOS_READ(4);
+        time.tm_mday = CMOS_READ(7);
+        time.tm_mon = CMOS_READ(8);
+        time.tm_year = CMOS_READ(9);
+    } while (time.tm_sec != CMOS_READ(0));
+    BCD_TO_BIN(time.tm_sec);
+    BCD_TO_BIN(time.tm_min);
+    BCD_TO_BIN(time.tm_hour);
+    BCD_TO_BIN(time.tm_mday);
+    BCD_TO_BIN(time.tm_mon);
+    BCD_TO_BIN(time.tm_year);
+    time.tm_mon--;
+    startup_time = kernel_mktime(&time);
+}
+
+...
+
+/* This really IS void, no error here. */
+/* The startup routine assumes (well, ...) this */
+void main(void)
+{
+    time_init();
+}
+```
+
 ### 初始化进程0
 
 path: init/main.c
@@ -530,6 +779,75 @@ void main(void)
 
 sched_init创建初始化进程0的过程如下所示:
 https://github.com/leeminghao/doc-linux/blob/master/0.11/process/CreateProcess0.md
+
+### 初始化缓冲区
+
+Linux 0.11通过hash_table[NR_HASH], buffer_head双向循环链表组成的复杂哈希表管理缓冲区.
+缓冲区的初始化是通过buffer_init函数对缓冲区进行设置的，如下所示：
+
+path: init/main.c
+```
+void main(void)
+{
+    ......
+    buffer_init(buffer_memory_end);
+    ......
+}
+```
+
+path: fs/buffer.c
+```
+/* 这个end是内核代码末端的地址,这个值是在内核模块链接期间设置end这个值,
+** 然后在这里使用.
+*/
+struct buffer_head * start_buffer = (struct buffer_head *) &end;
+struct buffer_head * hash_table[NR_HASH];
+static struct buffer_head * free_list;
+......
+/* 在buffer_init函数里,从内核的末端及缓冲区的末端开始,方向相对增长,配对的做出buffer_head,缓冲块
+** 直到不足一对buffer_head, 缓冲块.
+*/
+void buffer_init(long buffer_end)
+{
+    struct buffer_head * h = start_buffer;
+    void * b;
+    int i;
+
+    if (buffer_end == 1<<20)
+        b = (void *) (640*1024);
+    else
+        b = (void *) buffer_end;
+    /* h, b分别从缓冲区的低地址和高地址开始,每次取buffer_head, 缓冲块各一个.
+     * 忽略剩余不足一对buffer_head, 缓冲块的空间
+     */
+    while ( (b -= BLOCK_SIZE) >= ((void *) (h+1)) ) {
+        h->b_dev = 0;
+        h->b_dirt = 0;
+        h->b_count = 0;
+        h->b_lock = 0;
+        h->b_uptodate = 0;
+        h->b_wait = NULL;
+        /* 这两项初始化为NULL, 后续使用将与hash_table挂接 */
+        h->b_next = NULL;
+        h->b_prev = NULL;
+        /* 每个buffer_head关联一个缓冲块 */
+        h->b_data = (char *) b;
+        /* 这两项使buffer_head分别与前,后buffer_head链接形成双链表 */
+        h->b_prev_free = h-1;
+        h->b_next_free = h+1;
+        h++;
+        NR_BUFFERS++;
+        if (b == (void *) 0x100000) // 避开ROMBIOS & VGA
+            b = (void *) 0xA0000;
+    }
+    h--;
+    free_list = start_buffer;
+    free_list->b_prev_free = h;
+    h->b_next_free = free_list;
+    for (i=0;i<NR_HASH;i++)
+        hash_table[i]=NULL;
+}
+```
 
 ### 初始化硬盘
 
