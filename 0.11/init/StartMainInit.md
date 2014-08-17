@@ -204,7 +204,7 @@ void main(void)
 path: mm/memory.c
 ```
 /* these are not to be changed without changing head.s etc */
-#define LOW_MEM 0x100000                     // 16 MB的页数
+#define LOW_MEM 0x100000                     // 内存低端(1MB)
 #define PAGING_MEMORY (15*1024*1024)         // 分页内存 15MB,主内存区最多 15M.
 #define PAGING_PAGES (PAGING_MEMORY>>12)     // 分页后的物理内存页数.
 #define MAP_NR(addr) (((addr)-LOW_MEM)>>12)  // 指定内存地址映射为页号.
