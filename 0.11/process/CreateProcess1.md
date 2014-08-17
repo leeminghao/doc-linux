@@ -303,7 +303,7 @@ int copy_process(int nr,long ebp,long edi,long esi,long gs,long none,
 ```
 
 进入copy_process()函数后, 调用get_free_page()函数, 在主内存申请一个空闲页面,
-并将申请到的页面清零,用于进程1的task_struct及内核栈, 执行代码如下所示:
+并将申请到的页面清零,用于进程1的task_struct及内核栈,执行代码如下所示:
 
 path: mm/memory.c
 ```
@@ -475,6 +475,7 @@ int copy_process(int nr,long ebp,long edi,long esi,long gs,long none,
     }
     ...
 ｝
+```
 
 Intel 80x86体系结构分页机制是基于保护模式的，先打开pe，才能打开pg，不存在没有pe的pg。
 保护模式是基于段的，换句话说，设置进程1的分页管理，就要先设置进程1的分段。
