@@ -196,7 +196,7 @@ ret_from_sys_call:
     pushl %ecx
     call do_signal
     popl %eax
-3:    popl %eax
+3:  popl %eax
     popl %ebx
     popl %ecx
     popl %edx
@@ -529,8 +529,11 @@ int copy_mem(int nr,struct task_struct * p)
 
     new_data_base = new_code_base = nr * 0x4000000; // 现在nr是1，0x4000000是64 MB
     p->start_code = new_code_base;
-    set_base(p->ldt[1],new_code_base);
-    set_base(p->ldt[2],new_data_base);
+    /* set_base是设置进程的ldt,用于分段管理，用于逻辑地址映射到线性地址 */
+    set_base(p->ldt[1],new_code_base); // 设置子进程代码段基址
+    set_base(p->ldt[2],new_data_base); // 设置子进程数据段基址
+
+    // 为进程1创建第一个页表、复制进程0的页表，设置进程1的页目录项
     if (copy_page_tables(old_data_base,new_data_base,data_limit)) {
         printk("free_page_tables: from copy_mem\n");
         free_page_tables(new_data_base,data_limit);
@@ -596,6 +599,106 @@ __asm__("lsll %1,%0\n\tincl %0":"=r" (__limit):"r" (segment)); \
 __limit;})
 ...
 ```
+
+进入copy_page_tables()函数后，先为新的页表申请一个空闲页面，并把进程0中第一个页表里面前160个页表项复制
+到这个页面中（1个页表项控制一个页面4 KB内存空间，160个页表项可以控制640 KB内存空间）。进程0和进程1的
+页表暂时都指向了相同的页面，意味着进程1也可以操作进程0的页面。之后对进程1的页目录表进行设置。
+最后，用重置CR3的方法刷新页变换高速缓存。进程1的页表和页目录表设置完毕。
+
+执行代码如下:
+path: mm/memory.c
+```
+...
+#define invalidate()\
+    __asm__("movl %%eax,%%cr3"::"a" (0))    // 重置CR3为0
+...
+
+/* from 是进程0的线性地址空间的基地址: 0x00000000.
+ * to 是进程1的线性地址空间的基地址: 1 * 0x40000000
+ */
+int copy_page_tables(unsigned long from,unsigned long to,long size)
+{
+        unsigned long * from_page_table;
+        unsigned long * to_page_table;
+        unsigned long this_page;
+        unsigned long * from_dir, * to_dir;
+        unsigned long nr;
+
+        /* 0x3fffff是4MB,是一个页表的管辖范围,二进制是22个1, "||"的两边必须同为0,所以,
+         * from和to后22位必须都为0, 即4MB的整数倍, 意思是一个页表对应4MB连续的线性地址空间
+         * 必须是从0x000000开始的4 MB的整数倍的线性地址,不能是任意地址开始的4MB,才符合分页的要求
+         */
+        if ((from&0x3fffff) || (to&0x3fffff))
+             panic("copy_page_tables called with wrong alignment");
+
+       /* 一个页目录项的管理范围是4 MB, 一项是4字节, 项的地址就是: 项数 * 4, 也就是项管理的线性地址起始地址的M数,
+        * 比如: 0项的地址是0,管理范围是0～4 MB; 1项的地址是4,管理范围是4～8 MB; 2项的地址是8,管理范围是8～12MB...
+        * >>20 就是地址的MB数, & 0xffc就是&111111111100b，就是4 MB以下部分清零的地址的MB数，也就是页目录项的地址
+        * 也就是取得源地址和目的地址的目录项地址(from_dir 和 to_dir) */
+        from_dir= (unsigned long *) ((from>>20) & 0xffc);   /* _pg_dir= 0 */
+        to_dir= (unsigned long *) ((to>>20) & 0xffc);
+        /* 计算要复制的内存块占用的页表数(也即目录项数) */
+        size= ((unsigned) (size + 0x3fffff)) >> 22;         // >> 22是4 MB数
+        /* 下面开始对每个占用的页表依次进行复制操作。*/
+        for(; size-- > 0; from_dir++,to_dir++) {
+             // 如果目的目录项指定的页表已经存在(P=1),则出错,死机。
+             if (1 & *to_dir)
+                   panic("copy_page_tables: already exist");
+             // 如果此源目录项未被使用,则不用复制对应页表,跳过。
+             if (!(1 & *from_dir))
+                   continue;
+
+             // *from_dir是页目录项中的地址，0xfffff000&是将低12位清零，高20位是页表的地址
+             // 取当前源目录项中页表的地址 --> from_page_table。
+             from_page_table= (unsigned long *) (0xfffff000 & *from_dir);
+             // 为目的页表取一页空闲内存,如果返回是0则说明没有申请到空闲内存页面.返回值=-1,退出.
+             if (!(to_page_table= (unsigned long *) get_free_page()))
+                   return -1;   /* Out of memory, see freeing */
+             // 设置目的目录项信息。7 是标志信息,表示(Usr, R/W, Present)
+             *to_dir= ((unsigned long) to_page_table)|7;  // 7即111
+             // 针对当前处理的页表,设置需复制的页面数. 如果是在内核空间,则仅需复制头160页(640KB),
+             // 否则需要复制一个页表中的所有 1024 页面。
+             // 现在仅仅需要复制160页
+             nr= (from==0)?0xA0:1024;                     // 0xA0 即160，复制页表的项数，
+             // 对于当前页表,开始复制指定数目 nr 个内存页面。
+             for (;nr-- > 0;from_page_table++,to_page_table++){ // 复制父进程页表
+                   this_page= *from_page_table; // 取源页表项内容。
+                   if (!(1 & this_page)) // 如果当前源页面没有使用,则不用复制。
+                         continue;
+                    // 复位页表项中 R/W 标志(置 0)。(如果 U/S 位是 0,则 R/W 就没有作用。
+                    // 如果 U/S 是 1,而 R/W 是 0,那么运行在用户层的代码就只能读页面。
+                    // 如果 U/S 和 R/W 都置位,则就有写的权限。)
+                   this_page &= ～2;   // 设置页表项属性，2是010，～2是101，代表用户、只读、存在
+                   *to_page_table= this_page; // 将该页表项复制到目的页表中。
+                   // 如果该页表项所指页面的地址在 1MB 以上,则需要设置内存页面映射数组mem_map[],
+                   // 于是计算页面号,并以它为索引在页面映射数组相应项中增加引用次数。而对于位于
+                   // 1MB 以下的页面,说明是内核页面,因此不需要对 mem_map[]进行设置。因为mem_map[]
+                   // 仅用于管理主内存区中的页面使用情况。因此,对于内核移动到任务0中并且调用
+                   // fork()创建任务 1 时(用于运行 init()),由于此时复制的页面还仍然都在内核
+                   // 代码区域,因此以下判断中的语句不会执行。只有当调用fork()的父进程代码处于
+                   // 主内存区(页面位置大于 1MB)时才会执行。这种情况需要在进程调用了execve(),
+                   // 装载并执行了新程序代码时才会出现。
+                   if (this_page > LOW_MEM) {   // 1 MB以内的内核区不参与用户分页管理
+                         // 下面这句的含义是令源页表项所指内存页也为只读。因为现在开始有两个进程
+                         // 共用内存区了。若其中一个内存需要进行写操作,则可以通过页异常的写保护
+                         // 处理,为执行写操作的进程分配一页新的空闲页面,也即进行写时复制的操作。
+                         *from_page_table= this_page;
+                         this_page -= LOW_MEM;
+                         this_page >>= 12;
+                         mem_map[this_page]++;  // 增加引用计数，参看mem_init
+                   }
+             }
+        }
+        invalidate();  // 重置CR3为0，刷新"页变换高速缓存"
+        return 0;
+}
+```
+
+进程1此时是一个空架子，还没有对应的程序，它的页表又是从进程0的页表复制过来的，它们管理的页面
+完全一致，也就是它暂时和进程0共享一套内存页面管理结构，等将来它有了自己的程序，再把关系解除，
+并重新组织自己的内存管理结构。如下图所示:
+
+https://github.com/leeminghao/doc-linux/blob/master/0.11/process/task0_task1_page_table.jpg
 
 总结：
 --------------------------------------------------------------------------------
