@@ -122,7 +122,7 @@ B. 紧接着就执行"int $0x80"，产生一个软中断，CUP从3特权级的�
 
 init_task的内核栈如下所示:
 
-https://github.com/leeminghao/doc-linux/blob/master/0.11/process/task0.jpg
+https://github.com/leeminghao/doc-linux/blob/master/0.11/process/kernel_stack.jpg
 
 **注意**: 在跳转到main函数后的初始化过程，提到的move_to_user_mode这个函数中做的压栈动作就是模仿中断的硬件压栈，
 这些压栈的数据将在后续的copy_process()函数中用来初始化进程1的TSS。值得注意，压栈的EIP指向当前指令"int $0x80"的下一行, 即:

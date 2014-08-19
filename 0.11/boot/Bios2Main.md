@@ -841,6 +841,7 @@ https://github.com/leeminghao/doc-linux/blob/master/0.11/boot/gdt_data_item.jpg
 
 movl $0x10,%eax中的0x10是GDT表中的偏移值(用二进制表示就是10000), 即要参考GDT表中第2项的信息
 (GDT表项号排序为第0项,第1项,第2项)来设置这些段寄存器,这一项就是内核数据段描述符.
+
 SS现在也要转变为栈段选择符, 栈顶指针也成为32位的esp, 如下所示:
 
 path: boot/head.s
