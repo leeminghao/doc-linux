@@ -18,7 +18,7 @@ https://github.com/leeminghao/doc-linux/blob/master/0.11/process/CreateProcess0.
 进程0创建进程1
 --------------------------------------------------------------------------------
 
-### fork
+### 调用fork系统调用
 
 在Linux操作系统中创建新进程的时候，都是由父进程调用fork函数来实现的。
 执行代码如下：
@@ -102,7 +102,7 @@ int fork(void)
     long __res;
     // int 0x80是所有系统调用函数的总入口，fork()是其中之一
     __asm__ volatile ("int $0x80"
-        : "=a" (__res)       // 第一个冒号后是输出部分，将_res赋给eax
+        : "=a" (__res)       // 第一个冒号后是输出部分，将eax赋给__res
         : "0" (__NR_fork));  // 第二个冒号后是输入部分，"0"：同上寄存器，即eax，__NR_fork就是2，将2给eax
     if (__res >= 0)          // int 0x80中断返回后，将执行这一句
         return (int) __res;
@@ -134,7 +134,9 @@ if （__res >= 0）
 
 **这一行就是进程0从fork函数系统调用中断返回后第一条指令的位置。这一行也将是进程1开始执行的第一条指令位置。**
 
-### system_call
+有关堆栈的介绍如下所示:
+
+https://github.com/leeminghao/doc-linux/blob/master/0.11/misc/Stack.md
 
 在sched_init函数中set_system_gate（0x80,&system_call）的设置，CPU自动压栈完成后，跳转到system_call.s
 中的_system_call处执行，执行过程如下所示:
@@ -170,43 +172,9 @@ system_call:
     # call _sys_call_table + 2×4(4的意思是_sys_call_table[]的每一项有4字节),相当于call _sys_call_table[2]，就是执行sys_fork.
     # 注意: call _sys_call_table（,%eax,4）指令本身也会压栈保护现场.
     call sys_call_table(,%eax,4)
-    pushl %eax
-    movl current,%eax
-    cmpl $0,state(%eax)        # state
-    jne reschedule
-    cmpl $0,counter(%eax)        # counter
-    je reschedule
-ret_from_sys_call:
-    movl current,%eax        # task[0] cannot have signals
-    cmpl task,%eax
-    je 3f
-    cmpw $0x0f,CS(%esp)        # was old code segment supervisor ?
-    jne 3f
-    cmpw $0x17,OLDSS(%esp)        # was stack segment = 0x17 ?
-    jne 3f
-    movl signal(%eax),%ebx
-    movl blocked(%eax),%ecx
-    notl %ecx
-    andl %ebx,%ecx
-    bsfl %ecx,%ecx
-    je 3f
-    btrl %ecx,%ebx
-    movl %ebx,signal(%eax)
-    incl %ecx
-    pushl %ecx
-    call do_signal
-    popl %eax
-3:  popl %eax
-    popl %ebx
-    popl %ecx
-    popl %edx
-    pop %fs
-    pop %es
-    pop %ds
+    ...
     iret
 ```
-
-### sys_fork
 
 因为汇编中对应C语言的函数名在前面多加一个下划线“_”（C语言的sys_fork()对应汇编的就是_sys_fork），所以跳转到 _sys_fork处执行.
 执行代码如下所示:
@@ -271,8 +239,6 @@ sys_fork:
     addl $20,%esp
 1:  ret
 ```
-
-### copy_process
 
 进程0已经成为一个可以创建子进程的父进程, 在内核中有“进程0的task_struct”和“进程0的页表项”等专属进程0的管理信息.
 接下来, 进程0将在copy_process()函数中做非常重要的体现父子进程创建机制的工作:
@@ -484,7 +450,7 @@ Intel 80x86体系结构分页机制是基于保护模式的，先打开pe，才�
 CPU硬件自动将逻辑地址计算为CPU可寻址的线性地址，再根据操作系统对页目录表、页表的设置，自动将线性地址转换为分页的物理地址。
 操作系统正是沿着这个技术路线，先在进程1的64 MB线性地址空间中设置代码段、数据段，然后设置页表、页目录。
 
-##### 在进程1的线性地址空间中设置代码段、数据段
+**在进程1的线性地址空间中设置代码段、数据段**:
 
 在Linux 0.11中，每个进程所属的程序代码执行时，都要根据其线性地址来进行寻址，并最终映射到物理内存上。
 
@@ -700,11 +666,186 @@ int copy_page_tables(unsigned long from,unsigned long to,long size)
 
 https://github.com/leeminghao/doc-linux/blob/master/0.11/process/task0_task1_page_table.jpg
 
+返回copy_process()函数中继续执行。设置task_struct中与文件相关的成员，包括:
+
+* 打开了哪些文件p->filp[20]
+* 进程0的当前工作目录i 节点结构;
+* 根目录i节点结构;
+* 执行文件i 节点结构;
+
+虽然进程0中这些数值还都是空的，进程0只具备在主机中正常运算的能力，尚不具备与外设以文件形式进行
+交互的能力，但这种共享仍有意义，因为父子进程创建机制会把这种能力“遗传”给子进程。
+
+path: kernel/fork.c
+```
+int copy_process(int nr,long ebp,long edi,long esi,long gs,long none,
+      long ebx,long ecx,long edx,
+      long fs,long es,long ds,
+      long eip,long cs,long eflags,long esp,long ss)
+{
+    ...
+    if (copy_mem(nr,p)) {
+        task[nr] = NULL;
+        free_page((long) p);
+        return -EAGAIN;
+    }
+    for (i=0; i<NR_OPEN;i++)
+        if ((f=p->filp[i]))
+            f->f_count++;
+    if (current->pwd)
+        current->pwd->i_count++;
+    if (current->root)
+        current->root->i_count++;
+    if (current->executable)
+        current->executable->i_count++;
+    /* 之后把进程1的TSS和LDT，挂接在GDT中 */
+    set_tss_desc(gdt+(nr<<1)+FIRST_TSS_ENTRY,&(p->tss));
+    set_ldt_desc(gdt+(nr<<1)+FIRST_LDT_ENTRY,&(p->ldt));
+    /* 将进程1的状态设置为就绪态，使它可以参加进程调度，最后返回进程号1。*/
+    p->state = TASK_RUNNING;    /* do this last, just in case */
+    return last_pid;
+}
+```
+
+至此，进程1的创建工作完成，进程1已经具备了进程0的全部能力，可以在主机中正常地运行。
+进程1创建完毕后，copy_process()函数执行完毕，返回sys_fork()中 call _copy_process()的下一行执行，
+执行代码如下：
+
+path: kernel/system_call.s
+```
+.align 2
+sys_fork:
+    call find_empty_process
+    testl %eax,%eax # eax保存find_empty_process函数返回的进程1的进程号
+    js 1f
+    # 进程1的进程号及在task[64]中的位置确定后, 正在创建的进程1就等于有了身份.
+    # 接下来, 在进程0的内核栈中继续压栈, 将5个寄存器值进栈, 为调用copy_process()函数准备参数,
+    # 这些数据也是用来初始化进程1的TSS.
+    # 注意: 最后压栈的eax的值就是find_empty_process()函数返回的进程号, 也将是copy_process()函数的第一个参数int nr,
+    push %gs
+    pushl %esi
+    pushl %edi
+    pushl %ebp
+    pushl %eax
+    # 压栈结束后, 开始调用copy_process()函数.
+    call copy_process
+    # copy_process返回至此，esp+=20就是esp清20字节的栈，也就是清前面压的gs,esi,edi,ebp,eax.
+    # 注意: 内核栈里还有数据, 返回_system_call中的pushl %eax执行
+    addl $20,%esp
+1:  ret
+```
+
+**注意**: eax对应的是copy_process( )的第一个参数nr，就是copy_process( )的返回值last_pid，即进程1的
+进程号。
+
+接下来,返回_system_call中的call _sys_call_table（,%eax,4）的下一行pushl %eax处继续执行,先检查当前
+进程是否是进程0。pushl %eax这行代码，将返回的进程1的进程号压栈，之后到_ret_from_sys_call:处执行。
+执行代码如下:
+
+path: kernel/system_call.s
+```
+    ...
+    call sys_call_table(,%eax,4)
+    # sys_fork返回到此执行，eax是copy_process()的返回值last_pid
+    pushl %eax
+    movl current,%eax          # 当前进程是进程0
+    cmpl $0,state(%eax)        # state
+    jne reschedule             # 如果进程0不是就绪态，则进程调度
+    cmpl $0,counter(%eax)      # counter
+    je reschedule              # 如果进程0没有时间片，则进程调度
+ret_from_sys_call:
+    movl current,%eax          # task[0] cannot have signals
+    cmpl task,%eax
+    je 3f                      # 如果当前进程是进程0，跳到下面的3：处执行。当前进程是进程0！
+    cmpw $0x0f,CS(%esp)        # was old code segment supervisor ?
+    jne 3f
+    cmpw $0x17,OLDSS(%esp)        # was stack segment = 0x17 ?
+    jne 3f
+    movl signal(%eax),%ebx
+    movl blocked(%eax),%ecx
+    notl %ecx
+    andl %ebx,%ecx
+    bsfl %ecx,%ecx
+    je 3f
+    btrl %ecx,%ebx
+    movl %ebx,signal(%eax)
+    incl %ecx
+    pushl %ecx
+    call do_signal
+    popl %eax
+3:  popl %eax # 如果是进程0，则直接跳到这个地方执行，将7个寄存器的值出栈给CPU
+    popl %ebx
+    popl %ecx
+    popl %edx
+    pop %fs
+    pop %es
+    pop %ds
+    # CPU硬件将int 0x80的中断时压的ss,esp,eflags,cs,eip的值出栈给CPU对应寄存器，
+    # CS:EIP指向fork()中int 0x80的下一行if(__res >=0)处执行
+    iret
+```
+
+由于当前进程是进程0,所以就跳转到标号3处，将压栈的各个寄存器数值还原。值得注意的是popl %eax这一行
+代码，这是将前面刚刚看到过的pushl %eax压栈的进程1的进程号，恢复给CPU的eax，eax的值为"1"。
+
+之后，iret中断返回，CPU硬件自动将int 0x80的中断时压的ss,esp,eflags,cs,eip的值按压栈的反序出栈给
+CPU对应寄存器，从0特权级的内核代码转换到3特权级的进程0代码执行:
+CS:EIP指向fork()中int 0x80的下一行 if （__res >=0）
+对应的执行代码如下：
+
+```
+int fork(void)
+{
+    long __res;
+    // int 0x80是所有系统调用函数的总入口，fork()是其中之一
+    __asm__ volatile ("int $0x80"
+        // 第一个冒号后是输出部分，将eax赋给__res, 是copy_process()的返回值last_pid(1)
+        : "=a" (__res)
+        : "0" (__NR_fork));  // 第二个冒号后是输入部分，"0"：同上寄存器，即eax，__NR_fork就是2，将2给eax
+    // iret后,执行这一行, __res的值就是eax, 值是1
+    if (__res >= 0)          // int 0x80中断返回后，将执行这一句
+        return (int) __res;  // 返回1
+    errno= -__res;
+    return -1;
+}
+```
+
+fork()函数的调用点if (!fork())处执行，!1为"假"，这样就不会执行到init()函数中，而是进程0继续执行,
+接下来就会执行到for (;;) pause().
+执行代码如下:
+path: init/main.c
+```
+static inline _syscall0(int,fork)
+static inline _syscall0(int,pause)
+...
+void main(void)
+{
+    ...
+    move_to_user_mode();
+    // fork的返回值为1，if (！1)为假
+    if (!fork()) {        /* we count on this going ok */
+        init(); // 不会执行这一行
+    }
+
+   /*
+    *   NOTE!!   For any other task 'pause()' would mean we have to get a
+    * signal to awaken, but task0 is the sole exception (see 'schedule()')
+    * as task 0 gets activated at every idle moment (when no other tasks
+    * can run). For task0 'pause()' just means we go check if some other
+    * task can run, and if not we return here.
+    */
+    for(;;) pause(); // 会执行这一行
+}
+```
+
 总结：
 --------------------------------------------------------------------------------
 **为进程1创建task_struct，将进程0的task_struct的内容复制给进程1** -->
-**为进程1的task_struct、tss做个性化设置。** -->
-**为进程1创建第一个页表，将进程0的页表项内容赋给这个页表。** -->
-**进程1共享进程0的文件。** -->
-**设置进程1的GDT项。** -->
-**最后将进程1设置为就绪态，使其可以参与进程间的轮转。**
+**为进程1的task_struct,tss做个性化设置** -->
+**为进程1创建第一个页表,将进程0的页表项内容赋给这个页表** -->
+**进程1共享进程0的文件** --> **设置进程1的GDT项** -->
+**最后将进程1设置为就绪态,使其可以参与进程间的轮转**
+
+综上，进程1的创建工作已经全部完成，现在执行的是进程0的代码，从这开始，进程0准备切换到进程1去执行:
+
+https://github.com/leeminghao/doc-linux/blob/master/0.11/process/ProcessSchedule.md
