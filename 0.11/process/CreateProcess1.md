@@ -848,4 +848,4 @@ void main(void)
 
 综上，进程1的创建工作已经全部完成，现在执行的是进程0的代码，从这开始，进程0准备切换到进程1去执行:
 
-https://github.com/leeminghao/doc-linux/blob/master/0.11/process/ProcessSchedule.md
+https://github.com/leeminghao/doc-linux/blob/master/0.11/process/ProcessSchedule0to1.md

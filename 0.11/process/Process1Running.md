@@ -7,7 +7,7 @@ https://github.com/leeminghao/doc-linux/blob/master/0.11/process/CreateProcess1.
 
 创建完进程1还不能立即执行，需要系统调度调度进程1执行，调度过程如下：
 
-https://github.com/leeminghao/doc-linux/blob/master/0.11/process/ProcessSchedule.md
+https://github.com/leeminghao/doc-linux/blob/master/0.11/process/ProcessSchedule0to1.md
 
 在分析进程1如何开始执行之前，先回顾一下进程0创建进程1的过程。
 在调用copy_process函数时曾强调过，当时为进程1设置的tss.eip就是进程0调用fork()
