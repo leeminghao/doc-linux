@@ -838,41 +838,6 @@ static void hd_out(unsigned int drive,unsigned int nsect,unsigned int sect,
 ```
 
 向硬盘发送一个命令之后,硬盘控制器接受到命令,然后开始执行,命令执行完毕之后,将触发硬盘中断:
-
-path: kernel/system_call.s
-```
-hd_interrupt:
-    pushl %eax
-    pushl %ecx
-    pushl %edx
-    push %ds
-    push %es
-    push %fs
-    movl $0x10,%eax
-    mov %ax,%ds
-    mov %ax,%es
-    movl $0x17,%eax
-    mov %ax,%fs
-    movb $0x20,%al
-    outb %al,$0xA0        # EOI to interrupt controller #1
-    jmp 1f            # give port chance to breathe
-1:    jmp 1f
-1:    xorl %edx,%edx
-    xchgl do_hd,%edx # do_hd=read_intr,在硬盘中断服务程序中将执行do_hd函数.
-    testl %edx,%edx
-    jne 1f
-    movl $unexpected_hd_interrupt,%edx
-1:    outb %al,$0x20
-    call *%edx        # "interesting" way of handling intr.
-    pop %fs
-    pop %es
-    pop %ds
-    popl %edx
-    popl %ecx
-    popl %eax
-    iret
-```
-
 硬盘开始将引导块中的数据不断读入它的缓存中,同时,程序也返回了，将会沿着前面调用的反方向,即:
 
 ```
@@ -926,18 +891,88 @@ void sleep_on(struct task_struct **p)
     /* 将进程1设置为不可中断等待状态,进程1挂起，然后调用shedule()函数 */
     tmp = *p;
     *p = current;
-    current->state = TASK_UNINTERRUPTIBLE;
+    current->state = TASK_UNINTERRUPTIBLE; // 将进程1设置为不可中断等待状态
     schedule();
     if (tmp)
         tmp->state=0;
 }
 ```
 
-在等待硬盘读数据时,进程调度切换到进程0执行.
+在等待硬盘读数据时,进程调度切换到进程0执行, 从进程1调度到进程0过程如下所示:
+
+https://github.com/leeminghao/doc-linux/blob/master/0.11/process/ProcessSchedule0to1.md
+
+硬盘在某一时刻把一个扇区的数据读出来了，产生硬盘中断。CPU接到中断指令后，终止正在执行的进程0的程序，
+终止的位置肯定是在pause(), sys_pause(), schedule(), switch_to (n)循环里面的某行指令处.
+然后转去执行硬盘中断服务程序. 执行代码如下：
+
+path: kernel/system_call.s
+```
+hd_interrupt:
+    pushl %eax
+    pushl %ecx
+    pushl %edx
+    push %ds
+    push %es
+    push %fs
+    movl $0x10,%eax
+    mov %ax,%ds
+    mov %ax,%es
+    movl $0x17,%eax
+    mov %ax,%fs
+    movb $0x20,%al
+    outb %al,$0xA0        # EOI to interrupt controller #1
+    jmp 1f            # give port chance to breathe
+1:  jmp 1f
+1:  xorl %edx,%edx
+    xchgl do_hd,%edx # do_hd=read_intr,在硬盘中断服务程序中将执行do_hd函数.
+    testl %edx,%edx
+    jne 1f
+    movl $unexpected_hd_interrupt,%edx
+1:  outb %al,$0x20
+    call *%edx        # "interesting" way of handling intr.
+    ...
+    iret
+```
+
+别忘了中断会自动压栈ss,esp,eflags,cs,eip. 硬盘中断服务程序的代码接着将一些寄存器的数据压栈以保存程序的中断处的现场。
+之后，执行_do_hd处的读盘中断处理程序，对应的代码应该是call *%edx这一行。这个edx里面是读盘中断处理程序read_intr的地址.
+read_intr()函数会将已经读到硬盘缓存中的数据复制到刚才被锁定的那个缓冲块中.
+
+**注意**:
+锁定是阻止进程方面的操作，而不是阻止外设方面的操作，这时1个扇区256字(512字节)的数据读入前面申请到的缓冲块，
+执行代码如下：
+
+path: kernel/blk_drv/hd.c
+```
+static void read_intr(void)
+{
+    if (win_result()) {
+        bad_rw_intr();
+        do_hd_request();
+        return;
+    }
+    port_read(HD_DATA,CURRENT->buffer,256);
+    CURRENT->errors = 0;
+    CURRENT->buffer += 512;
+    CURRENT->sector++;
+    if (--CURRENT->nr_sectors) {
+        do_hd = &read_intr;
+        return;
+    }
+    end_request(1);
+    do_hd_request();
+}
+```
+
+但是，引导块的数据是1024字节，请求项要求的也是1024字节，现在仅读出了一半，硬盘会继续读盘。
+与此同时，在得知请求项对应的缓冲块数据没有读完的情况下，内核将再次把read_intr()绑定在硬盘中断服务程序上，
+以待下次使用，之后中断服务程序返回。进程1仍处在被挂起状态，pause( )、sys_pause( )、schedule( )、switch_to（0）
+循环从刚才硬盘中断打断的地方继续循环，硬盘继续读盘.
 
 #### 块高速缓存(struct buffer_head)
 
-块高速缓存用来改进文件系统性能. 高速缓存用一个缓冲数组来实现,其中每个缓冲区由包含指针、计数器和标志的头以及用于存放磁盘块的体组成。
+块高速缓存用来改进文件系统性能. 高速缓存用一个缓冲数组来实现,其中每个缓冲区由包含指针，计数器和标志的头以及用于存放磁盘块的体组成。
 所有未使用的缓冲区均使用双链表, 按最近一次使用时间从近到远的顺序链接起来.
 
 为了迅速判断某一块是否在内存中,我们使用了哈希表。所有缓冲区,如果它所包含块的哈希代码为k,在哈希表中用第k项指向的单链表链接在一起。
