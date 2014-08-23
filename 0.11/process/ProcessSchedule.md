@@ -215,6 +215,8 @@ https://github.com/leeminghao/doc-linux/blob/master/0.11/process/task_schedule.g
 
 接下来，轮到进程1执行，它将进一步构建环境，使进程能够以文件的形式与外设交互。
 
+https://github.com/leeminghao/doc-linux/blob/master/0.11/process/Process1Running.md
+
 **需要提醒的是**:
 **pause()函数的调用是通过int 0x80中断从3特权级的进程0代码翻转到0特权级的内核代码执行的，
 在_system_call中的call _sys_call_table (,%eax,4) 中调用sys_pause()函数，并在sys_pause()中的
