@@ -1140,7 +1140,7 @@ int sys_setup(void * BIOS)
 根据硬盘分区信息设置hd[]，为安装硬盘文件系统做准备的工作都已完成。
 下面，我们将介绍进程1用虚拟盘替代软盘使之成为根设备，为加载根文件系统做准备:
 
-https://github.com/leeminghao/doc-linux/blob/master/0.11/
+https://github.com/leeminghao/doc-linux/blob/master/0.11/filesystem/ChangeRootDev.md
 
 总结
 --------------------------------------------------------------------------------
