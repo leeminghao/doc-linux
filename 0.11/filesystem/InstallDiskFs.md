@@ -158,6 +158,10 @@ i-节点的链接数目域记录了有多少个目录项指向这个i-节点,因
 所有缓冲区均未使用,并且全部在哈希表第0项指向的单链表中. 这时,哈希表其他项均为空指针.但是一旦系统启动完成,缓冲区将从0号链中删除,
 放到其他链中。
 
+其初始化过程如下：
+
+https://github.com/leeminghao/doc-linux/blob/master/0.11/init/StartMainInit.md
+
 准备过程
 --------------------------------------------------------------------------------
 
@@ -685,6 +689,20 @@ repeat:
 
 path: kernel/blk_drv/blk.h
 ```
+struct request {
+    int dev;        /* -1 if no request */
+    int cmd;        /* READ or WRITE */
+    int errors;
+    unsigned long sector;
+    unsigned long nr_sectors;
+    char * buffer;
+    struct task_struct * waiting;
+    struct buffer_head * bh;
+    struct request * next;
+};
+
+...
+
 struct blk_dev_struct {
     void (*request_fn)(void);
     struct request * current_request;
@@ -989,6 +1007,8 @@ pause()、sys_pause()、schedule()、switch_to(0)循环从刚才硬盘中断打�
 又过了一段时间后，硬盘剩下的那一半数据也读完了，硬盘产生中断，读盘中断服务程序再次响应这个中断，
 进入read_intr()函数后，仍然会判断请求项对应的缓冲块的数据是否读完了.
 
+### 从引导块中获取信息
+
 进入end_request()后，由于此时缓冲块的内容已经全部读进来了，将这个缓冲块的更新标志b_uptodate置1，
 说明它可用了，执行代码如下：
 
@@ -1121,3 +1141,10 @@ int sys_setup(void * BIOS)
 下面，我们将介绍进程1用虚拟盘替代软盘使之成为根设备，为加载根文件系统做准备:
 
 https://github.com/leeminghao/doc-linux/blob/master/0.11/
+
+总结
+--------------------------------------------------------------------------------
+
+为安装硬盘文件系统作准备大致经过如下步骤:
+
+**根据机器系统数据设置硬盘参数** --> **读取硬盘引导块** --> **从引导块中获取信息**

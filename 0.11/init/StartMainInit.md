@@ -871,6 +871,23 @@ void buffer_init(long buffer_end)
 }
 ```
 
+整个高速缓冲区被划分成 1024 字节大小的缓冲块,正好与块设备上的磁盘逻辑块大小相同。高速缓
+冲采用 hash 表和空闲缓冲块队列进行操作管理。在缓冲区初始化过程中,从缓冲区的两端开始,同时分
+别设置缓冲块头结构和划分出对应的缓冲块。缓冲区的高端被划分成一个个 1024 字节的缓冲块,低端则
+分别建立起对应各缓冲块的缓冲头结构 buffer_head,用于描述对应缓冲块的属性和把所有缓冲头连接成链表。
+直到它们之间已经不能再划分出缓冲块为止。而各个buffer_head被链接成一个空闲缓冲块双向链表结构。
+如下所示:
+
+https://github.com/leeminghao/doc-linux/blob/master/0.11/init/buffer_init.png
+
+https://github.com/leeminghao/doc-linux/blob/master/0.11/init/free_buffer_list.png
+
+为了能够快速地在缓冲区中寻找请求的数据块是否已经被读入到缓冲区中, buffer.c程序使用了具有
+307 个buffer_head 指针项的 hash 表结构。buffer_head 结构的指针 b_prev,b_next 就是用于hash
+表中散列在同一项上多个缓冲块之间的双向连接。Hash表所使用的散列函数由设备号和逻辑块号组合而成:
+
+https://github.com/leeminghao/doc-linux/blob/master/0.11/init/buffer_hashtable.png
+
 ### 初始化硬盘
 
 path: init/main.c
