@@ -76,7 +76,7 @@ void mount_root(void)
     int i,free;
     struct super_block * p;
     struct m_inode * mi;
-
+    // 如果磁盘 i 节点结构不是 32 个字节,则出错,死机。该判断是用于防止修改源代码时的不一致性。
     if (32 != sizeof (struct d_inode))
         panic("bad i-node size");
     for(i=0;i<NR_FILE;i++)  // 初始化file_table[64]，为后续程序做准备
@@ -107,6 +107,8 @@ void mount_root(void)
 
 path: include/linux/fs.h
 ```
+#define NR_SUPER 8
+...
 // 内存中块设备超级块结构。
 struct super_block {
     unsigned short s_ninodes;       // 节点数。
@@ -133,6 +135,37 @@ struct super_block {
 
 path: fs/supper.c
 ```
+struct super_block super_block[NR_SUPER];
+
+...
+
+// 取指定设备的超级块。返回该超级块结构指针。
+struct super_block * get_super(int dev)
+{
+    struct super_block * s;
+    // 如果没有指定设备,则返回空指针。
+    if (!dev)
+        return NULL;
+    // s 指向超级块数组开始处。搜索整个超级块数组,寻找指定设备的超级块。
+    s = 0+super_block;
+    while (s < NR_SUPER+super_block)
+    // 如果当前搜索项是指定设备的超级块,则首先等待该超级块解锁(若已经被其它进程上锁的话)。
+    // 在等待期间,该超级块有可能被其它设备使用,因此此时需再判断一次是否是指定设备的超级块,
+    // 如果是则返回该超级块的指针。否则就重新对超级块数组再搜索一遍,因此 s 重又指向超级块数组
+    // 开始处。
+        if (s->s_dev == dev) {
+            wait_on_super(s);
+            if (s->s_dev == dev)
+                return s;
+            s = 0+super_block;
+    // 如果当前搜索项不是,则检查下一项。如果没有找到指定的超级块,则返回空指针。
+        } else
+            s++;
+    return NULL;
+}
+
+...
+
 static struct super_block * read_super(int dev)
 {
     struct super_block * s;
@@ -141,10 +174,90 @@ static struct super_block * read_super(int dev)
 
     if (!dev)
         return NULL;
+    // 首先检查该设备是否可更换过盘片(也即是否是软盘设备),如果更换过盘,则高速缓冲区有关该
+    // 设备的所有缓冲块均失效,需要进行失效处理(释放原来加载的文件系统)。
     check_disk_change(dev); // 检查是否换过盘，并做相应处理
+    // 因为此前没有加载过根文件系统，get_super函数返回NULL, 所以需要在super_block[8]中申请一项
     if ((s = get_super(dev)))
         return s;
+    // 否则,首先在超级块数组中找出一个空项(也即其 s_dev=0 的项)。如果数组已经占满则返回空指针。
+    // 此时返回的是第一项
+    for (s = 0+super_block ;; s++) {
+        if (s >= NR_SUPER+super_block)
+            return NULL;
+        if (!s->s_dev)
+            break;
+    }
+    // 找到超级块空项后,就将该超级块用于指定设备,对该超级块的内存项进行部分初始化。
+    s->s_dev = dev;
+    s->s_isup = NULL;
+    s->s_imount = NULL;
+    s->s_time = 0;
+    s->s_rd_only = 0;
+    s->s_dirt = 0;
+    // 然后锁定该超级块,并从设备上读取超级块信息到 bh 指向的缓冲区中。如果读超级块操作失败,
+    // 则释放上面选定的超级块数组中的项,并解锁该项,返回空指针退出。
+    lock_super(s);
+    // 调用bread()函数，把超级块从虚拟盘上读进缓冲区，并从缓冲区复制到super_block[8]的第一项。
+    // bread()函数在前面已经说明。这里有一点区别，如果给硬盘发送操作命令，则调用do_hd_request()
+    // 函数，而此时操作的是虚拟盘，所以要调用do_rd_request()函数。值得注意的是，虚拟盘虽然被视为
+    // 外设，但它毕竟是内存里面一段空间，并不是实际的外设，所以，调用do_rd_request()函数从虚拟盘
+    // 上读取超级块，不会发生类似硬盘中断的情况。
+    // 超级块复制进缓冲块以后，将缓冲块中的超级块数据复制到super_block[8]的第一项。
+    // 从现在起，虚拟盘这个根设备就由super_block[8]的第一项来管理，之后调用brelse()
+    // 函数释放这个缓冲块
+    if (!(bh = bread(dev,1))) {
+        s->s_dev=0;
+        free_super(s);
+        return NULL;
+    }
+    // 将设备上读取的超级块信息复制到超级块数组相应项结构中。并释放存放读取信息的高速缓冲块。
+    *((struct d_super_block *) s) =
+        *((struct d_super_block *) bh->b_data);
+    brelse(bh);
+    // 判断超级块的魔数(SUPER_MAGIC)是否正确
+    if (s->s_magic != SUPER_MAGIC) {
+        s->s_dev = 0;
+        free_super(s);
+        return NULL;
+    }
+    // 初始化s_imap[8]、s_zmap[8]
+    for (i=0;i<I_MAP_SLOTS;i++)
+        s->s_imap[i] = NULL;
+    for (i=0;i<Z_MAP_SLOTS;i++)
+        s->s_zmap[i] = NULL;
+    // 虚拟盘的第一块是超级块，第二块开始是i节点位图和区段块位图
+    block=2;
+    // 把虚拟盘上i节点位图所占用的所有逻辑块读到缓冲区，分别挂接到s_zmap[8]上
+    for (i=0 ; i < s->s_imap_blocks ; i++)
+        if ((s->s_imap[i]=bread(dev,block)))
+            block++;
+        else
+            break;
+    // 把虚拟盘上区段块位图所占用的所有逻辑块读到缓冲区，分别挂接到s_zmap[8]上
+    for (i=0 ; i < s->s_zmap_blocks ; i++)
+        if ((s->s_zmap[i]=bread(dev,block)))
+            block++;
+        else
+            break;
+    // 如果读出的位图逻辑块数不等于位图应该占有的逻辑块数,说明文件系统位图信息有问题,超级块
+    // 初始化失败。因此只能释放前面申请的所有资源,返回空指针并退出。
+    if (block != 2+s->s_imap_blocks+s->s_zmap_blocks) {
+        for(i=0;i<I_MAP_SLOTS;i++)
+            brelse(s->s_imap[i]);
+        for(i=0;i<Z_MAP_SLOTS;i++)
+            brelse(s->s_zmap[i]);
+        s->s_dev=0;
+        free_super(s);
+        return NULL;
+    }
 
-    ...
+    // 否则一切成功。对于申请空闲 i 节点的函数来讲,如果设备上所有的 i 节点已经全被使用,则查找
+    // 函数会返回 0 值。因此 0 号 i 节点是不能用的,所以这里将位图中的最低位设置为 1,以防止文件
+    // 系统分配 0 号 i 节点。同样的道理,也将逻辑块位图的最低位设置为 1。
+    s->s_imap[0]->b_data[0] |= 1;
+    s->s_zmap[0]->b_data[0] |= 1;
+    free_super(s);
+    return s;
 }
 ```
