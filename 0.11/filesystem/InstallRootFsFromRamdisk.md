@@ -67,6 +67,8 @@ int sys_setup(void * BIOS)
 }
 ```
 
+### 读取根设备超级块
+
 mount_root函数实现如下所示:
 
 path: fs/super.c
@@ -136,9 +138,7 @@ struct super_block {
 path: fs/supper.c
 ```
 struct super_block super_block[NR_SUPER];
-
 ...
-
 // 取指定设备的超级块。返回该超级块结构指针。
 struct super_block * get_super(int dev)
 {
@@ -261,3 +261,262 @@ static struct super_block * read_super(int dev)
     return s;
 }
 ```
+
+### 获取根目录i节点
+
+接下来回到mount_root()函数中继续执行，执行代码如下所示:
+
+path: fs/super.c
+```
+void mount_root(void)
+{
+    int i,free;
+    struct super_block * p;
+    struct m_inode * mi;
+    ...
+    if (!(p=read_super(ROOT_DEV)))
+        panic("Unable to mount root");
+    // 调用iget()函数，从虚拟盘上读取根i节点。根i节点的意义在于，通过它可以到文件系统中任何
+    // 指定的i节点，也就是能找到任何指定的文件。
+    if (!(mi=iget(ROOT_DEV,ROOT_INO)))
+        panic("Unable to read root i-node");
+    ...
+}
+```
+
+接下来从mount_root函数中调用iget()函数从虚拟盘上读取指定节点号nr的i节点。
+执行代码如下所示:
+
+path: include/linux/fs.h
+```
+#define ROOT_INO 1  // 根 i 节点。
+...
+#define NR_INODE 32
+...
+// 这是在内存中的 i 节点结构。前 7 项与 d_inode 完全一样。
+struct m_inode {
+   unsigned short i_mode;       // 文件类型和属性(rwx 位)。
+   unsigned short i_uid;        // 用户 id(文件拥有者标识符)。
+   unsigned long i_size;        // 文件大小(字节数)。
+   unsigned long i_mtime;       // 修改时间(自 1970.1.1:0 算起,秒)。
+   unsigned char i_gid;         // 组 id(文件拥有者所在的组)。
+   unsigned char i_nlinks;      // 文件目录项链接数。
+   unsigned short i_zone[9];    // 直接(0-6)、间接(7)或双重间接(8)逻辑块号。
+   /* these are in memory also */
+   struct task_struct * i_wait; // 等待该 i 节点的进程。
+   unsigned long i_atime;       // 最后访问时间。
+   unsigned long i_ctime;       // i 节点自身修改时间。
+   unsigned short i_dev;        // i 节点所在的设备号。
+   unsigned short i_num;        // i 节点号。
+   unsigned short i_count;      // i 节点被使用的次数,0 表示该 i 节点空闲。
+   unsigned char i_lock;        // 锁定标志。
+   unsigned char i_dirt;        // 已修改(脏)标志。
+   unsigned char i_pipe;        // 管道标志。
+   unsigned char i_mount;       // 安装标志。
+   unsigned char i_seek;        // 搜寻标志(lseek 时)。
+   unsigned char i_update;      // 更新标志。
+};
+```
+
+path: fs/inode.c
+```
+struct m_inode inode_table[NR_INODE]={{0,},};  // NR_INODE = 32,
+...
+struct m_inode * iget(int dev,int nr)
+{
+    struct m_inode * inode, * empty;
+
+    if (!dev)
+        panic("iget with dev==0");
+    // 操作系统从i节点表inode_table[32]中申请一个空闲的i节点位置（inode_table[32]是操作系统用来
+    // 控制同时打开不同文件的最大数）。此时应该是首个i节点。对这个i节点进行初始化设置，其中包括
+    // 该i节点对应的设备号、该i节点的节点号...
+    empty = get_empty_inode();
+    // 扫描i节点表。寻找指定节点号的i节点。并递增该节点的引用次数。
+    inode = inode_table;
+    while (inode < NR_INODE+inode_table) {
+        // 如果当前扫描的i节点的设备号不等于指定的设备号或者节点号不等于指定的节点号,则继续扫描.
+        if (inode->i_dev != dev || inode->i_num != nr) {
+            inode++;
+            continue;
+        }
+        // 找到指定设备号和节点号的 i 节点,等待该节点解锁(如果已上锁的话).
+        wait_on_inode(inode);
+        // 在等待该节点解锁的阶段,节点表可能会发生变化,所以再次判断,如果发生了变化,则再次重新
+        // 扫描整个 i 节点表。
+        if (inode->i_dev != dev || inode->i_num != nr) {
+            inode = inode_table;
+            continue;
+        }
+        // 将该i节点引用计数增1。
+        inode->i_count++;
+        // 如果该i节点是其它文件系统的安装点,则在超级块表中搜寻安装在此i节点的超级块。如果没有
+        // 找到,则显示出错信息,并释放函数开始获取的空闲节点,返回该i节点指针。
+        if (inode->i_mount) {
+            int i;
+
+            for (i = 0 ; i<NR_SUPER ; i++)
+                if (super_block[i].s_imount==inode)
+                    break;
+            if (i >= NR_SUPER) {
+                printk("Mounted inode hasn't got sb\n");
+                if (empty)
+                    iput(empty);
+                return inode;
+            }
+            // 将该i节点写盘,从安装在此i节点文件系统的超级块上取设备号,并令i节点号为1. 然后重新
+            // 扫描整个 i 节点表,取该被安装文件系统的根节点。
+            iput(inode);
+            dev = super_block[i].s_dev;
+            nr = ROOT_INO;
+            inode = inode_table;
+            continue;
+        }
+        // 已经找到相应的i节点,因此放弃临时申请的空闲节点,返回该找到的i节点。
+        if (empty)
+            iput(empty);
+        return inode;
+    }
+    // 如果在i节点表中没有找到指定的i节点,则利用前面申请的空闲i节点在i节点表中建立该节点。
+    // 并从相应设备上读取该i节点信息, 返回该i节点。
+    if (!empty)
+        return (NULL);
+    inode=empty;
+    inode->i_dev = dev;
+    inode->i_num = nr;
+    read_inode(inode);
+    return inode;
+}
+```
+
+接下来将要从根设备上读取根目录i节点信息初始化前面申请到的空闲i节点表. 执行代码如下所示:
+
+path: fs/inode.c
+```
+// 从设备上读取指定 i 节点的信息到内存中(缓冲区中)。
+static void read_inode(struct m_inode * inode)
+{
+    struct super_block * sb;
+    struct buffer_head * bh;
+    int block;
+
+    // 锁定inode
+    lock_inode(inode);
+    // 获得inode所在设备的超级块
+    if (!(sb=get_super(inode->i_dev)))
+        panic("trying to read inode without dev");
+    // 该i节点所在的逻辑块号 = (启动块+超级块) + i 节点位图占用的块数 + 逻辑块位图占用的块数 +
+    // (i 节点号 - 1) / 每块含有的i节点数。
+    block = 2 + sb->s_imap_blocks + sb->s_zmap_blocks +
+        (inode->i_num-1)/INODES_PER_BLOCK;
+    // 从设备上读取该i节点所在的逻辑块,并将该inode指针指向对应i节点信息。
+    if (!(bh=bread(inode->i_dev,block)))
+        panic("unable to read i-node block");
+    *(struct d_inode *)inode =
+        ((struct d_inode *)bh->b_data)
+            [(inode->i_num-1)%INODES_PER_BLOCK];
+    // 最后释放读入的缓冲区,并解锁该i节点。
+    brelse(bh);
+    unlock_inode(inode);
+}
+```
+
+回到iget()函数，将inode指针返回给mount_root()函数，并赋给mi指针。执行如下代码：
+
+path: fs/super.c
+```
+void mount_root(void)
+{
+    int i,free;
+    struct super_block * p;
+    struct m_inode * mi;
+    ...
+    if (!(p=read_super(ROOT_DEV)))
+        panic("Unable to mount root");
+    // 调用iget()函数，从虚拟盘上读取根i节点。根i节点的意义在于，通过它可以到文件系统中任何
+    // 指定的i节点，也就是能找到任何指定的文件。
+    if (!(mi=iget(ROOT_DEV,ROOT_INO)))
+        panic("Unable to read root i-node");
+    // 该i节点引用次数递增3次。
+    mi->i_count += 3 ;    /* NOTE! it is logically used 4 times, not 1 */
+    // 将inode_table[32]中代表虚拟盘根i节点的项挂接到super_block[8]中代表根设备虚拟盘的项中的
+    // s_isup, s_imount指针上. 这样,操作系统在根设备上可以通过这里建立的关系,一步步地把文件找到.
+    // 标志性的一步！
+    p->s_isup = p->s_imount = mi;
+    // 当前进程（进程1）掌控根文件系统的根i节点.
+    current->pwd = mi;
+    // 父子进程创建机制将这个特性遗传给子进程
+    current->root = mi;
+    // 统计该设备上空闲块数。首先令 i 等于超级块中表明的设备逻辑块总数。
+    free=0;
+    i=p->s_nzones;
+    // 然后根据区段块位图中相应比特位的占用情况统计出空闲块数。这里宏函数 set_bit()只是在测试
+    // 比特位,而非设置比特位。"i&8191"用于取得 i 节点号在当前块中的偏移值。"i>>13"是将 i 除以
+    // 8192,也即除一个磁盘块包含的比特位数。
+    while (-- i >= 0)
+        if (!set_bit(i&8191,p->s_zmap[i>>13]->b_data))
+            free++;
+    // 显示设备上空闲逻辑块数/逻辑块总数。
+    printk("%d/%d free blocks\n\r",free,p->s_nzones);
+    // 统计设备上空闲 i 节点数。首先令 i 等于超级块中表明的设备上 i 节点总数+1。加 1 是将 0 节点
+    // 也统计进去。
+    free=0;
+    i=p->s_ninodes+1;
+    // 然后根据 i 节点位图中相应比特位的占用情况计算出空闲 i 节点数。
+    while (-- i >= 0)
+        if (!set_bit(i&8191,p->s_imap[i>>13]->b_data))
+            free++;
+    printk("%d/%d free inodes\n\r",free,p->s_ninodes);
+}
+```
+
+到此为止，sys_setup()函数就全都执行完毕了, 意味着完成了硬盘安装的准备工作，切换根设备为虚拟盘，
+从虚拟盘中加载跟文件系统。因为这个函数也是由于产生软中断才被调用的，所以返回system_call中执行，
+之后会执行ret_from_sys_call。这时候的当前进程是进程1，所以下面将调用do_signal()函数
+（只要当前进程不是进程0，就要执行到这里），对当前进程的信号位图进行检测.
+执行代码如下：
+
+path: kernel/system_call.s
+```
+...
+ret_from_sys_call:
+    movl current,%eax        # task[0] cannot have signals
+    cmpl task,%eax
+    je 3f
+    cmpw $0x0f,CS(%esp)        # was old code segment supervisor ?
+    jne 3f
+    cmpw $0x17,OLDSS(%esp)        # was stack segment = 0x17 ?
+    jne 3f
+    movl signal(%eax),%ebx
+    movl blocked(%eax),%ecx
+    notl %ecx
+    andl %ebx,%ecx
+    bsfl %ecx,%ecx
+    je 3f
+    btrl %ecx,%ebx
+    movl %ebx,signal(%eax)
+    incl %ecx
+    pushl %ecx
+    call do_signal
+    popl %eax
+3:    popl %eax
+    popl %ebx
+    popl %ecx
+    popl %edx
+    pop %fs
+    pop %es
+    pop %ds
+    iret
+```
+
+现在，当前进程（进程1）并没有接收到信号，调用do_signal()函数并没有实际的意义。
+至此，sys_setup()的系统调用结束，进程1将返回init代码的调用点，准备进程2的创建以及执行:
+
+https://github.com/leeminghao/doc-linux/blob/master/0.11/process/CreateProcess2.md
+
+总结
+--------------------------------------------------------------------------------
+
+从虚拟盘中安装根文件系统主要完成如下工作:
+
+**从虚拟盘中读出根文件系统超级块** --> **从虚拟盘中读出根目录i节点信息** --> **将根目录i节点挂载到跟文件系统超级块上**
