@@ -510,9 +510,10 @@ ret_from_sys_call:
 ```
 
 现在，当前进程（进程1）并没有接收到信号，调用do_signal()函数并没有实际的意义。
-至此，sys_setup()的系统调用结束，进程1将返回init代码的调用点，准备进程2的创建以及执行:
+至此，sys_setup()的系统调用结束，进程1将返回init代码的调用点，打开终端设备文件
+以及复制文件句柄:
 
-https://github.com/leeminghao/doc-linux/blob/master/0.11/process/CreateProcess2.md
+https://github.com/leeminghao/doc-linux/blob/master/0.11/filesystem/OpenTtyAndDup.md
 
 总结
 --------------------------------------------------------------------------------
