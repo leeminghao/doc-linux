@@ -181,14 +181,7 @@ static struct m_inode * dir_namei(const char * pathname,
     // 取指定路径名最顶层目录的 i 节点,若出错则返回 NULL,退出。
     if (!(dir = get_dir(pathname)))
         return NULL;
-    // 对路径名 pathname 进行搜索检测,查处最后一个'/'后面的名字字符串,计算其长度,并返回最顶
-    // 层目录的 i 节点指针。
-    basename = pathname;
-    while ((c=get_fs_byte(pathname++)))
-        if (c=='/')
-            basename=pathname;
-    *namelen = pathname-basename-1;  // 确定tty0名字的长度
-    *name = basename;  // 得到tty0前面'/'字符的地址
+    ...
     return dir;
 }
 ```
@@ -246,25 +239,26 @@ static struct m_inode * get_dir(const char * pathname)
         // 若字符是结尾符NULL,则表明已经到达指定目录,则返回该i节点指针,退出。
         if (!c)
             return inode;
-        // 调用查找指定目录和文件名的目录项函数,在当前处理目录中寻找子目录项。如果没有找到,则释放
-        // 该i节点,并返回NULL,退出
-        if (!(bh = find_entry(&inode,thisname,namelen,&de))) {
+        // 通过目录文件的i节点和目录项信息，获取目录项
+        if (!(bh = find_entry(&inode,thisname,namelen,&de))) { // de会指向dev目录项
             iput(inode);
             return NULL;
         }
-        // 取该子目录项的i节点号inr和设备号 idev,释放包含该目录项的高速缓冲块和该 i 节点。
-        inr = de->inode;
-        idev = inode->i_dev;
+
+        inr = de->inode;      // 通过目录项找到i节点号
+        idev = inode->i_dev;  // 注意,这个inode是根i节点，这里通过根i节点找到设备号
         brelse(bh);
         iput(inode);
-        // 取节点号inr的i节点信息,若失败,则返回 NULL,退出。否则继续以该子目录的i节点进行操作。
+        // 将dev目录文件的i节点保存在inode_table[32]的指定表项内，并将表项指针返回
         if (!(inode = iget(idev,inr)))
             return NULL;
     }
 }
 ```
 
-值得注意的是,get_fs_byte函数是解析路径的核心函数，可以从路径中逐一提取字符串.其内部处理过程如下所示:
+值得注意的是:
+
+A. get_fs_byte函数是解析路径的核心函数，可以从路径中逐一提取字符串.其内部处理过程如下所示:
 
 path: include/asm/segment.h
 ```
@@ -276,6 +270,153 @@ static inline unsigned char get_fs_byte(const char * addr)
     // v 是输出的字符
     __asm__ ("movb %%fs:%1,%0":"=r" (_v):"m" (*addr));
     return _v;
+}
+```
+
+B. find_entry函数中最后一个参数de所指向的数据结构是目录项结构，代码如下所示:
+
+path: include/linux/fs.h
+```
+struct dir_entry {         // 目录项结构
+    unsigned short inode;  // 目录项所对应的目录在设备上的i节点号
+    char name[NAME_LEN];   // 目录项名字,14字节
+};
+```
+
+得到了i节点号，就可以得到"dev"目录项所对应目录文件的i节点，内核就可以进而通过i节点找到dev目录文件
+find_entry函数的具体实现如下所示:
+
+path: fs/namei.c
+```
+/*
+ *    find_entry()
+ *
+ * finds an entry in the specified directory with the wanted name. It
+ * returns the cache buffer in which the entry was found, and the entry
+ * itself (as a parameter - res_dir). It does NOT read the inode of the
+ * entry - you'll have to do that yourself if you want to.
+ *
+ * This also takes care of the few special cases due to '..'-traversal
+ * over a pseudo-root and a mount point.
+ */
+/*
+ *
+ * find_entry()
+ * 在指定的目录中寻找一个与名字匹配的目录项。返回一个含有找到目录项的高速
+ * 缓冲区以及目录项本身(作为一个参数 - res_dir)。并不读目录项的 i 节点 - 如
+ * 果需要的话需自己操作。
+ *
+ * '..'目录项,操作期间也会对几种特殊情况分别处理 - 比如横越一个伪根目录以
+ * 及安装点。
+ */
+// 在这里传递给find_entry函数的i节点dir是根i节点的信息，name是"dev", 长度为3, *res_dir为NULL
+static struct buffer_head * find_entry(struct m_inode ** dir,
+    const char * name, int namelen, struct dir_entry ** res_dir)
+{
+    int entries;
+    int block,i;
+    struct buffer_head * bh;
+    struct dir_entry * de;
+    struct super_block * sb;
+
+// 如果定义了 NO_TRUNCATE,则若文件名长度超过最大长度 NAME_LEN,则返回。
+#ifdef NO_TRUNCATE
+    if (namelen > NAME_LEN)
+        return NULL;
+// 如果没有定义 NO_TRUNCATE,则若文件名长度超过最大长度 NAME_LEN,则截短之。
+#else
+    if (namelen > NAME_LEN)
+        namelen = NAME_LEN;
+#endif
+    // 计算根目录中目录项项数entries, i_size是文件大小也就是根目录大小。置空返回目录项结构指针。
+    entries = (*dir)->i_size / (sizeof (struct dir_entry));
+    *res_dir = NULL;
+    if (!namelen)
+        return NULL;
+    /* check for '..', as we might have to do some "magic" for it */
+    /* 检查目录项'..',因为可能需要对其特别处理 */
+    if (namelen==2 && get_fs_byte(name)=='.' && get_fs_byte(name+1)=='.') {
+        /* '..' in a pseudo-root results in a faked '.' (just change namelen) */
+        /* 伪根中的'..'如同一个假'.'(只需改变名字长度) */
+        // 如果当前进程的根节点指针即是指定的目录,则将文件名修改为'.',
+        if ((*dir) == current->root)
+            namelen=1;
+        // 否则如果该目录的i节点号等于ROOT_INO(1)的话,说明是文件系统根节点, 则取文件系统的超级块。
+        // 这里该目录是根目录所以先获取到超级块
+        else if ((*dir)->i_num == ROOT_INO) {
+            /* '..' over a mount-point results in 'dir' being exchanged for
+             * the mounted directory-inode. NOTE! We set mounted, so that we can
+             * iput the new dir */
+            sb=get_super((*dir)->i_dev);
+            // 如果被安装到的 i 节点存在,则先释放原 i 节点,然后对被安装到的 i 节点进行处理。
+            // 让*dir 指向该被安装到的i节点;该i节点的引用数加 1。
+            if (sb->s_imount) {
+                iput(*dir);
+                (*dir)=sb->s_imount;
+                (*dir)->i_count++;
+            }
+        }
+    }
+    // 如果该i节点所指向的第一个直接磁盘块号为 0,则返回 NULL,退出。
+    if (!(block = (*dir)->i_zone[0]))
+        return NULL;
+    // 从节点所在设备读取指定的目录项数据块,如果不成功,则返回 NULL,退出。
+    if (!(bh = bread((*dir)->i_dev,block)))
+        return NULL;
+    // 在目录项数据块中搜索匹配指定文件名的目录项,首先让 de 指向数据块,并在不超过目录中目录项数
+    // 的条件下,循环执行搜索。
+    i = 0;
+    de = (struct dir_entry *) bh->b_data;
+    while (i < entries) {
+        // 如果当前目录项数据块已经搜索完,还没有找到匹配的目录项,则释放当前目录项数据块。
+        if ((char *)de >= BLOCK_SIZE+bh->b_data) {
+            brelse(bh);
+            bh = NULL;
+            // 在读入下一目录项数据块。若这块为空,则只要还没有搜索完目录中的所有目录项,就跳过该块,
+            // 继续读下一目录项数据块。若该块不空,就让 de 指向该目录项数据块,继续搜索。
+            if (!(block = bmap(*dir,i/DIR_ENTRIES_PER_BLOCK)) ||
+                !(bh = bread((*dir)->i_dev,block))) {
+                i += DIR_ENTRIES_PER_BLOCK;
+                continue;
+            }
+            de = (struct dir_entry *) bh->b_data;
+        }
+        // 如果找到匹配的目录项的话,则返回该目录项结构指针和该目录项数据块指针,退出。
+        if (match(namelen,name,de)) {
+            *res_dir = de;
+            return bh;
+        }
+        // 否则继续在目录项数据块中比较下一个目录项。
+        de++;
+        i++;
+    }
+    // 若指定目录中的所有目录项都搜索完还没有找到相应的目录项,则释放目录项数据块,返回 NULL。
+    brelse(bh);
+    return NULL;
+}
+```
+
+path: fs/namei.c
+```
+static struct m_inode * dir_namei(const char * pathname,
+    int * namelen, const char ** name)
+{
+    char c;
+    const char * basename;
+    struct m_inode * dir;
+
+    // 取指定路径名最顶层目录的 i 节点,若出错则返回 NULL,退出。
+    if (!(dir = get_dir(pathname)))
+        return NULL;
+    // 对路径名 pathname 进行搜索检测,查处最后一个'/'后面的名字字符串,计算其长度,并返回最顶
+    // 层目录的 i 节点指针。
+    basename = pathname;
+    while ((c=get_fs_byte(pathname++)))
+        if (c=='/')
+            basename=pathname;
+    *namelen = pathname-basename-1;  // 确定tty0名字的长度
+    *name = basename;  // 得到tty0前面'/'字符的地址
+    return dir;
 }
 ```
 
