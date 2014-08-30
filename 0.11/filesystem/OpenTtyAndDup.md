@@ -1,6 +1,13 @@
 Linux 0.11 进程1打开终端设备文件以及复制文件句柄
 ================================================================================
 
+现在,计算机中已经创建了两个进程: 进程0和进程1. 在进程1完成从虚拟盘中安装根文件系统之后:
+
+https://github.com/leeminghao/doc-linux/blob/master/0.11/filesystem/InstallRootFsFromRamdisk.md
+
+需要打开标准输入设备文件和标准输出文件，标准出错输出文件为创建进程2作准备.
+
+
 打开标准输入文件
 --------------------------------------------------------------------------------
 
@@ -587,3 +594,49 @@ int sys_open(const char * filename,int flag,int mode)
 ```
 
 ### dup
+
+上面打开了标准输入设备文件. 下面要打开标准输出，标准错误输出设备文件，不同之处在于
+这里使用复制文件句柄的方法. open函数返回之后进程1在tty0文件已经打开的基础上，通过
+调用dup()函数，复制文件句柄,一共复制了两次.
+
+dup()函数最终会映射到sys_dup()这个系统调用函数中，执行代码如下所示:
+
+path: fs/fcntl.c
+```
+int sys_dup(unsigned int fildes)
+{
+    return dupfd(fildes,0);
+}
+```
+
+在sys_dup函数中最终调用dupfd函数复制文件句柄，执行代码如下所示:
+
+path: fs/fcntl.c
+```
+static int dupfd(unsigned int fd, unsigned int arg)
+{
+    if (fd >= NR_OPEN || !current->filp[fd])  // 检测是否具备复制文件句柄的条件
+        return -EBADF;
+    if (arg >= NR_OPEN)
+        return -EINVAL;
+    // 在进程1的filp[20]中寻找空闲项(此时是第2项)，以便复制文件句柄
+    while (arg < NR_OPEN)
+        if (current->filp[arg])
+            arg++;
+        else
+            break;
+    if (arg >= NR_OPEN)
+        return -EMFILE;
+    // 复制文件句柄，建立标准输出设备，并相应的增加文件引用计数,f_count为2
+    current->close_on_exec &= ~(1<<arg);
+    (current->filp[arg] = current->filp[fd])->f_count++;
+    return arg;
+}
+```
+
+类似的可以打开标准错误输出设备文件.
+
+至此，标准输入设备文件和标准输出，标准出错输出设备文件都已经打开了.
+接下来进程1要创建进程2执行shell程序，如下:
+
+https://github.com/leeminghao/doc-linux/blob/master/0.11/process/CreateProcess2.md
