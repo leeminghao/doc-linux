@@ -472,8 +472,10 @@ int open_namei(const char * pathname, int flag, int mode,
         return -EISDIR;
     }
 
+    // 通过最后一层目录i节点以及basename为"tty0"的参数，将tty0的这一目录项载入缓冲块
+    // de指向tty0文件的目录项
     bh = find_entry(&dir,basename,namelen,&de);
-    if (!bh) {
+    if (!bh) {  // tty0目录项找到了,缓冲块不可能为空, if此时不会执行
         if (!(flag & O_CREAT)) {
             iput(dir);
             return -ENOENT;
@@ -504,26 +506,31 @@ int open_namei(const char * pathname, int flag, int mode,
         *res_inode = inode;
         return 0;
     }
-    inr = de->inode;
-    dev = dir->i_dev;
+    inr = de->inode;  // 得到i节点号
+    dev = dir->i_dev; // 得到设备号
     brelse(bh);
     iput(dir);
-    if (flag & O_EXCL)
+    if (flag & O_EXCL) // 如果独占使用标志O_EXCL置位,则返回文件已存在出错码,退出。
         return -EEXIST;
-    if (!(inode=iget(dev,inr)))
+    if (!(inode=iget(dev,inr))) // 获取tty0文件的i节点
         return -EACCES;
+    // 若该i节点是一个目录的节点并且访问模式是只读或只写,或者没有访问的许可权限,则释放该
+    // i节点,返回访问权限出错码,退出。
     if ((S_ISDIR(inode->i_mode) && (flag & O_ACCMODE)) ||
         !permission(inode,ACC_MODE(flag))) {
         iput(inode);
         return -EPERM;
     }
+    // 更新该i节点的访问时间字段为当前时间
     inode->i_atime = CURRENT_TIME;
-    if (flag & O_TRUNC)
+    if (flag & O_TRUNC) 如果设立了截0标志,则将该i节点的文件长度截为 0。
         truncate(inode);
-    *res_inode = inode;
+    *res_inode = inode;  // 将此节点传递给sys_open函数
     return 0;
 }
 ```
+
+在获取到tty0文件的i节点以后返回到sys_open函数中继续执行.
 
 path: fs/open.c
 ```
@@ -533,11 +540,28 @@ int sys_open(const char * filename,int flag,int mode)
     struct file * f;
     int i,fd;
     ...
+    // 令f指向文件表数组开始处, 遍历空闲文件结构项(句柄引用计数为0的项),若已经没有空闲
+    // 文件表结构项,则返回出错码。
+    f=0+file_table;  // 获取file_table[64]首地址
+    for (i=0 ; i<NR_FILE ; i++,f++)
+        if (!f->f_count) break;
+    if (i>=NR_FILE)
+        return -EINVAL;
+    // 让进程的对应文件句柄的文件结构指针指向搜索到的文件结构,并令句柄引用计数递增1。
+    (current->filp[fd]=f)->f_count++;
+    // 获取文件i节点
+    if ((i=open_namei(filename,flag,mode,&inode))<0) {
+        current->filp[fd]=NULL;
+        f->f_count=0;
+        return i;
+    }
     /* ttys are somewhat special (ttyxx major==4, tty major==5) */
-    if (S_ISCHR(inode->i_mode)) {
-        if (MAJOR(inode->i_zone[0])==4) {
+    if (S_ISCHR(inode->i_mode)) {  // 通过检测tty0文件的i节点属性，得知它是设备文件
+        if (MAJOR(inode->i_zone[0])==4) {  // 得知设备号是4
             if (current->leader && current->tty<0) {
+                // 设置当前进程的tty号为该i节点的子设备号
                 current->tty = MINOR(inode->i_zone[0]);
+                // 设置当前进程tty对应的tty表项的父进程组号为进程的父进程组号
                 tty_table[current->tty].pgrp = current->pgrp;
             }
         } else if (MAJOR(inode->i_zone[0])==5)
@@ -551,12 +575,15 @@ int sys_open(const char * filename,int flag,int mode)
     /* Likewise with block-devices: check for floppy_change */
     if (S_ISBLK(inode->i_mode))
         check_disk_change(inode->i_zone[0]);
-    f->f_mode = inode->i_mode;
-    f->f_flags = flag;
-    f->f_count = 1;
-    f->f_inode = inode;
-    f->f_pos = 0;
+    // 根据i节点信息初始化file文件结构
+    f->f_mode = inode->i_mode; // 用该i节点属性设置文件属性
+    f->f_flags = flag;         // 用flag参数设置文件标示
+    f->f_count = 1;            // 将文件引用计数置1
+    f->f_inode = inode;        // 文件与i节点关联
+    f->f_pos = 0;              // 将文件读写指针置0
 
     return (fd);
 }
 ```
+
+### dup
