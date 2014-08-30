@@ -148,7 +148,7 @@ int open_namei(const char * pathname, int flag, int mode,
     // 使用进程的文件访问许可屏蔽码,屏蔽掉给定模式中的相应位,并添上普通文件标志。
     mode &= 0777 & ~current->umask;
     mode |= I_REGULAR;
-    // 根据路径名寻找到对应的i节点,以及最顶端文件名及其长度。
+    // 根据路径名寻找最后一层目录对应的i节点,以及最顶端文件名及其长度。
     if (!(dir = dir_namei(pathname,&namelen,&basename)))
         return -ENOENT;
     // 如果最顶端文件名长度为0(例如'/usr/'这种路径名的情况),那么若打开操作不是创建,截0,
@@ -167,7 +167,9 @@ int open_namei(const char * pathname, int flag, int mode,
 }
 ```
 
-接下来调用dir_namei函数根据路径名寻找对应的i节点以及最顶端文件名及其长度,执行代码如下所示:
+接下来调用dir_namei函数根据路径名遍历路径所有目录文件i节点，
+目的是寻找最后一个目录的的i节点以及最顶端文件名及其长度.
+执行代码如下所示:
 
 path: fs/namei.c
 ```
@@ -178,7 +180,7 @@ static struct m_inode * dir_namei(const char * pathname,
     const char * basename;
     struct m_inode * dir;
 
-    // 取指定路径名最顶层目录的 i 节点,若出错则返回 NULL,退出。
+    // 取指定路径名最后一层目录的i节点(在这里是"dev"目录的i节点),若出错则返回NULL,退出。
     if (!(dir = get_dir(pathname)))
         return NULL;
     ...
@@ -186,7 +188,9 @@ static struct m_inode * dir_namei(const char * pathname,
 }
 ```
 
-get_dir函数根据给出的路径名进行搜索,直到达到最顶端的目录，并返回其对应的i节点,具体实现如下所示:
+get_dir函数根据给出的路径名进行搜索,直到达到最后一层目录，并返回其对应的i节点.
+其工作主要是通过连续不断地: **确定目录项** --> **通过目录项获取i节点** 来完成的
+具体实现如下所示:
 
 path: fs/namei.c
 ```
@@ -248,6 +252,8 @@ static struct m_inode * get_dir(const char * pathname)
         inr = de->inode;      // 通过目录项找到i节点号
         idev = inode->i_dev;  // 注意,这个inode是根i节点，这里通过根i节点找到设备号
         brelse(bh);
+        // 路径中最后一层目录之前的各个目录文件i节点在使用完毕之后立即释放，避免浪费
+        // inode_table中的空间.
         iput(inode);
         // 将dev目录文件的i节点保存在inode_table[32]的指定表项内，并将表项指针返回
         if (!(inode = iget(idev,inr)))
@@ -256,7 +262,7 @@ static struct m_inode * get_dir(const char * pathname)
 }
 ```
 
-值得注意的是:
+**值得注意的是**:
 
 A. get_fs_byte函数是解析路径的核心函数，可以从路径中逐一提取字符串.其内部处理过程如下所示:
 
@@ -282,25 +288,27 @@ struct dir_entry {         // 目录项结构
     char name[NAME_LEN];   // 目录项名字,14字节
 };
 ```
-
 得到了i节点号，就可以得到"dev"目录项所对应目录文件的i节点，内核就可以进而通过i节点找到dev目录文件
-find_entry函数的具体实现如下所示:
+
+
+确定目录项是由find_entry函数来完成的. 该函数的主要任务是：
+利用上一级目录i节点信息和目录名称名"dev"以及长度来获取目录项结构信息,
+具体过程如下:
+确定目录文件中有多少个目录项，之后从目录文件对应的第一个逻辑块开始，不断将该文件的逻辑块从外设读入缓冲区，
+并从中查找指定目录项，直到找到指定的目录项为止.
+
+其具体实现如下所示:
+
+path: include/linux/fs.h
+```
+#define BLOCK_SIZE 1024
+...
+#define DIR_ENTRIES_PER_BLOCK ((BLOCK_SIZE)/(sizeof (struct dir_entry)))
+```
 
 path: fs/namei.c
 ```
 /*
- *    find_entry()
- *
- * finds an entry in the specified directory with the wanted name. It
- * returns the cache buffer in which the entry was found, and the entry
- * itself (as a parameter - res_dir). It does NOT read the inode of the
- * entry - you'll have to do that yourself if you want to.
- *
- * This also takes care of the few special cases due to '..'-traversal
- * over a pseudo-root and a mount point.
- */
-/*
- *
  * find_entry()
  * 在指定的目录中寻找一个与名字匹配的目录项。返回一个含有找到目录项的高速
  * 缓冲区以及目录项本身(作为一个参数 - res_dir)。并不读目录项的 i 节点 - 如
@@ -331,14 +339,15 @@ static struct buffer_head * find_entry(struct m_inode ** dir,
     // 计算根目录中目录项项数entries, i_size是文件大小也就是根目录大小。置空返回目录项结构指针。
     entries = (*dir)->i_size / (sizeof (struct dir_entry));
     *res_dir = NULL;
-    if (!namelen)
+    if (!namelen)  // 检查文件名长度是否为0
         return NULL;
+
     /* check for '..', as we might have to do some "magic" for it */
-    /* 检查目录项'..',因为可能需要对其特别处理 */
+    /* 检查目录项'..', 因为可能需要对其特别处理 */
     if (namelen==2 && get_fs_byte(name)=='.' && get_fs_byte(name+1)=='.') {
         /* '..' in a pseudo-root results in a faked '.' (just change namelen) */
         /* 伪根中的'..'如同一个假'.'(只需改变名字长度) */
-        // 如果当前进程的根节点指针即是指定的目录,则将文件名修改为'.',
+        // 如果当前进程的根节点指针是指定的目录,则将文件名修改为'.',
         if ((*dir) == current->root)
             namelen=1;
         // 否则如果该目录的i节点号等于ROOT_INO(1)的话,说明是文件系统根节点, 则取文件系统的超级块。
@@ -348,7 +357,7 @@ static struct buffer_head * find_entry(struct m_inode ** dir,
              * the mounted directory-inode. NOTE! We set mounted, so that we can
              * iput the new dir */
             sb=get_super((*dir)->i_dev);
-            // 如果被安装到的 i 节点存在,则先释放原 i 节点,然后对被安装到的 i 节点进行处理。
+            // 如果被安装到的i节点存在,则先释放原i节点,然后对被安装到的i节点进行处理。
             // 让*dir 指向该被安装到的i节点;该i节点的引用数加 1。
             if (sb->s_imount) {
                 iput(*dir);
@@ -357,23 +366,25 @@ static struct buffer_head * find_entry(struct m_inode ** dir,
             }
         }
     }
-    // 如果该i节点所指向的第一个直接磁盘块号为 0,则返回 NULL,退出。
+
+    // 如果目录i节点所指向的第一个直接磁盘块号为 0,则返回 NULL,退出。
     if (!(block = (*dir)->i_zone[0]))
         return NULL;
-    // 从节点所在设备读取指定的目录项数据块,如果不成功,则返回 NULL,退出。
+    // 从目录i节点所在设备读取指定的目录项逻辑块块到缓冲区中,如果不成功,则返回 NULL,退出。
     if (!(bh = bread((*dir)->i_dev,block)))
         return NULL;
-    // 在目录项数据块中搜索匹配指定文件名的目录项,首先让 de 指向数据块,并在不超过目录中目录项数
-    // 的条件下,循环执行搜索。
+
+    // 在目录项数据块中搜索匹配指定文件名("dev")的目录项,首先让de指向逻辑块,并在不超过
+    // 目录中目录项数的条件下,循环执行搜索。
     i = 0;
-    de = (struct dir_entry *) bh->b_data;
+    de = (struct dir_entry *) bh->b_data; // 让de指向缓冲块首地址
     while (i < entries) {
         // 如果当前目录项数据块已经搜索完,还没有找到匹配的目录项,则释放当前目录项数据块。
         if ((char *)de >= BLOCK_SIZE+bh->b_data) {
             brelse(bh);
             bh = NULL;
-            // 在读入下一目录项数据块。若这块为空,则只要还没有搜索完目录中的所有目录项,就跳过该块,
-            // 继续读下一目录项数据块。若该块不空,就让 de 指向该目录项数据块,继续搜索。
+            // 接下来再读入下一目录项数据块。若这块为空,则只要还没有搜索完目录中的所有目录项,就跳过该块,
+            // 继续读下一目录项数据块。若该块不空,就让de指向该目录项数据块,继续搜索。
             if (!(block = bmap(*dir,i/DIR_ENTRIES_PER_BLOCK)) ||
                 !(bh = bread((*dir)->i_dev,block))) {
                 i += DIR_ENTRIES_PER_BLOCK;
@@ -383,21 +394,32 @@ static struct buffer_head * find_entry(struct m_inode ** dir,
         }
         // 如果找到匹配的目录项的话,则返回该目录项结构指针和该目录项数据块指针,退出。
         if (match(namelen,name,de)) {
-            *res_dir = de;
+            *res_dir = de;  // 如果找到了"dev", 就交给res_dir指针
             return bh;
         }
-        // 否则继续在目录项数据块中比较下一个目录项。
+        // 否则继续在目录项逻辑块中比较下一个目录项。
         de++;
         i++;
     }
-    // 若指定目录中的所有目录项都搜索完还没有找到相应的目录项,则释放目录项数据块,返回 NULL。
+    // 若指定目录中的所有目录项都搜索完还没有找到相应的目录项,则释放目录项数据块,返回NULL。
     brelse(bh);
     return NULL;
 }
 ```
 
+通过find_entry函数中获取目录项结构信息之后返回到get_dir函数中，在get_dir函数中从目录项中提取i节点号，
+从根目录i节点中获取设备号，通过iget函数获取最后一层目录的i节点信息，参考：
+
+https://github.com/leeminghao/doc-linux/blob/master/0.11/filesystem/InstallRootFsFromRamdisk.md
+
+中是如何获取i节点信息的.
+
+最后，将最后一层目录i节点对应信息和路径中文件名称返回给dir_namei函数继续处理.
+执行代码如下所示:
+
 path: fs/namei.c
 ```
+// 现在pathname="/tty0"
 static struct m_inode * dir_namei(const char * pathname,
     int * namelen, const char ** name)
 {
@@ -405,20 +427,23 @@ static struct m_inode * dir_namei(const char * pathname,
     const char * basename;
     struct m_inode * dir;
 
-    // 取指定路径名最顶层目录的 i 节点,若出错则返回 NULL,退出。
+    // 取指定路径名最后一层目录(在这里是"dev")的i节点,若出错则返回NULL,退出。
     if (!(dir = get_dir(pathname)))
         return NULL;
-    // 对路径名 pathname 进行搜索检测,查处最后一个'/'后面的名字字符串,计算其长度,并返回最顶
+
+    // 对路径名pathname进行搜索检测,查处最后一个'/'后面的名字字符串,计算其长度,并返回最顶
     // 层目录的 i 节点指针。
     basename = pathname;
     while ((c=get_fs_byte(pathname++)))
         if (c=='/')
             basename=pathname;
     *namelen = pathname-basename-1;  // 确定tty0名字的长度
-    *name = basename;  // 得到tty0前面'/'字符的地址
+    *name = basename;                // 得到tty0中第一个't'字符的地址
     return dir;
 }
 ```
+
+接下来要返回到open_namei函数中确定tty0文件的i节点，执行代码如下所示:
 
 path: fs/namei.c
 ```
@@ -430,7 +455,22 @@ int open_namei(const char * pathname, int flag, int mode,
     struct m_inode * dir, *inode;
     struct buffer_head * bh;
     struct dir_entry * de;
+
     ...
+    // 根据路径名寻找最后一层目录对应的i节点,以及最顶端文件名及其长度。
+    if (!(dir = dir_namei(pathname,&namelen,&basename)))
+        return -ENOENT;
+    // 如果最顶端文件名长度为0(例如'/usr/'这种路径名的情况),那么若打开操作不是创建,截0,
+    // 则表示打开一个目录名,直接返回该目录的i节点,并退出。
+    if (!namelen) {            /* special case: '/usr/' etc */
+        if (!(flag & (O_ACCMODE|O_CREAT|O_TRUNC))) {
+            *res_inode=dir;
+            return 0;
+        }
+        // 否则释放该i节点,返回出错码。
+        iput(dir);
+        return -EISDIR;
+    }
 
     bh = find_entry(&dir,basename,namelen,&de);
     if (!bh) {
