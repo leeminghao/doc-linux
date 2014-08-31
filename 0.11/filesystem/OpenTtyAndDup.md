@@ -637,6 +637,6 @@ static int dupfd(unsigned int fd, unsigned int arg)
 类似的可以打开标准错误输出设备文件.
 
 至此，标准输入设备文件和标准输出，标准出错输出设备文件都已经打开了.
-接下来进程1要创建进程2执行shell程序，如下:
+接下来进程1要创建进程2执行shell程序，如下所示:
 
-https://github.com/leeminghao/doc-linux/blob/master/0.11/process/CreateProcess2.md
+https://github.com/leeminghao/doc-linux/blob/master/0.11/process/CreateAndRunningProcess2.md
