@@ -169,13 +169,13 @@ int do_execve(unsigned long * eip,long tmp,char * filename,
     struct m_inode * inode;
     struct buffer_head * bh;
     struct exec ex;
-    unsigned long page[MAX_ARG_PAGES];
+    unsigned long page[MAX_ARG_PAGES]; // MAX_ARG_PAGES = 32
     int i,argc,envc;
     int e_uid, e_gid;
     int retval;
     int sh_bang = 0;
     // 设置参数或环境变量在进程空间的初始偏移指针
-    unsigned long p=PAGE_SIZE*MAX_ARG_PAGES-4;
+    unsigned long p = PAGE_SIZE*MAX_ARG_PAGES-4;
 
     // eip[1]中是代码段寄存器cs(cs是int 80中断自动压栈保存的),其中的选择符不可以是内核段选择符,
     // 也即内核不能调用本函数。
@@ -399,12 +399,12 @@ int do_execve(unsigned long * eip,long tmp,char * filename,
         last_task_used_math = NULL;
     current->used_math = 0; // 将进程2的数学协处理器的使用标志清零
 
-    // 重新设置进程2的局部描述符表
-    // 根据 a_text 修改局部表中描述符基址和段限长,并将参数和环境空间页面放置在数据段末端。
-    // 执行下面语句之后,p 此时是以数据段起始处为原点的偏移值,仍指向参数和环境空间数据开始处,
+    // 重新设置进程2的局部描述符表:
+    // 根据a_text修改局部表中描述符基址和段限长,并将参数和环境空间页面放置在数据段末端。
+    // 执行下面语句之后, p此时是以数据段起始处为原点的偏移值,仍指向参数和环境空间数据开始处,
     // 也即转换成为堆栈的指针。
     p += change_ldt(ex.a_text,page)-MAX_ARG_PAGES*PAGE_SIZE;
-    // create_tables()在新用户堆栈中创建环境和参数变量指针表,并返回该堆栈指针。
+    // create_tables()在新进程堆栈(内核栈)中创建环境和参数变量指针表,并返回该栈指针。
     p = (unsigned long) create_tables((char *)p,argc,envc);
     // 修改当前进程各字段为新执行程序的信息。
     // 令进程代码段尾值字段 end_code = a_text;
@@ -413,19 +413,21 @@ int do_execve(unsigned long * eip,long tmp,char * filename,
     current->brk = ex.a_bss +
         (current->end_data = ex.a_data +
         (current->end_code = ex.a_text));
-    current->start_stack = p & 0xfffff000;
     // 设置进程堆栈开始字段为堆栈指针所在的页面,并重新设置进程的有效用户 id 和有效组 id。
+    current->start_stack = p & 0xfffff000;
     current->euid = e_uid;
     current->egid = e_gid;
     // 初始化一页 bss 段数据,全为零。
     i = ex.a_text+ex.a_data;
     while (i&0xfff)
         put_fs_byte(0,(char *) (i++));
-    // 将原调用系统中断的程序在堆栈上的代码指针替换为指向新执行程序的入口点,并将堆栈指针替换
-    // 为新执行程序的堆栈指针。返回指令将弹出这些堆栈数据并使得 CPU 去执行新的执行程序,因此不会
-    // 返回到原调用系统中断的程序中去了。
+    // 将原调用系统中断的程序在堆栈上的代码指针替换为指向新执行程序的入口点.
+    // 并将堆栈指针替换为新执行程序的堆栈指针。
+    // iret指令将弹出这些堆栈数据并使得CPU去执行新的执行程序,因此不会返回到原调用系统中断的程序中去.
+    // 在这里用shell程序的起始地址设置eip, 用进程2新的堆栈地址值设置esp, 这样软中断从iret返回后
+    // 进程2将从shell程序开始执行.
     eip[0] = ex.a_entry;        /* eip, magic happens :-) */
-    eip[3] = p;            /* stack pointer */
+    eip[3] = p;                 /* esp, stack pointer */
     return 0;
 exec_error2:
     iput(inode);
@@ -435,3 +437,204 @@ exec_error1:
     return(retval);
 }
 ```
+
+总结补充
+--------------------------------------------------------------------------------
+
+由于do_execve函数执行代码过长，下面我们对该函数进行总结和补充:
+
+### do_execve
+
+它是系统中断调用(int 0x80)功能号__NR_execve()调用的C处理函数,是exec()函数簇的主要实现函数.
+
+其主要功能为:
+
+* 执行对参数和环境变量空间页面的初始化操作.
+
+**设置初始页面空间起始指针** -->  **初始化页面空间指针数组为NULL** -->
+**根据执行文件名取执行对象的i节点** --> **计算参数个数和环境变量个数** -->
+**检查文件类型,执行权限**
+
+*  根据执行文件开始部分的头数据结构,对其中信息进行处理.
+
+**根据被执行文件i节点读取文件头部信息** -->
+**若是Shell脚本程序(第一行以"#!"开始),则分析Shell程序名及其参数,并以被执行文件作为参数执行该执行的Shell程序** -->
+**执行根据文件的幻数以及段长度等信息判断是否可执行**
+
+* 对当前调用进程进行运行新文件前初始化操作.
+
+**指向新执行文件的i节点** --> **复位信号处理句柄** --> **根据头结构信息设置局部描述符基址和段长**
+--> **设置参数和环境参数页面指针** --> **修改进程各执行字段内容**
+
+* 替换堆栈上原调用execve()程序的返回地址为新执行程序运行地址,运行新加载的程序
+
+execve()函数有大量对参数和环境空间的处理操作,参数和环境空间共可有MAX_ARG_PAGES个页面,
+总长度可达128kB(MAX_ARG_PAGES * PAGE_SIZE = 32 * 4KB)字节。
+在该空间中存放数据的方式类似于堆栈操作,即是从假设的128kB空间末端处逆向开始存放参数或环境变量字符串。
+在初始时,程序定义了一个指向该空间末端(128kB-4 字节)处空间内偏移值p,该偏移值随着存放数据的增多而后退,
+p明确地指出了当前参数环境空间中还剩余多少可用空间. 如下图所示:
+
+https://github.com/leeminghao/doc-linux/blob/master/0.11/process/argv_env.png
+
+下面我们以将环境变量和参数复制为例来讲解p指针的移动过程:
+```
+    // 如果sh_bang标志没有设置,则复制指定个数的环境变量字符串和参数到参数和环境空间中。
+    // 若sh_bang标志已经设置,则表明是将运行脚本程序,此时环境变量页面已经复制,无须再复制。
+    if (!sh_bang) {
+        p = copy_strings(envc,envp,page,p,0); // 将环境变量复制到进程空间
+        p = copy_strings(argc,argv,page,p,0); // 将参数复制到进程空间
+        // 如果 p=0,则表示环境变量与参数空间页面已经被占满,容纳不下了。转至出错处理处。
+        if (!p) {
+            retval = -ENOMEM;
+            goto exec_error2;
+        }
+    }
+```
+
+### copy_strings
+
+上面这段代码是do_execve中将环境变量和参数复制到进程空间的代码，复制操作由copy_strings完成，
+其实现如下所示:
+
+path: fs/exec.c
+```
+/*
+ * 'copy_string()' copies argument/envelope strings from user
+ * memory to free pages in kernel mem. These are in a format ready
+ * to be put directly into the top of new user memory.
+ *
+ * Modified by TYT, 11/24/91 to add the from_kmem argument, which specifies
+ * whether the string and the string array are from user or kernel segments:
+ *
+ * from_kmem     argv *        argv **
+ *    0          user space    user space
+ *    1          kernel space  user space
+ *    2          kernel space  kernel space
+ *
+ * We do this by playing games with the fs segment register.  Since it
+ * it is expensive to load a segment register, we try to avoid calling
+ * set_fs() unless we absolutely have to.
+ */
+//// 复制指定个数的参数字符串到参数和环境空间。
+// 参数:argc - 欲添加的参数个数; argv - 参数指针数组; page - 参数和环境空间页面指针数组。
+//
+// p - 在参数表空间中的偏移指针,始终指向已复制串的头部; from_kmem - 字符串来源标志。
+// 在 do_execve()函数中, p初始化为指向参数表(128kB)空间的最后一个长字处,参数字符串
+// 是以堆栈操作方式逆向往其中复制存放的, 因此p指针会始终指向参数字符串的头部。
+// 返回: 参数和环境空间当前头部指针。
+static unsigned long copy_strings(int argc,char ** argv,unsigned long *page,
+        unsigned long p, int from_kmem)
+{
+    char *tmp, *pag=NULL;
+    int len, offset = 0;
+    unsigned long old_fs, new_fs;
+
+    if (!p)
+        return 0;    /* bullet-proofing */
+    // 取ds寄存器值到 new_fs,并保存原 fs 寄存器值到 old_fs。
+    // 注意: 在system_call中设置ds指向的是内核空间，而fs依旧指向的是用户空间
+    new_fs = get_ds();
+    old_fs = get_fs();
+    // 如果字符串和字符串数组来自内核空间,则设置 fs 段寄存器指向内核数据段(ds)
+    if (from_kmem==2)
+        set_fs(new_fs);
+    // 循环处理各个参数,从最后一个参数逆向开始复制,复制到指定偏移地址处.
+    while (argc-- > 0) {
+        // 如果字符串在用户空间而字符串数组在内核空间,则设置 fs 段寄存器指向内核数据段(ds)。
+        if (from_kmem == 1)
+            set_fs(new_fs);
+        // 从最后一个参数开始逆向操作,取 fs 段中最后一参数指针到 tmp,如果为空,则出错死机。
+        if (!(tmp = (char *)get_fs_long(((unsigned long *)argv)+argc)))
+            panic("argc is wrong");
+        // 如果字符串在用户空间而字符串数组在内核空间,则恢复 fs 段寄存器原值
+        if (from_kmem == 1)
+            set_fs(old_fs);
+        // 计算该参数字符串长度 len,并使 tmp 指向该参数字符串末端
+        len=0;        /* remember zero-padding */
+        do {
+            len++;
+        } while (get_fs_byte(tmp++));
+        // 如果该字符串长度超过此时参数和环境空间中还剩余的空闲长度,则恢复 fs 段寄存器并返回 0
+        if (p-len < 0) {    /* this shouldn't happen - 128kB */
+            set_fs(old_fs);
+            return 0;
+        }
+        // 复制 fs 段中当前指定的参数字符串,是从该字符串尾逆向开始复制
+        while (len) {
+            --p; --tmp; --len;
+            // 函数刚开始执行时,偏移变量 offset 被初始化为 0,因此若 offset-1<0,说明是首次复制字符串,
+            // 则令其等于 p 指针在页面内的偏移值,并申请空闲页面。
+            if (--offset < 0) {
+                offset = p % PAGE_SIZE;
+                if (from_kmem==2)
+                    set_fs(old_fs);
+                // 如果当前偏移值p所在的串空间页面指针数组项 page[p/PAGE_SIZE]==0,
+                // 表示相应页面还不存在,则需申请新的内存空闲页面,将该页面指针填入指针数组,
+                // 并且也使 pag 指向该新页面,若申请不到空闲页面则返回 0。
+                if (!(pag = (char *) page[p/PAGE_SIZE]) &&
+                    !(pag = (char *) page[p/PAGE_SIZE] =
+                      (unsigned long *) get_free_page()))
+                    return 0;
+                if (from_kmem==2)
+                    set_fs(new_fs);
+
+            }
+            // 从 fs 段中复制参数字符串中一字节到 pag+offset 处。
+            *(pag + offset) = get_fs_byte(tmp);
+        }
+    }
+    if (from_kmem==2)
+        set_fs(old_fs);
+    // 最后,返回参数和环境空间中已复制参数信息的头部偏移值.
+    return p;
+}
+```
+
+### create_tables
+
+```
+/*
+* create_tables()函数在进程空间内存中解析环境变量和参数字符串,由此
+* 创建指针表,并将它们的地址放到"堆栈"上,然后返回新栈的指针值。
+*/
+// 参数:p - 以数据段为起点的参数和环境信息偏移指针;argc - 参数个数;envc -环境变量数。
+// 返回:栈指针。
+static unsigned long * create_tables(char * p,int argc,int envc)
+{
+    unsigned long *argv,*envp;
+    unsigned long * sp;
+    // 堆栈指针是以 4 字节(1 节)为边界寻址的,因此这里让 sp 为 4 的整数倍。
+    sp = (unsigned long *) (0xfffffffc & (unsigned long) p);
+    // sp 向下移动,空出环境参数占用的空间个数,并让环境参数指针 envp 指向该处。
+    sp -= envc+1;
+    envp = sp;
+    // sp 向下移动,空出命令行参数指针占用的空间个数,并让 argv 指针指向该处。
+    // 下面指针加 1,sp 将递增指针宽度字节值。
+    sp -= argc+1;
+    argv = sp;
+    // 将环境参数指针 envp 和命令行参数指针以及命令行参数个数压入堆栈。
+    put_fs_long((unsigned long)envp,--sp);
+    put_fs_long((unsigned long)argv,--sp);
+    put_fs_long((unsigned long)argc,--sp);
+    // 将命令行各参数指针放入前面空出来的相应地方,最后放置一个 NULL 指针。
+    while (argc-->0) {
+        put_fs_long((unsigned long) p,argv++);
+        while (get_fs_byte(p++)) /* nothing */ ; // p 指针前移 4 字节。
+    }
+    put_fs_long(0,argv);
+    // 将环境变量各指针放入前面空出来的相应地方,最后放置一个 NULL 指针。
+    while (envc-->0) {
+        put_fs_long((unsigned long) p,envp++);
+        while (get_fs_byte(p++)) /* nothing */ ;
+    }
+    put_fs_long(0,envp);
+    return sp;
+    // 返回构造的当前新堆栈指针。
+}
+```
+
+create_tables() 函数用于根据给定的当前堆栈指针值 p 以及参数变量个数值 argc 和环境变量个数
+envc ,在新的程序堆栈中创建环境和参数变量指针表,并返回此时的堆栈指针值 sp 。创建完毕后堆栈指
+针表的形式见下图所示：
+
+https://github.com/leeminghao/doc-linux/blob/master/0.11/process/create_tables.png
