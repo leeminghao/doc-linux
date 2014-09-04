@@ -26,17 +26,22 @@ Linux 0.11内核代码修改
 
 * Makefile
 
-  将AS由 gas 改为 as, LD由 gld 改为 ld, AR由gar改为ar
-  将 linux-0.11-deb/Makefile 第34行中as的-c选项去除
-  将所有CFLAGS中的 -fcombine-regs 与 -mstring-insns 选项去除, 并添加-fno-stack-protector
+A. 将AS由 gas 改为 as, LD由 gld 改为 ld, AR由gar改为ar
+
+B. 将 linux-0.11-deb/Makefile 第34行中as的-c选项去除
+
+C. 将所有CFLAGS中的 -fcombine-regs 与 -mstring-insns 选项去除, 并添加-fno-stack-protector
 
 * 汇编程序
 
-  将boot/bootsect.s中的C语言风格注释(/*) 用！替换
-  将boot/下三个汇编程序的对齐指令由 .align n 改为 .align 2^n
-  将所有汇编程序（包括用asm关键字内联的）中引用的C变量前的下划线去掉
+A. 将boot/bootsect.s中的C语言风格注释(/*) 用！替换
+
+B. 将boot/下三个汇编程序的对齐指令由 .align n 改为 .align 2^n
+
+C. 将所有汇编程序（包括用asm关键字内联的）中引用的C变量前的下划线去掉
 
 * 头文件
+
   将segment.h和string.h中的"extern inline"改写为"static inline"
 
 ### make过程中出现的问题
@@ -49,9 +54,13 @@ boot/head.s: Assembler messages:
 boot/head.s:43: Error: unsupported instruction `mov'
 ```
 
-这是因为本机系统为64位，因此需要给所有Makefile中的as命令加上 --32 选项。类似地，根据GCC在线手册的说明 （见下方），需给所有Makefile中的CFLAGS加上 -m32 选项。
+这是因为本机系统为64位，因此需要给所有Makefile中的as命令加上 --32 选项。类似地，
+根据GCC在线手册的说明 （见下方），需给所有Makefile中的CFLAGS加上 -m32 选项。
 
-    "The -m32 option sets int, long, and pointer types to 32 bits, and generates code that runs on any i386 system."
+```
+"The -m32 option sets int, long, and pointer types to 32 bits, and generates
+code that runs on any i386 system."
+```
 
 ##### 问题2
 
@@ -112,10 +121,16 @@ fork.c:55:2: note: in expansion of macro ‘set_base’
 上述问题是由于内联汇编的写法不规范所致。根据GCC手册中对asm关键字的介绍
 
 ```
-    “ You may not write a clobber description in a way that overlaps with an input or output operand. For example, you may not have an operand describing a register class with one member if you mention that register in the clobber list. Variables declared to live in specific registers , and used as asm input or output operands must have no part mentioned in the clobber description. There is no way for you to specify that an input operand is modified without also specifying it as an output operand. ”
+"You may not write a clobber description in a way that overlaps with an input
+or output operand. For example, you may not have an operand describing a register
+class with one member if you mention that register in the clobber list. Variables
+declared to live in specific registers , and used as asm input or output operands
+must have no part mentioned in the clobber description. There is no way for you
+to specify that an input operand is modified without also specifying it as an output operand."
 ```
 
-意即使用asm嵌入汇编语句时，若一个寄存器出现在“clobbered register”（即会被修改的寄存器）列表中，则其不能再出现于输出寄存器或输入寄存器列表中。include/linux/sched.h的第189行开始的代码如下:
+意即使用asm嵌入汇编语句时，若一个寄存器出现在“clobbered register”（即会被修改的寄存器）列表中，
+则其不能再出现于输出寄存器或输入寄存器列表中。include/linux/sched.h的第189行开始的代码如下:
 
 ```
     #define _set_base(addr,base) \
@@ -172,7 +187,8 @@ include/asm/segment.h的第27行如下：
     }
 ```
 
-其中"r"表示使用任意动态分配的寄存器，将其改为"q"即可。"q"表示使用动态分配字节可寻址寄存器（eax，ebx，ecx或edx）。（其中的原理我也不是很清楚，如果有人知道的话烦请留言说明，不胜感激！）
+其中"r"表示使用任意动态分配的寄存器，将其改为"q"即可。"q"表示使用动态分配字节可寻址寄存器
+（eax，ebx，ecx或edx）。
 
 ##### 问题6
 
