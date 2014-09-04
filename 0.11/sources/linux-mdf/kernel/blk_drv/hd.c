@@ -9,7 +9,7 @@
  * request-list, using interrupts to jump between functions. As
  * all the functions are called within interrupts, we may not
  * sleep. Special care is recommended.
- * 
+ *
  *  modified by Drew Eckhardt to check nr of hd's from the CMOS.
  */
 
@@ -59,10 +59,10 @@ static struct hd_struct {
 } hd[5*MAX_HD]={{0,0},};
 
 #define port_read(port,buf,nr) \
-__asm__("cld;rep;insw"::"d" (port),"D" (buf),"c" (nr):"cx","di")
+__asm__("cld;rep;insw"::"d" (port),"D" (buf),"c" (nr))
 
 #define port_write(port,buf,nr) \
-__asm__("cld;rep;outsw"::"d" (port),"S" (buf),"c" (nr):"cx","si")
+__asm__("cld;rep;outsw"::"d" (port),"S" (buf),"c" (nr))
 
 extern void hd_interrupt(void);
 extern void rd_load(void);
@@ -101,25 +101,25 @@ int sys_setup(void * BIOS)
 	}
 
 	/*
-		We querry CMOS about hard disks : it could be that 
+		We querry CMOS about hard disks : it could be that
 		we have a SCSI/ESDI/etc controller that is BIOS
 		compatable with ST-506, and thus showing up in our
 		BIOS table, but not register compatable, and therefore
 		not present in CMOS.
 
 		Furthurmore, we will assume that our ST-506 drives
-		<if any> are the primary drives in the system, and 
+		<if any> are the primary drives in the system, and
 		the ones reflected as drive 1 or 2.
 
 		The first drive is stored in the high nibble of CMOS
 		byte 0x12, the second in the low nibble.  This will be
-		either a 4 bit drive type or 0xf indicating use byte 0x19 
+		either a 4 bit drive type or 0xf indicating use byte 0x19
 		for an 8 bit type, drive 1, 0x1a for drive 2 in CMOS.
 
-		Needless to say, a non-zero value means we have 
+		Needless to say, a non-zero value means we have
 		an AT controller hard disk for that drive.
 
-		
+
 	*/
 
 	if ((cmos_disks = CMOS_READ(0x12)) & 0xf0)
@@ -324,7 +324,7 @@ void do_hd_request(void)
 		hd_out(dev,hd_info[CURRENT_DEV].sect,0,0,0,
 			WIN_RESTORE,&recal_intr);
 		return;
-	}	
+	}
 	if (CURRENT->cmd == WRITE) {
 		hd_out(dev,nsect,sec,head,cyl,WIN_WRITE,&write_intr);
 		for(i=0 ; i<3000 && !(r=inb_p(HD_STATUS)&DRQ_STAT) ; i++)

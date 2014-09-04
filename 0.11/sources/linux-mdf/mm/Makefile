@@ -1,16 +1,17 @@
 CC	=gcc
-CFLAGS	=-O -Wall -fstrength-reduce -fcombine-regs -fomit-frame-pointer \
-	-finline-functions -nostdinc -I../include
-AS	=gas
-AR	=gar
-LD	=gld
+CFLAGS	=-O -Wall -fstrength-reduce -fomit-frame-pointer \
+	-finline-functions -nostdinc -I../include \
+	-m32 -fno-stack-protector
+AS	=as
+AR	=ar
+LD	=ld -m elf_i386
 CPP	=gcc -E -nostdinc -I../include
 
 .c.o:
 	$(CC) $(CFLAGS) \
 	-c -o $*.o $<
 .s.o:
-	$(AS) -o $*.o $<
+	$(AS) --32 -o $*.o $<
 .c.s:
 	$(CC) $(CFLAGS) \
 	-S -o $*.s $<
@@ -34,4 +35,4 @@ dep:
 ### Dependencies:
 memory.o : memory.c ../include/signal.h ../include/sys/types.h \
   ../include/asm/system.h ../include/linux/sched.h ../include/linux/head.h \
-  ../include/linux/fs.h ../include/linux/mm.h ../include/linux/kernel.h 
+  ../include/linux/fs.h ../include/linux/mm.h ../include/linux/kernel.h

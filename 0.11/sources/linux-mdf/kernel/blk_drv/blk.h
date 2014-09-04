@@ -63,7 +63,7 @@ extern struct task_struct * wait_for_request;
 #define DEVICE_NAME "ramdisk"
 #define DEVICE_REQUEST do_rd_request
 #define DEVICE_NR(device) ((device) & 7)
-#define DEVICE_ON(device) 
+#define DEVICE_ON(device)
 #define DEVICE_OFF(device)
 
 #elif (MAJOR_NR == 2)
@@ -84,7 +84,7 @@ extern struct task_struct * wait_for_request;
 #define DEVICE_ON(device)
 #define DEVICE_OFF(device)
 
-#elif
+#else
 /* unknown blk device */
 #error "unknown blk device"
 
@@ -98,7 +98,7 @@ void (*DEVICE_INTR)(void) = NULL;
 #endif
 static void (DEVICE_REQUEST)(void);
 
-extern inline void unlock_buffer(struct buffer_head * bh)
+static inline void unlock_buffer(struct buffer_head * bh)
 {
 	if (!bh->b_lock)
 		printk(DEVICE_NAME ": free buffer being unlocked\n");
@@ -106,7 +106,7 @@ extern inline void unlock_buffer(struct buffer_head * bh)
 	wake_up(&bh->b_wait);
 }
 
-extern inline void end_request(int uptodate)
+static inline void end_request(int uptodate)
 {
 	DEVICE_OFF(CURRENT->dev);
 	if (CURRENT->bh) {

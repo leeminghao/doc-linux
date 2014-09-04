@@ -1,0 +1,13 @@
+*.o
+*.so
+*.a
+*~
+
+Image
+System.map
+setup
+bootsect
+build
+system
+
+keyboard.s

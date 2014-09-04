@@ -91,12 +91,12 @@ static int count(char ** argv)
  *
  * Modified by TYT, 11/24/91 to add the from_kmem argument, which specifies
  * whether the string and the string array are from user or kernel segments:
- * 
+ *
  * from_kmem     argv *        argv **
  *    0          user space    user space
  *    1          kernel space  user space
  *    2          kernel space  kernel space
- * 
+ *
  * We do this by playing games with the fs segment register.  Since it
  * it is expensive to load a segment register, we try to avoid calling
  * set_fs() unless we absolutely have to.
@@ -135,10 +135,11 @@ static unsigned long copy_strings(int argc,char ** argv,unsigned long *page,
 				offset = p % PAGE_SIZE;
 				if (from_kmem==2)
 					set_fs(old_fs);
-				if (!(pag = (char *) page[p/PAGE_SIZE]) &&
-				    !(pag = (char *) page[p/PAGE_SIZE] =
-				      (unsigned long *) get_free_page())) 
+				if (!(pag = (char *) page[p/PAGE_SIZE])) {
+                                    page[p/PAGE_SIZE] = (unsigned long *)get_free_page();
+				    if (!(pag = (char *)page[p/PAGE_SIZE]))
 					return 0;
+                                }
 				if (from_kmem==2)
 					set_fs(new_fs);
 
@@ -200,7 +201,7 @@ int do_execve(unsigned long * eip,long tmp,char * filename,
 		return -ENOENT;
 	argc = count(argv);
 	envc = count(envp);
-	
+
 restart_interp:
 	if (!S_ISREG(inode->i_mode)) {	/* must be regular file */
 		retval = -EACCES;

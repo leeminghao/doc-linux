@@ -7,12 +7,12 @@ RAMDISK = #-DRAMDISK=512
 AS86	=as86 -0 -a
 LD86	=ld86 -0
 
-AS	=gas
-LD	=gld
-LDFLAGS	=-s -x -M
+AS	=as
+LD	=ld
+LDFLAGS	=-s -x -M -m elf_i386 -Ttext 0 -e startup_32
 CC	=gcc $(RAMDISK)
 CFLAGS	=-Wall -O -fstrength-reduce -fomit-frame-pointer \
--fcombine-regs -mstring-insns
+         -m32 -fno-stack-protector
 CPP	=cpp -nostdinc -Iinclude
 
 #
@@ -20,7 +20,7 @@ CPP	=cpp -nostdinc -Iinclude
 # This can be either FLOPPY, /dev/xxxx or empty, in which case the
 # default of /dev/hd6 is used by 'build'.
 #
-ROOT_DEV=/dev/hd6
+ROOT_DEV=FLOPPY
 
 ARCHIVES=kernel/kernel.o mm/mm.o fs/fs.o
 DRIVERS =kernel/blk_drv/blk_drv.a kernel/chr_drv/chr_drv.a
@@ -31,7 +31,7 @@ LIBS	=lib/lib.a
 	$(CC) $(CFLAGS) \
 	-nostdinc -Iinclude -S -o $*.s $<
 .s.o:
-	$(AS) -c -o $*.o $<
+	$(AS) --32 -o $*.o $<
 .c.o:
 	$(CC) $(CFLAGS) \
 	-nostdinc -Iinclude -c -o $*.o $<
@@ -120,4 +120,4 @@ init/main.o : init/main.c include/unistd.h include/sys/stat.h \
   include/utime.h include/time.h include/linux/tty.h include/termios.h \
   include/linux/sched.h include/linux/head.h include/linux/fs.h \
   include/linux/mm.h include/signal.h include/asm/system.h include/asm/io.h \
-  include/stddef.h include/stdarg.h include/fcntl.h 
+  include/stddef.h include/stdarg.h include/fcntl.h

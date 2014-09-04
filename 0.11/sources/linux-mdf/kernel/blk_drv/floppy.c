@@ -16,7 +16,7 @@
  * but I don't like programming floppies, and I have only one anyway.
  * Urgel. I should check for more errors, and do more graceful error
  * recovery. Seems there are problems with several drives. I've tried to
- * correct them. No promises. 
+ * correct them. No promises.
  */
 
 /*
@@ -155,7 +155,7 @@ repeat:
 #define copy_buffer(from,to) \
 __asm__("cld ; rep ; movsl" \
 	::"c" (BLOCK_SIZE/4),"S" ((long)(from)),"D" ((long)(to)) \
-	:"cx","di","si")
+	)
 
 static void setup_DMA(void)
 {
@@ -241,7 +241,7 @@ static void bad_flp_intr(void)
 		reset = 1;
 	else
 		recalibrate = 1;
-}	
+}
 
 /*
  * Ok, this interrupt is called after a DMA read/write has succeeded,

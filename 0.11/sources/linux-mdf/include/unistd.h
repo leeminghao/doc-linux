@@ -207,7 +207,9 @@ int execle(const char * pathname, char * arg0, ...);
 volatile void exit(int status);
 volatile void _exit(int status);
 int fcntl(int fildes, int cmd, ...);
+#ifndef _IN_MAIN_
 int fork(void);
+#endif /* _IN_MAIN_ */
 int getpid(void);
 int getuid(void);
 int geteuid(void);
@@ -221,7 +223,9 @@ int mknod(const char * filename, mode_t mode, dev_t dev);
 int mount(const char * specialfile, const char * dir, int rwflag);
 int nice(int val);
 int open(const char * filename, int flag, ...);
+#ifndef _IN_MAIN_
 int pause(void);
+#endif /* _IN_MAIN_ */
 int pipe(int * fildes);
 int read(int fildes, char * buf, off_t count);
 int setpgrp(void);
@@ -232,7 +236,9 @@ void (*signal(int sig, void (*fn)(int)))(int);
 int stat(const char * filename, struct stat * stat_buf);
 int fstat(int fildes, struct stat * stat_buf);
 int stime(time_t * tptr);
+#ifndef _IN_MAIN_
 int sync(void);
+#endif /* _IN_MAIN_ */
 time_t time(time_t * tloc);
 time_t times(struct tms * tbuf);
 int ulimit(int cmd, long limit);

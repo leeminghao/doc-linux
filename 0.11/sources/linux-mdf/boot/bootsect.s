@@ -11,7 +11,7 @@ SYSSIZE = 0x3000
 ! iself out of the way to address 0x90000, and jumps there.
 !
 ! It then loads 'setup' directly after itself (0x90200), and the system
-! at 0x10000, using BIOS interrupts. 
+! at 0x10000, using BIOS interrupts.
 !
 ! NOTE! currently system is at most 8*65536 bytes long. This should be no
 ! problem, even in the future. I want to keep it simple. This 512 kB
@@ -94,7 +94,7 @@ ok_load_setup:
 	mov	ah,#0x03		! read cursor pos
 	xor	bh,bh
 	int	0x10
-	
+
 	mov	cx,#24
 	mov	bx,#0x0007		! page 0, attribute 7 (normal)
 	mov	bp,#msg1
@@ -225,11 +225,11 @@ bad_rt:	mov ax,#0
 	pop ax
 	jmp read_track
 
-/*
- * This procedure turns off the floppy drive motor, so
- * that we enter the kernel in a known state, and
- * don't have to worry about it later.
- */
+!
+! This procedure turns off the floppy drive motor, so
+! that we enter the kernel in a known state, and
+! don't have to worry about it later.
+!
 kill_motor:
 	push dx
 	mov dx,#0x3f2

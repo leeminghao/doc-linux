@@ -43,6 +43,9 @@
 
 #define STRINGIFY(x) #x
 
+#define MAJOR(a) (((unsigned)(a))>>8)
+#define MINOR(a) ((a)&0xff)
+
 void die(char * str)
 {
 	fprintf(stderr,"%s\n",str);
@@ -110,12 +113,12 @@ int main(int argc, char ** argv)
 	if ((*(unsigned short *)(buf+510)) != 0xAA55)
 		die("Boot block hasn't got boot flag (0xAA55)");
 	buf[508] = (char) minor_root;
-	buf[509] = (char) major_root;	
+	buf[509] = (char) major_root;
 	i=write(1,buf,512);
 	if (i!=512)
 		die("Write call failed");
 	close (id);
-	
+
 	if ((id=open(argv[2],O_RDONLY,0))<0)
 		die("Unable to open 'setup'");
 	if (read(id,buf,MINIX_HEADER) != MINIX_HEADER)
@@ -150,12 +153,12 @@ int main(int argc, char ** argv)
 			die("Write call failed");
 		i += c;
 	}
-	
+
 	if ((id=open(argv[3],O_RDONLY,0))<0)
 		die("Unable to open 'system'");
 	if (read(id,buf,GCC_HEADER) != GCC_HEADER)
 		die("Unable to read header of 'system'");
-	if (((long *) buf)[5] != 0)
+	if (((long *) buf)[6] != 0)
 		die("Non-GCC header of 'system'");
 	for (i=0 ; (c=read(id,buf,sizeof buf))>0 ; i+=c )
 		if (write(1,buf,c)!=c)

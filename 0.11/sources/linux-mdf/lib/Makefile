@@ -6,20 +6,20 @@
 # unless it's something special (ie not a .c file).
 #
 
-AR	=gar
-AS	=gas
-LD	=gld
+AR	=ar
+AS	=as
+LD	=ld -m elf_i386
 LDFLAGS	=-s -x
 CC	=gcc
-CFLAGS	=-Wall -O -fstrength-reduce -fomit-frame-pointer -fcombine-regs \
-	-finline-functions -mstring-insns -nostdinc -I../include
-CPP	=gcc -E -nostdinc -I../include
+CFLAGS	=-Wall -O -fstrength-reduce -fomit-frame-pointer \
+	-finline-functions -nostdinc -I../include -m32
+CPP	=gcc -E -nostdinc -I../include -m32
 
 .c.s:
 	$(CC) $(CFLAGS) \
 	-S -o $*.s $<
 .s.o:
-	$(AS) -c -o $*.o $<
+	$(AS) --32 -o $*.o $<
 .c.o:
 	$(CC) $(CFLAGS) \
 	-c -o $*.o $<
@@ -44,30 +44,30 @@ dep:
 ### Dependencies:
 _exit.s _exit.o : _exit.c ../include/unistd.h ../include/sys/stat.h \
   ../include/sys/types.h ../include/sys/times.h ../include/sys/utsname.h \
-  ../include/utime.h 
+  ../include/utime.h
 close.s close.o : close.c ../include/unistd.h ../include/sys/stat.h \
   ../include/sys/types.h ../include/sys/times.h ../include/sys/utsname.h \
-  ../include/utime.h 
-ctype.s ctype.o : ctype.c ../include/ctype.h 
+  ../include/utime.h
+ctype.s ctype.o : ctype.c ../include/ctype.h
 dup.s dup.o : dup.c ../include/unistd.h ../include/sys/stat.h \
   ../include/sys/types.h ../include/sys/times.h ../include/sys/utsname.h \
-  ../include/utime.h 
-errno.s errno.o : errno.c 
+  ../include/utime.h
+errno.s errno.o : errno.c
 execve.s execve.o : execve.c ../include/unistd.h ../include/sys/stat.h \
   ../include/sys/types.h ../include/sys/times.h ../include/sys/utsname.h \
-  ../include/utime.h 
+  ../include/utime.h
 malloc.s malloc.o : malloc.c ../include/linux/kernel.h ../include/linux/mm.h \
-  ../include/asm/system.h 
+  ../include/asm/system.h
 open.s open.o : open.c ../include/unistd.h ../include/sys/stat.h \
   ../include/sys/types.h ../include/sys/times.h ../include/sys/utsname.h \
-  ../include/utime.h ../include/stdarg.h 
+  ../include/utime.h ../include/stdarg.h
 setsid.s setsid.o : setsid.c ../include/unistd.h ../include/sys/stat.h \
   ../include/sys/types.h ../include/sys/times.h ../include/sys/utsname.h \
-  ../include/utime.h 
-string.s string.o : string.c ../include/string.h 
+  ../include/utime.h
+string.s string.o : string.c ../include/string.h
 wait.s wait.o : wait.c ../include/unistd.h ../include/sys/stat.h \
   ../include/sys/types.h ../include/sys/times.h ../include/sys/utsname.h \
-  ../include/utime.h ../include/sys/wait.h 
+  ../include/utime.h ../include/sys/wait.h
 write.s write.o : write.c ../include/unistd.h ../include/sys/stat.h \
   ../include/sys/types.h ../include/sys/times.h ../include/sys/utsname.h \
-  ../include/utime.h 
+  ../include/utime.h

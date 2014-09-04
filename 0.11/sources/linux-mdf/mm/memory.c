@@ -52,7 +52,7 @@ current->start_code + current->end_code)
 static long HIGH_MEMORY = 0;
 
 #define copy_page(from,to) \
-__asm__("cld ; rep ; movsl"::"S" (from),"D" (to),"c" (1024):"cx","di","si")
+__asm__("cld ; rep ; movsl"::"S" (from),"D" (to),"c" (1024))
 
 static unsigned char mem_map [ PAGING_PAGES ] = {0,};
 
@@ -78,7 +78,7 @@ __asm__("std ; repne ; scasb\n\t"
 	:"=a" (__res)
 	:"0" (0),"i" (LOW_MEM),"c" (PAGING_PAGES),
 	"D" (mem_map+PAGING_PAGES-1)
-	:"di","cx","dx");
+	);
 return __res;
 }
 
@@ -235,7 +235,7 @@ void un_wp_page(unsigned long * table_entry)
 	*table_entry = new_page | 7;
 	invalidate();
 	copy_page(old_page,new_page);
-}	
+}
 
 /*
  * This routine handles present pages, when users try to write
