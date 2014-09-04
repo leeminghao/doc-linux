@@ -6,6 +6,11 @@ PC 环境:
 * ubuntu 14.04: Linux 3.13.0-35-generic x86_64 x86_64 x86_64 GNU/Linux
 * gcc version 4.8.2 (Ubuntu 4.8.2-19ubuntu1)
 
+Linux 0.11内核代码下载
+--------------------------------------------------------------------------------
+
+http://oldlinux.org/
+
 Linux 0.11内核编译
 --------------------------------------------------------------------------------
 
@@ -389,3 +394,32 @@ tools/build.c
 116    buf[509] = (char)major_root
 117    i = write(1, buf, 512);    //注意标准输出已经被重定向至Image文件
 ```
+
+Linux 0.11使用qemu调试
+--------------------------------------------------------------------------------
+
+在linux-mdf/目录下，打开另一个终端窗口，输入如下内容：
+
+```
+$ qemu-system-i386 -s -S -fda Image
+```
+
+在linux-mdf/目录下，打开另一个终端窗口，输入如下内容：
+
+```
+$ gdb
+(gdb) set architecture i8086
+(gdb) target remote localhost:1234
+(gdb) set step-mode on
+(gdb) break *0x7c00
+(gdb) continue
+```
+
+进入如下命令的无限循环：
+
+```
+(gdb) info registers
+(gdb) step
+```
+
+这样就可以使用qemu调试bootsect.s和其它文件的代码了
