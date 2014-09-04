@@ -187,6 +187,8 @@ sys_fork:
     ...
 ```
 
+注意：在这里涉及到了汇编语言调用c函数，关于这种调用方式的描述可参看:
+
 开始执行sys_fork():
 在sched_init()函数中已经对task[64]除0项以外的所有项清空, 现在sys_fork调用find_empty_process()
 函数为进程1获得一个可用的进程号和task[64]中的一个位置, find_empty_process的执行过程如下所示:
