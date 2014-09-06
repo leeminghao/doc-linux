@@ -11,5 +11,9 @@ build
 system
 boot
 head
+*.img
+*.bin
+bootimage
+kernel
 
 keyboard.s

@@ -2,7 +2,7 @@
 # if you want the ram-disk device, define this to be the
 # size in blocks.
 #
-RAMDISK = #-DRAMDISK=512
+RAMDISK = -DRAMDISK=2048 #-DRAMDISK=512
 
 AS86	=as86 -0 -a
 LD86	=ld86 -0
@@ -12,7 +12,7 @@ LD	=ld
 LDFLAGS	=-s -x -M -m elf_i386 -Ttext 0 -e startup_32
 CC	=gcc $(RAMDISK)
 CFLAGS	=-Wall -O -fstrength-reduce -fomit-frame-pointer \
-         -m32 -fno-stack-protector
+         -m32 -fno-stack-protector -mcpu=i386
 CPP	=cpp -nostdinc -Iinclude
 
 #
@@ -20,7 +20,7 @@ CPP	=cpp -nostdinc -Iinclude
 # This can be either FLOPPY, /dev/xxxx or empty, in which case the
 # default of /dev/hd6 is used by 'build'.
 #
-ROOT_DEV=FLOPPY
+ROOT_DEV= #FLOPPY
 
 ARCHIVES=kernel/kernel.o mm/mm.o fs/fs.o
 DRIVERS =kernel/blk_drv/blk_drv.a kernel/chr_drv/chr_drv.a
@@ -40,6 +40,11 @@ all:	Image
 
 Image: boot/bootsect boot/setup tools/system tools/build
 	tools/build boot/bootsect boot/setup tools/system $(ROOT_DEV) > Image
+	sync
+
+bootimage: boot/bootsect boot/setup tools/system tools/build
+	objcopy -O binary -R .note -R .comment tools/system tools/kernel
+	tools/build boot/bootsect boot/setup tools/kernel $(ROOT_DEV) > bootimage
 	sync
 
 disk: Image
