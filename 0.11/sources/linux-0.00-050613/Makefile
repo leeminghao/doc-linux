@@ -26,4 +26,4 @@ boot: boot.s
 	$(LD86) -s boot.o -o boot
 
 clean:
-	rm -f Image System.map core boot head *.o system
+	rm -f Image System.map core boot head *.o system *.img
