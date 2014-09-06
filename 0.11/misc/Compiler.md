@@ -285,3 +285,7 @@ ld会尝试根据其他链接的文件来确定它的值。在程序使用了一
 
 符号的类型属性含有用于链接器和调试器的重定位信息、指示符号是外部的标志以及一些其他可选信息。
 对于a.out格式的目标文件，符号的类型属性存放在一个8位字段中（n_type字节）。
+
+有关编译的例子如下所示：
+
+https://github.com/leeminghao/doc-linux/blob/master/0.11/sources/linux-0.00-050613/README.md
