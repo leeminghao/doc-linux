@@ -45,6 +45,7 @@ int copy_mem(int nr,struct task_struct * p)
 	data_limit=get_limit(0x17);
 	old_code_base = get_base(current->ldt[1]);
 	old_data_base = get_base(current->ldt[2]);
+    printk("%lu, %lu\n", old_code_base, old_data_base);
 	if (old_data_base != old_code_base)
 		panic("We don't support separate I&D");
 	if (data_limit < code_limit)
