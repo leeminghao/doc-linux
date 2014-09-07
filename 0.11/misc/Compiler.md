@@ -153,3 +153,10 @@ https://github.com/leeminghao/doc-linux/blob/master/0.11/misc/gcc.jpg
 * 在汇编阶段: as汇编器会把汇编代码转换成机器指令，并以特定二进制格式输出保存在目标文件中;
 
 最后, GNU ld链接器把程序的相关目标文件组合链接在一起，生成程序的可执行映像文件
+
+深度解析
+--------------------------------------------------------------------------------
+
+有关更多链接加载的过程如下:
+
+https://github.com/leeminghao/doc-linux/blob/master/0.11/misc/LinkerAndLoader.md
