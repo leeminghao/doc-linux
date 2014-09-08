@@ -159,4 +159,4 @@ https://github.com/leeminghao/doc-linux/blob/master/0.11/misc/gcc.jpg
 
 有关更多链接加载的过程如下:
 
-https://github.com/leeminghao/doc-linux/blob/master/0.11/misc/LinkerAndLoader.md
+https://github.com/leeminghao/doc-linux/blob/master/linker/LinkerAndLoader.md

@@ -170,7 +170,7 @@ Fortran 程序使用了多个子程序和公共块(被多个子程序共享的�
 链接器将一系列的目标文件、库、及可能的命令文件作为它的输入,然后将输出的
 目标文件作为产品结果,此外也可能有诸如加载映射信息或调试器符号文件的副产品
 
-https://github.com/leeminghao/doc-linux/blob/master/0.11/misc/linker_process.png
+https://github.com/leeminghao/doc-linux/blob/master/linker/linker_process.png
 
 每个输入文件都包含一系列的段(segments),即会被连续存放在输出文件中的代码或数据块。
 
@@ -219,7 +219,7 @@ E. 几乎所有的目标代码格式都预备有调试符号,这样当程序在�
 它就会查找一个或多个库,然后将输出这些未解析名字的库中的任何文件链接进来**
 如下图所示：
 
-https://github.com/leeminghao/doc-linux/blob/master/0.11/misc/objlib.png
+https://github.com/leeminghao/doc-linux/blob/master/linker/objlib.png
 
 由于链接器将部分工作从链接时推迟到了加载时,使这项任务稍微复杂了一些。在链接器运行时,
 链接器会识别出解析未定义符号所需的共享库,但是链接器会在输出文件中标明用来解析这些符号的库名称,
