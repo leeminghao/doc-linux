@@ -274,3 +274,116 @@ A3 12 9A 00 00 mov %eax,b
 
 有些系统需要无论加载到什么位置都可以正常工作的位置无关代码。链接器需要提供额外的技巧来支持位置无关代码,
 与程序中无法做到位置无关的部分隔离开来,并设法使这两部分可以互相通讯.
+
+链接: 一个真实的例子
+--------------------------------------------------------------------------------
+
+我们通过一个简小的链接实例来结束对链接过程的介绍:
+
+path: src/ex1/m.c
+
+```
+extern void a(char *);
+
+int main(int argc, char **argv)
+{
+    static char string[] = "hello world\n";
+    a(string);
+}
+```
+
+主程序m.c在用 gcc 编译成一个典型 a.out 目标代码格式如下所示:
+
+```
+$ gcc -m32 -c m.c -o m.o
+$ ll m.o
+-rw-rw-r-- 1 liminghao liminghao 976 Sep  8 12:14 m.o
+$ objdump -h -S m.o > m.map
+$ cat m.map
+
+m.o:     file format elf32-i386
+# 目标文件包含一个固定长度的头部.
+Sections:
+Idx Name          Size      VMA       LMA       File off  Algn
+  0 .text         00000017  00000000  00000000  00000034  2**0
+                  CONTENTS, ALLOC, LOAD, RELOC, READONLY, CODE
+  1 .data         0000000d  00000000  00000000  0000004b  2**0
+                  CONTENTS, ALLOC, LOAD, DATA
+  2 .bss          00000000  00000000  00000000  00000058  2**0
+                  ALLOC
+  3 .comment      00000025  00000000  00000000  00000058  2**0
+                  CONTENTS, READONLY
+  4 .note.GNU-stack 00000000  00000000  00000000  0000007d  2**0
+                  CONTENTS, READONLY
+  5 .eh_frame     00000038  00000000  00000000  00000080  2**2
+                  CONTENTS, ALLOC, LOAD, RELOC, READONLY, DATA
+
+Disassembly of section .text:
+# ebp 是"基址指针"(BASE POINTER), 它最经常被用作高级语言函数调用的"框架指针"(frame pointer).
+# esp 专门用作堆栈指针，被形象地称为栈顶指针，堆栈的顶部是地址小的区域，压入堆栈的数据越多,
+# esp也就越来越小,在32位平台上,esp每次减少4字节.
+#
+# 注意: esp - 寄存器存放当前线程的栈顶指针; ebp - 寄存器存放当前线程的栈底指针
+00000000 <main>:
+   0:    55                     push   %ebp        # 保存当前ebp
+   1:    89 e5                  mov    %esp,%ebp   # ebp设为当前堆栈指针
+   3:    83 e4 f0               and    $0xfffffff0,%esp
+   6:    83 ec 10               sub    $0x10,%esp  # 预留0x10字节给函数临时变量
+   # 这样一来,ebp构成了该函数的一个框架, 在ebp上方分别是原来的ebp, 返回地址和参数.
+   # ebp下方则是临时变量. 函数返回时作 mov esp, ebp; pop ebp; ret 即可.
+   9:    c7 04 24 00 00 00 00   movl   $0x0,(%esp)
+  10:    e8 fc ff ff ff         call   11 <main+0x11>
+  15:    c9                     leave
+  16:    c3                     ret
+```
+
+对照编译生成的as汇编如下:
+
+```
+$ gcc -m32 -S m.c -o m.s
+$ cat m.s
+        .file   "m.c"
+        .text
+        .globl       main
+        .type        main, @function
+main:
+.LFB0:
+        .cfi_startproc
+        pushl   %ebp
+        .cfi_def_cfa_offset 8
+        .cfi_offset 5, -8
+        movl        %esp, %ebp
+        .cfi_def_cfa_register 5
+        andl                  $-16, %esp
+        subl                  $16, %esp
+        movl                  $string.1374, (%esp)
+        call                  a
+        leave
+        .cfi_restore 5
+        .cfi_def_cfa 4, 4
+        ret
+        .cfi_endproc
+.LFE0:
+        .size   main, .-main
+        .data
+        .type   string.1374, @object
+        .size   string.1374, 13
+string.1374:
+        .string "hello world\n"
+        .ident  "GCC: (Ubuntu 4.8.2-19ubuntu1) 4.8.2"
+        .section      .note.GNU-stack,"",@progbits
+```
+
+
+path: src/ex1/a.c
+
+```
+#include <string.h>
+
+#include <unistd.h>
+
+void a(char *s)
+{
+    write(1, s, strlen(s));
+}
+```
