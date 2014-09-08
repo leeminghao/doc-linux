@@ -161,3 +161,84 @@ main:
 在分析完上述代码之后我们来分析一下main函数执行前后的栈帧结构，如下所示:
 
 https://github.com/leeminghao/doc-linux/blob/master/linker/main_swap.jpg
+
+main函数也是一个函数
+--------------------------------------------------------------------------------
+
+上面这段汇编程序是使用gcc编译产生的，可以看出其中有几行多余的代码。可见gcc编译器还不能产生最高效率的代码，
+这也是为什么某些关键代码需要直接使用汇编语言编制的原因之一。另外，上面提到C程序的主程序main()也是一个函数。
+这是因为在编译链接时它将会作为crt0.s汇编程序的函数被调用。crt0.s是一个桩（stub）程序，
+名称中的"crt"是"C run-time"的缩写。该程序的目标文件将被链接在每个用户执行程序的开始部分，
+主要用于设置一些初始化全局变量等。gcclib_1.40中的crt0.s汇编程序如下所示：
+
+```
+    .text
+    .globl _environ # 声明全局变量 _environ（对应C程序中的environ变量）。
+
+__entry:   # 代码入口标号。
+    movl 8(%esp), %eax    # 取程序的环境变量指针envp并保存在_environ中。
+    movl %eax, _environ   # envp是execve()函数在加载执行文件时设置的。
+    call _main            # 调用我们的主程序。其返回状态值在eax寄存器中。
+    pushl %eax            # 压入返回值作为exit()函数的参数并调用该函数。
+1:  call _exit
+    jmp 1b                # 控制应该不会到达这里。若到达这里则继续执行exit()。
+data
+    _environ:             # 定义变量_environ，为其分配一个长字空间。
+.long 0
+```
+
+通常使用gcc编译链接生成执行文件时，gcc会自动把该文件的代码作为第一个模块链接在可执行程序中。
+在编译时使用显示详细信息选项"-v"就可以明显地看出这个链接操作过程：
+
+```
+[/usr/root]# gcc -v -o exch exch.s
+gcc version 1.40
+/usr/local/lib/gcc-as -o exch.o exch.s
+/usr/local/lib/gcc-ld -o exch /usr/local/
+lib/crt0.o exch.o /usr/local/lib/gnulib -lc
+/usr/local/lib/gnulib
+[/usr/root]#
+```
+
+因此在通常的编译过程中，我们无需特别指定stub模块crt0.o，
+但是若想根据上面给出的汇编程序手工使用ld（gld）从exch.o模块链接产生可执行文件exch，
+那么就需要在命令行上特别指明crt0.o这个模块，并且链接的顺序应该是crt0.o、所有程序模块、库文件。
+
+为了使用ELF格式的目标文件以及建立共享库模块文件，现在的gcc编译器（2.x）已经把这个crt0扩展成几个模块：
+
+```
+crt1.o、crti.o、crtbegin.o、crtend.o和crtn.o。
+```
+
+这些模块的链接顺序为：
+
+```
+crt1.o --> crti.o --> crtbegin.o（crtbeginS.o） --> 所有程序模块 -->
+crtend.o（crtendS.o） --> crtn.o --> 库模块文件。
+```
+
+gcc的配置文件specfile指定了这种链接顺序。
+其中
+
+* ctr1.o、crti.o和crtn.o由C库提供，是C程序的"启动"模块；
+
+* crtbegin.o和crtend.o是C++语言的启动模块，由编译器gcc提供；
+
+**注意**:
+
+* crt1.o则与crt0.o的作用类似，主要用于在调用main()之前做一些初始化工作，全局符号_start就定义在这个模块中;
+
+* crtbegin.o和crtend.o主要用于C++语言，在.ctors和.dtors区中执行全局构造（constructor）和析构（destructor）函数;
+
+* crtbeginS.o和crtendS.o的作用与前两者类似，但用于创建共享模块中;
+
+* crti.o用于在.init区中执行初始化函数init();
+
+* .init区中包含进程的初始化代码，即当程序开始执行时，系统会在调用main()之前先执行.init中的代码;
+
+* crtn.o则用于在.fini区中执行进程终止退出处理函数fini()函数，即当程序正常退出时（main()返回之后），
+  系统会安排执行.fini中的代码。
+
+更详细有关链接的过程分析可参考:
+
+https://github.com/leeminghao/doc-linux/blob/master/linker/LinkerAndLoader.md
