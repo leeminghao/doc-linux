@@ -1,0 +1,34 @@
+
+a.o:     file format elf32-i386
+
+Sections:
+Idx Name          Size      VMA       LMA       File off  Algn
+  0 .text         0000002a  00000000  00000000  00000034  2**0
+                  CONTENTS, ALLOC, LOAD, RELOC, READONLY, CODE
+  1 .data         00000000  00000000  00000000  0000005e  2**0
+                  CONTENTS, ALLOC, LOAD, DATA
+  2 .bss          00000000  00000000  00000000  0000005e  2**0
+                  ALLOC
+  3 .comment      00000025  00000000  00000000  0000005e  2**0
+                  CONTENTS, READONLY
+  4 .note.GNU-stack 00000000  00000000  00000000  00000083  2**0
+                  CONTENTS, READONLY
+  5 .eh_frame     00000038  00000000  00000000  00000084  2**2
+                  CONTENTS, ALLOC, LOAD, RELOC, READONLY, DATA
+
+Disassembly of section .text:
+
+00000000 <a>:
+   0:	55                   	push   %ebp
+   1:	89 e5                	mov    %esp,%ebp
+   3:	83 ec 18             	sub    $0x18,%esp
+   6:	8b 45 08             	mov    0x8(%ebp),%eax
+   9:	89 04 24             	mov    %eax,(%esp)
+   c:	e8 fc ff ff ff       	call   d <a+0xd>
+  11:	89 44 24 08          	mov    %eax,0x8(%esp)
+  15:	8b 45 08             	mov    0x8(%ebp),%eax
+  18:	89 44 24 04          	mov    %eax,0x4(%esp)
+  1c:	c7 04 24 01 00 00 00 	movl   $0x1,(%esp)
+  23:	e8 fc ff ff ff       	call   24 <a+0x24>
+  28:	c9                   	leave  
+  29:	c3                   	ret    
