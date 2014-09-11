@@ -70,3 +70,10 @@ https://github.com/leeminghao/doc-linux/blob/master/linker/CFunctionCall.md
 
 ```
 ```
+
+参考资料:
+--------------------------------------------------------------------------------
+
+* http://www.ibm.com/developerworks/cn/linux/l-overflow/
+
+* http://www.cnblogs.com/coderzh/archive/2008/09/06/1285693.html
