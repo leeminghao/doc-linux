@@ -1,6 +1,7 @@
 int function(int a, int b, int c)
 {
-    char buffer[14];
+    char buffer[14] = { 0 };
+    buffer[13] = 'a';
     int sum;
     sum = a + b + c;
     return sum;

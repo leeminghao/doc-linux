@@ -11,6 +11,11 @@ function:
 	movl	%esp, %ebp
 	.cfi_def_cfa_register 5
 	subl	$32, %esp
+	movl	$0, -18(%ebp)
+	movl	$0, -14(%ebp)
+	movl	$0, -10(%ebp)
+	movw	$0, -6(%ebp)
+	movb	$97, -5(%ebp)
 	movl	12(%ebp), %eax
 	movl	8(%ebp), %edx
 	addl	%eax, %edx
