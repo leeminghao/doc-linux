@@ -242,3 +242,193 @@ gcc的配置文件specfile指定了这种链接顺序。
 更详细有关链接的过程分析可参考:
 
 https://github.com/leeminghao/doc-linux/blob/master/linker/LinkerAndLoader.md
+
+Linux下进程地址空间的布局及堆栈帧的结构
+--------------------------------------------------------------------------------
+
+### 概述
+
+任何一个程序通常都包括代码段和数据段，这些代码和数据本身都是静态的。程序要想运行，首先要由操作
+系统负责为其创建进程，并在进程的虚拟地址空间中为其代码段和数据段建立映射。光有代码段和数据段是
+不够的,进程在运行过程中还要有其动态环境，其中最重要的就是堆栈。
+
+如下所示为Linux下进程的地址空间布局：
+
+https://github.com/leeminghao/doc-linux/blob/master/linker/proc_address_layout.gif
+
+* 首先，execve(2)会负责为进程代码段和数据段建立映射，真正将代码段和数据段的内容读入内存是由系统
+的缺页异常处理程序按需完成的;
+
+* 另外，execve(2)还会将bss段清零，这就是为什么未赋初值的全局变量以及static变量其初值为零的原因;
+
+* 进程用户空间的最高位置是用来存放程序运行时的命令行参数及环境变量的.
+在这段地址空间的下方和bss段的上方还留有一个很大的空洞，而作为进程动态运行环境的堆栈和堆就栖身其中
+，其中堆栈向下伸展，堆向上伸展。
+
+### 堆栈中的数据
+
+实际上堆栈中存放的就是与每个函数对应的堆栈帧: 当函数调用发生时，新的堆栈帧被压入堆栈；当函数返回时，相应的堆栈帧从堆栈中弹出。典型的堆栈帧结构下图所示:
+
+https://github.com/leeminghao/doc-linux/blob/master/linker/stack_frame.gif
+
+堆栈的布局大致如下所示:
+
+堆栈帧的顶部为传递给函数的参数
+下面是函数的返回地址
+前一个堆栈帧的指针
+最下面是分配给函数的局部变量使用的空间
+
+一个堆栈帧通常都有两个指针:
+
+**其中一个称为堆栈帧指针(ebp)，另一个称为栈顶指针(esp)**
+
+前者所指向的位置是固定的，而后者所指向的位置在函数的运行过程中可变。因此，在函数中访问参数和局部变量时都是以堆栈帧(ebp)指针为基址，再加上一个偏移。
+
+对照上图可知: **实参的偏移为正，局部变量的偏移为负**
+
+### 实例
+
+path: src/ex2/stack_frame.c
+```
+int function(int a, int b, int c)
+{
+    char buffer[14];
+    int sum;
+    sum = a + b + c;
+    return sum;
+}
+
+void main()
+{
+    int i;
+    i = function(1, 2, 3);
+}
+```
+
+按照如下命令编译成的汇编程序如下所示:
+
+```
+src/ex2$ gcc -fno-stack-protector -m32 -S stack_frame.c -o stack_frame.s
+src/ex2$ ls
+exch  exch.c  exch.s  stack_frame.c  stack_frame.s
+src/ex2$ cat stack_frame.s
+    .file    "stack_frame.c"
+    .text
+    .globl    function
+    .type    function, @function
+function:
+.LFB0:
+    # 下面就进入function函数了
+    .cfi_startproc
+    # 首先将main函数的堆栈帧指针ebp保存在堆栈中
+    pushl    %ebp
+    .cfi_def_cfa_offset 8
+    .cfi_offset 5, -8
+    # 并将当前的栈顶指针esp保存在堆栈帧指针ebp中
+    movl    %esp, %ebp
+    .cfi_def_cfa_register 5
+    # 最后为function函数的局部变量buffer[14]和sum在堆栈中分配空间。
+    subl    $32, %esp
+
+    movl    12(%ebp), %eax
+    movl    8(%ebp), %edx
+    addl    %eax, %edx
+    movl    16(%ebp), %eax
+    addl    %edx, %eax
+    movl    %eax, -4(%ebp)
+    movl    -4(%ebp), %eax
+
+    leave
+    .cfi_restore 5
+    .cfi_def_cfa 4, 4
+    ret
+    .cfi_endproc
+.LFE0:
+    .size    function, .-function
+    .globl    main
+    .type    main, @function
+main:
+.LFB1:
+    .cfi_startproc
+    pushl    %ebp # 将调用main函数的函数栈帧指针(ebp)压栈
+    .cfi_def_cfa_offset 8
+    .cfi_offset 5, -8
+    movl    %esp, %ebp # 设置当前栈顶(esp)为main函数栈帧指针(ebp)
+    .cfi_def_cfa_register 5
+    # 为main函数分配临时变量空间
+    subl    $28, %esp
+
+    # 由于C语言中函数传参遵循从右向左的压栈顺序，所以将三个参数从右向左依次被压入堆栈。
+    # 三个实参的值分别为1、2、3
+    movl    $3, 8(%esp)
+    movl    $2, 4(%esp)
+    movl    $1, (%esp)
+
+    # call指令除了将控制转移到function之外，还要将call的下一条指令movl的地址，也就是function
+    # 函数的返回地址压入堆栈
+    call    function
+
+    movl    %eax, -4(%ebp)
+    leave
+    .cfi_restore 5
+    .cfi_def_cfa 4, 4
+    ret
+    .cfi_endproc
+.LFE1:
+    .size    main, .-main
+    .ident    "GCC: (Ubuntu 4.8.2-19ubuntu1) 4.8.2"
+    .section    .note.GNU-stack,"",@progbits
+```
+
+这里我们着重关心一下与函数function对应的堆栈帧形成和销毁的过程:
+至此，函数function的堆栈帧就构建完成了，其结构如下所示:
+
+```
+|---------------------|
+|         ...
+|---------------------|
+|           3
+|---------------------| +16
+|           2
+|---------------------| +12
+|           1
+|---------------------| +8
+| movl %eax,-4(%ebp)     返回地址
+|---------------------| +4
+|      main ebp
+|---------------------| 0: function ebp
+|    buffer[12-13]
+|---------------------| -4
+|    buffer[8-11]
+|---------------------| -8
+|    buffer[4-7]
+|---------------------| -12
+|    buffer[0-3]
+|---------------------| -16
+|      sum
+|---------------------| -20
+|
+|---------------------| -24
+|
+|---------------------| -28
+|
+|---------------------| -32: esp
+```
+
+**注意**:
+
+* 首先，在Intel i386体系结构下，堆栈帧指针的角色是由ebp扮演的，而栈顶指针的角色是由esp扮演的.
+
+* 另外，函数function的局部变量buffer[14]由14个字符组成，其大小按说应为14字节，但是在堆栈帧中
+  却为其分配了16个字节。这是时间效率和空间效率之间的一种折衷，因为Intel i386是32位的处理器，
+  其每次内存访问都必须是4字节对齐的，而高30位地址相同的4个字节就构成了一个机器字。因此，
+  如果为了填补buffer[14]留下的两个字节而将sum分配在两个不同的机器字中，那么每次访问sum就需要
+  两次内存操作，这显然是无法接受的.
+
+**还有一点需要说明的是**: 如果使用的是较高版本的gcc的话，所看到的函数function对应的堆栈帧可能
+  和上图所示有所不同。上面已经讲过，为函数function的局部变量buffer[14]和sum在堆栈中分配空间是
+  通过对esp进行减法操作完成的(subl $32, %esp)，而sub指令中的32足够满足这里两个局部变量所需的
+  存储空间大小。
+
+为什么分配的存储空间不是buffer(16) + sum(4) = 20呢?
+这与优化编译技术有关，在当前版本的gcc中为了有效运用目前流行的各种优化编译技术，通常需要在每个函数的堆栈帧中留出一定额外的空间。
