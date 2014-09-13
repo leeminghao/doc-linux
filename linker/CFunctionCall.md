@@ -488,7 +488,7 @@ main:
 --------------------------------------------------------------------------------
 
 在明白了Linux下进程空间的布局以及栈帧的结构之后，下面我们来关注一下我们之前在编译时
-使用的-fno-stack-protector选项，这是为了防止堆栈缓冲区溢出而设置的。为什么现代gcc
-编译器默认添加这个选项呢?下面我们先来了解下缓冲区溢出的危害.
+使用的-fno-stack-protector选项，这是为了去除堆栈缓冲区溢出而设置的。
+下面我们先来了解下添加这个选项去除gcc编译器对堆栈缓冲区溢出保护的危害.
 
 https://github.com/leeminghao/doc-linux/blob/master/linker/StackBufferOverflower.md
