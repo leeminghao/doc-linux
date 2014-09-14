@@ -395,6 +395,10 @@ tools/build.c
 117    i = write(1, buf, 512);    //注意标准输出已经被重定向至Image文件
 ```
 
+更加详细的build过程可参考:
+
+https://github.com/leeminghao/doc-linux/blob/master/0.11/tools/Build.md
+
 Linux 0.11使用qemu调试
 --------------------------------------------------------------------------------
 
