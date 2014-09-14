@@ -478,4 +478,4 @@ head程序在完成如下工作以后:
 
 跳转到main以后的执行:
 
-https://github.com/leeminghao/doc-linux/blob/master/0.11/init/StartMainInit.md
+https://github.com/leeminghao/doc-linux/blob/master/0.11/init/Main.md

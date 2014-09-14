@@ -4,7 +4,7 @@ Linux 0.11 跳转到main函数以后系统初始化
 从开机加电到执行main函数过程
 --------------------------------------------------------------------------------
 
-https://github.com/leeminghao/doc-linux/blob/master/0.11/boot/Bios2Main.md
+https://github.com/leeminghao/doc-linux/blob/master/0.11/boot/Head.md
 
 跳转到main函数以后
 --------------------------------------------------------------------------------
