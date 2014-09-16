@@ -89,3 +89,51 @@ https://github.com/leeminghao/doc-linux/blob/master/arch/arm/arm_registers.png
 下（系统模式是特权模式）进行操作。
 
 * 所有R15和CPU同时只能处理一条指令，在取指时，有一个CPSR表示当前CPU的状态即可。
+
+理论上来说，ARM的15个通用寄存器是通用的，但实际上并非如此，特别是在过程调用的过程中。
+
+#### ACPS寄存器的名称和用法(来源于Arm Software development tools)
+
+**参考**：
+
+http://infocenter.arm.com/help/index.jsp?topic=/com.arm.doc.dui0040d/ch06s02s01.html
+
+```
+Register        APCS name       APCS role
+r0              a1            argument 1/scratch register/result
+r1              a2            argument 2/scratch register/result
+r2              a3            argument 3/scratch register/result
+r3              a4            argument 4/scratch register/result
+r4              v1            register variable
+r5              v2            register variable
+r6              v3            register variable
+r7              v4            register variable
+r8              v5            register variable
+r9              sb/v6         static base/register variable
+r10             sl/v7         stack limit/stack chunk handle/register variable
+r11             fp/v8         frame pointer/register variable
+r12             ip            scratch register/new -sb in inter-link-unit calls
+r13             sp            lower end of the current stack frame
+r14             lr            link register/scratch register
+r15             pc            program counter
+```
+
+
+
+A more detailed look at APCS register usage
+Although sb, sl, fp, ip, sp and lr are dedicated registers, the example in Example 6.2 shows ip and lr being used as temporary registers. Sometimes these registers are not used for their APCS roles. The details given below will enable you to write efficient and safe code that uses as many of the registers as possible, and avoids unnecessary saving and restoring of registers:
+
+```
+ip
+Is used only during function calls, so it is not preserved across function calls. It is conventionally used as a local code generation temporary register. At other times it can be used as a corruptible temporary register. ip is not preserved in either its dedicated or non-dedicated APCS role.
+lr
+Holds the address to which control must return on function exit. It can be (and often is) used as a temporary register after pushing its contents onto the stack. This value can be loaded directly into the program counter when returning. lr is not preserved in either its dedicated or non-dedicated APCS role.
+sp
+Is the stack pointer. It is always valid in strictly conforming code, but need only be preserved in handwritten code. Note, however, that if any handwritten code makes use of the stack, or if interrupts can use the user mode stack, sp must be valid. In its non-dedicated APCS role, sp must be preserved. sp must be preserved on function exit for APCS conforming code.
+sl
+Is the stack limit register. If stack limit checking is enabled sl must be valid whenever sp is valid. In its non-dedicated APCS role, sl must be preserved.
+fp
+Is the frame pointer register. In the obsolete APCS variants that use fp, this register contains either zero, or a pointer to the most recently created stack backtrace data structure. As with the stack pointer, the frame pointer must be preserved, but in handwritten code it does not need to be available at every instant. However, it must be valid whenever any strictly conforming function is called. fp must always be preserved.
+sb
+Is the static base register. This register is used to access static data. If sb is not used, it is available as an additional register variable, v6, that must be preserved across function calls. sb must always be preserved.
+```

@@ -376,12 +376,17 @@ function:
     @ args = 0, pretend = 0, frame = 40
     @ frame_needed = 1, uses_anonymous_args = 0
     @ link register save eliminated.
+    # 类似的，将main函数的fp保存到sp - 4处的内存位置处
     str    fp, [sp, #-4]!
+    # 设置function函数的frame pointer寄存器为sp
     add    fp, sp, #0
+    # 为function函数分配44个字的临时空间
     sub    sp, sp, #44
+    # 将传递进来的参数保存到到function函数堆栈中
     str    r0, [fp, #-32]
     str    r1, [fp, #-36]
     str    r2, [fp, #-40]
+    # 初始化buffer缓冲区
     sub    r3, fp, #24
     mov    r2, #0
     str    r2, [r3]
@@ -394,6 +399,7 @@ function:
     add    r3, r3, #4
     mov    r2, #0
     strh    r2, [r3]    @ movhi
+    #
     add    r3, r3, #2
     mov    r3, #97
     strb    r3, [fp, #-24]
@@ -442,14 +448,25 @@ function:
 main:
     @ args = 0, pretend = 0, frame = 16
     @ frame_needed = 1, uses_anonymous_args = 0
+    # ldm/stm的主要用途是把需要保存的寄存器复制到栈上.
+    # stmfd - 预先减少存储; stmfa - 预先增加存储; stmed - 过后减少存储; stmea - 过后增加存储
+    # 先将栈地址减少，然后将lr, fp寄存器值分别进栈
     stmfd    sp!, {fp, lr}
+    # 设置main函数的frame pointer(fp)指针位置为sp + 4,此时fp指向的堆栈位置处保存的是
+    # 调用main函数的函数的fp(frame pointer)
     add    fp, sp, #4
+    # 为main函数分配16个字(4字节)的临时变量缓冲区.
     sub    sp, sp, #16
+    # str/ldr用来 存储/装载 单一字节或字的数据 到/从 内存
+    # 下面两条指令的作用就是分别存储r0,r1寄存器到fp - 16和fp - 20的位置
     str    r0, [fp, #-16]
     str    r1, [fp, #-20]
+    # 将传递给function函数的参数1,2,3放到r0,r1,r2寄存器中去
     mov    r0, #1
     mov    r1, #2
     mov    r2, #3
+    # 调用function函数, bl指令可将下一个指令"str r0,[fp, #-8]"的地址复制到lr寄存器中去
+    # 接下来进入到function函数中去执行.
     bl    function(PLT)
     str    r0, [fp, #-8]
     ldr    r3, [fp, #-8]
@@ -463,4 +480,28 @@ main:
     .size    main, .-main
     .ident    "GCC: (GNU) 4.8"
     .section    .note.GNU-stack,"",%progbits
+```
+
+根据arm gcc编译生成的汇编程序，我们可以得到如下main函数调用function函数的堆栈
+
+```
+| lr (call main)
+|--------------------| main fp(sp + 4)
+| fp (call main)
+|--------------------| -4
+|
+|--------------------| -8
+|
+|--------------------| -12
+| r0 -> [fp, #-16]
+|--------------------| -16
+| r1 -> [fp, #-20]
+|--------------------| -20
+|
+|--------------------| -24
+|
+|--------------------| -28
+|
+|--------------------|
+
 ```
