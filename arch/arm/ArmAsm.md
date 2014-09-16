@@ -67,7 +67,7 @@ CPU自动切换到一般中断模式下处理网卡数据（普通应用程序�
 
 CPU的模式不同，在其对应模式下可以使用的寄存器也不相同, 如下表所示:
 
-https://github.com/leeminghao/doc-linux/blob/master/arch/arm/arm_cpu_mode.png
+https://github.com/leeminghao/doc-linux/blob/master/arch/arm/arm_registers.png
 
 * R0~R7在所有模式下都可以使用的共有寄存器;
 
