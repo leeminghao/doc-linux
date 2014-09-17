@@ -376,7 +376,8 @@ function:
     @ args = 0, pretend = 0, frame = 40
     @ frame_needed = 1, uses_anonymous_args = 0
     @ link register save eliminated.
-    # 类似的，将main函数的fp保存到sp - 4处的内存位置处
+    # 将sp位置减4，然后将main函数fp进栈
+    # 注意: !的作用是pre-index
     str    fp, [sp, #-4]!
     # 设置function函数的frame pointer寄存器为sp
     add    fp, sp, #0
@@ -386,7 +387,7 @@ function:
     str    r0, [fp, #-32]
     str    r1, [fp, #-36]
     str    r2, [fp, #-40]
-    # 初始化buffer缓冲区
+    # 初始化buffer缓冲区为0
     sub    r3, fp, #24
     mov    r2, #0
     str    r2, [r3]
@@ -399,8 +400,8 @@ function:
     add    r3, r3, #4
     mov    r2, #0
     strh    r2, [r3]    @ movhi
-    #
     add    r3, r3, #2
+    # 初始化buffer缓冲区为字母
     mov    r3, #97
     strb    r3, [fp, #-24]
     mov    r3, #98
@@ -429,17 +430,29 @@ function:
     strb    r3, [fp, #-12]
     mov    r3, #110
     strb    r3, [fp, #-11]
+    # 取出第1个参数1的值到r2寄存器
     ldr    r2, [fp, #-32]
+    # 取出第2个参数2的值到r3寄存器
     ldr    r3, [fp, #-36]
+    # r2 + r3 -> r2 : 1 + 2 -> r2
     add    r2, r2, r3
+    # 取出第3个参数的值放到r3寄存器: 1 + 2 + 3 -> r3
     ldr    r3, [fp, #-40]
+    # 将计算出的和值存放到r3寄存器
     add    r3, r2, r3
+    # 将和值保存到sum变量
     str    r3, [fp, #-8]
     ldr    r3, [fp, #-8]
+    # 将r3值赋值到r0中
     mov    r0, r3
+    # 出栈，直接将function函数fp赋值给sp
     sub    sp, fp, #0
     @ sp needed
+    # 先将sp指向内存中的值赋值给fp，这时候fp就指向了main函数的frame pointer
+    # 然后调整sp, 具体是在原来function函数frame pointer上调4字节位置
     ldr    fp, [sp], #4
+    # 跳转会main函数执行"str r0,[fp,#-8]"指令
+    # 注意: bl会将下一条指令地址保存到lr中，bx指令不会，直接跳转回去，不保存到lr
     bx    lr
     .size    function, .-function
     .align    2
@@ -455,7 +468,7 @@ main:
     # 设置main函数的frame pointer(fp)指针位置为sp + 4,此时fp指向的堆栈位置处保存的是
     # 调用main函数的函数的fp(frame pointer)
     add    fp, sp, #4
-    # 为main函数分配16个字(4字节)的临时变量缓冲区.
+    # 为main函数分配16个字节的临时变量缓冲区.
     sub    sp, sp, #16
     # str/ldr用来 存储/装载 单一字节或字的数据 到/从 内存
     # 下面两条指令的作用就是分别存储r0,r1寄存器到fp - 16和fp - 20的位置
@@ -468,14 +481,21 @@ main:
     # 调用function函数, bl指令可将下一个指令"str r0,[fp, #-8]"的地址复制到lr寄存器中去
     # 接下来进入到function函数中去执行.
     bl    function(PLT)
+    # 此时fp是main函数的frame pointer
+    # 将和值保存到[fp, #-8]位置，这个位置是临时变量x的地址
     str    r0, [fp, #-8]
+    # 取出和值并+3并赋值给临时变量y
     ldr    r3, [fp, #-8]
     add    r3, r3, #3
     str    r3, [fp, #-12]
+    # 将r0, r3寄存器值清空
     mov    r3, #0
     mov    r0, r3
+    # 将main函数栈帧弹出
     sub    sp, fp, #4
     @ sp needed
+    # 将调用main函数的fp和下一条指令地址恢复到fp寄存器和pc寄存器
+    # 这样可以接着调用main函数的位置接着执行后面的程序
     ldmfd    sp!, {fp, pc}
     .size    main, .-main
     .ident    "GCC: (GNU) 4.8"
@@ -486,22 +506,41 @@ main:
 
 ```
 | lr (call main)
-|--------------------| main fp(sp + 4)
+|--------------------| main fp
 | fp (call main)
-|--------------------| -4
+|--------------------| -4  : sp(stmfd sp!, {fp, lr})
 |
-|--------------------| -8
-|
-|--------------------| -12
+|--------------------| -8  : -4    : +12
+|         x
+|--------------------| -12 : -8    : +8
+|         y
+|--------------------| -16 : -12   : +4
 | r0 -> [fp, #-16]
-|--------------------| -16
+|--------------------| -20 : -16   : sp (sub, sp, sp, #16)
 | r1 -> [fp, #-20]
-|--------------------| -20
+|--------------------| function fp : sp (str fp, [sp,#-4]!)
+|     fp(main)
+|--------------------| -4   : +20
 |
-|--------------------| -24
-|
+|--------------------| -8   : +16
+|   sum    |   | buffer[13]
+|--------------------| -12  : +12
+| buffer[12-9]
+|--------------------| -16  : +8
+| buffer[8-5]
+|--------------------| -20  : +4
+| buffer[4-1]
+|--------------------| -24  : r3 (sub r3, fp, #24)
+| buffer[0] |
 |--------------------| -28
 |
+|--------------------| -32
+| r0 -> [fp, #-32]
+|--------------------| -36
+| r1 -> [fp, #-36]
+|--------------------| -40
+| r2 -> [fp, #-40]
+|--------------------| -44
+|
 |--------------------|
-
 ```
