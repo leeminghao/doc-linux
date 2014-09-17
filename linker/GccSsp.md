@@ -301,7 +301,7 @@ function:
     ldr    r3, [r2, r3]
     # 从获取的条目中索引出__stack_chk_guard函数的地址保存到r3中
     ldr    r3, [r3]
-    # 将r3寄存器的值作为guard值保存到fp, #-8位置处
+    # 将r3寄存器的值(__stack_chk_guard函数地址)作为guard值保存到fp, #-8位置处
     str    r3, [fp, #-8]
 
 
@@ -407,6 +407,14 @@ main:
     .size    main, .-main
     .ident    "GCC: (GNU) 4.8"
     .section    .note.GNU-stack,"",%progbits
+```
+
+由于android开发的arm-linux-androideabi-gcc编译器在链接时候采用的是bionic库以及linker链接器，所以对于
+GOT表相关的看起来比较复杂, 可参考另外一个使用gnu库编译生成的汇编文件如下:
+
+path: src/ext4/stackguardgnu.s
+```
+arm-none-linux-gnueabi-gcc -fstack-protector -S stack_guard.c -o stackguardgnu.s
 ```
 
 小知识
