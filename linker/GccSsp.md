@@ -19,7 +19,7 @@ GCC 中的编译器堆栈保护技术
 
 ### 编译器堆栈保护实例
 
-#### arm - android
+#### 实例1
 
 path: src/ex4/stack_guard.c
 ```
@@ -409,13 +409,62 @@ main:
     .section    .note.GNU-stack,"",%progbits
 ```
 
-由于android开发的arm-linux-androideabi-gcc编译器在链接时候采用的是bionic库以及linker链接器，所以对于
-GOT表相关的看起来比较复杂, 可参考另外一个使用gnu库编译生成的汇编文件如下:
+此时的函数调用堆栈如下所示:
 
-path: src/ext4/stackguardgnu.s
 ```
-arm-none-linux-gnueabi-gcc -fstack-protector -S stack_guard.c -o stackguardgnu.s
+| lr (call main)
+|--------------------| main fp
+| fp (call main)
+|--------------------| -4  : sp(stmfd sp!, {fp, lr})
+|
+|--------------------| -8  : -4    : +12
+|         x
+|--------------------| -12 : -8    : +8
+|         y
+|--------------------| -16 : -12   : +4
+| r0 -> [fp, #-16]
+|--------------------| -20 : -16   : sp (sub, sp, sp, #16)
+| r1 -> [fp, #-20]
+|--------------------| function fp : sp (str fp, [sp,#-4]!)
+|     fp(main)
+|--------------------| -4   : +20
+|
+|--------------------| -8   : +16
+|    guard     | buffer[13]
+|--------------------| -12  : +12
+| buffer[12-9]
+|--------------------| -16  : +8
+| buffer[8-5]
+|--------------------| -20  : +4
+| buffer[4-1]
+|--------------------| -24  : r3 (sub r3, fp, #24)
+| buffer[0] |
+|--------------------| -28
+| sum
+|--------------------| -32
+| r0 -> [fp, #-32]
+|--------------------| -36
+| r1 -> [fp, #-36]
+|--------------------| -40
+| r2 -> [fp, #-40]
+|--------------------| -44
+|
+|--------------------|
 ```
+
+由于android开发的arm-linux-androideabi-gcc编译器在链接时候采用的是bionic库以及linker链接器，
+所以对于GOT表相关的看起来比较复杂, 可参考另外一个使用gnu库编译生成的汇编文件如下:
+
+```
+$ arm-none-linux-gnueabi-gcc -fstack-protector -S stack_guard.c -o stackguardgnu.s
+```
+
+生成的汇编文件如下:
+
+https://github.com/leeminghao/doc-linux/blob/master/linker/src/ext4/stackguardgnu.s
+
+### 实例2
+
 
 小知识
 --------------------------------------------------------------------------------
