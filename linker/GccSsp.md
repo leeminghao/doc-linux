@@ -295,13 +295,13 @@ function:
     ldr    r2, .L4
 .LPIC0:
     add    r2, pc, r2
-    # 将.L4+4处的值(__stack_chk_guard函数地址)加载到r3寄存器
+    # 将.L4+4处的值(__stack_chk_guard全局变量地址)加载到r3寄存器
     ldr    r3, .L4+4
-    # 取出GOT表中标记__stack_chk_guard函数的条目
+    # 取出GOT表中标记__stack_chk_guard全局变量的条目
     ldr    r3, [r2, r3]
-    # 从获取的条目中索引出__stack_chk_guard函数的地址保存到r3中
+    # 从获取的条目中索引出__stack_chk_guard变量的地址保存到r3中
     ldr    r3, [r3]
-    # 将r3寄存器的值(__stack_chk_guard函数地址)作为guard值保存到fp, #-8位置处
+    # 将r3寄存器的值(__stack_chk_guard全局变量变量的值)作为guard值保存到fp, #-8位置处
     str    r3, [fp, #-8]
 
 
@@ -465,6 +465,29 @@ https://github.com/leeminghao/doc-linux/blob/master/linker/src/ext4/stackguardgn
 
 ### 实例2
 
+如下所示的实例，有两个源代码文件overflow.c和nooverflow.c,其分别在Android系统上被编译为
+overflow和nooverflow两个binary文件，其唯一的区别是overflow.c中多了一条"buffer[16] = 'q'"
+语句，正是由于这条语句将guard值覆盖最终导致stack over flow.
+具体代码如下所示:
+
+https://github.com/leeminghao/doc-linux/blob/master/linker/src/ext5
+
+
+运行nooverflow得到的结果如下所示:
+
+```
+enter = e0e674e6
+exit = e0e674e6
+No stack overflow
+```
+
+运行overflow得到的结果如下所示:
+
+```
+enter = 73133bfd
+exit = 73133b71
+Aborted
+```
 
 小知识
 --------------------------------------------------------------------------------
