@@ -470,8 +470,11 @@ overflow和nooverflow两个binary文件，其唯一的区别是overflow.c中多�
 语句，正是由于这条语句将guard值覆盖最终导致stack over flow.
 具体代码如下所示:
 
-https://github.com/leeminghao/doc-linux/blob/master/linker/src/ext5
+* https://github.com/leeminghao/doc-linux/blob/master/linker/src/ext5/overflow.c
 
+* https://github.com/leeminghao/doc-linux/blob/master/linker/src/ext5/nooverflow.c
+
+* https://github.com/leeminghao/doc-linux/blob/master/linker/src/ext5/Android.mk
 
 运行nooverflow得到的结果如下所示:
 
