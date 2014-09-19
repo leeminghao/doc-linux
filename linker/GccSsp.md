@@ -214,8 +214,10 @@ main:
 
 根据arm gcc编译生成的汇编程序，我们可以得到如下main函数调用function函数的堆栈
 
+function_no_stack_chk_guard:
+
 ```
-| lr (call main)
+| lr (call main)     ------------------------ 高地址
 |--------------------| main fp
 | fp (call main)
 |--------------------| -4  : sp(stmfd sp!, {fp, lr})
@@ -252,7 +254,7 @@ main:
 | r2 -> [fp, #-40]
 |--------------------| -44
 |
-|--------------------|
+|--------------------| ------------------------ 低地址
 ```
 
 接下来我们在编译选项中添加-fstack-protector得到如下汇编代码:
@@ -415,6 +417,8 @@ path: bionic/libc/bionic/libc_init_common.cpp
 
 此时的函数调用堆栈如下所示:
 
+function_stack_chk_guard:
+
 ```
 | lr (call main)      ------------------------ 高地址
 |--------------------| main fp
@@ -458,7 +462,9 @@ path: bionic/libc/bionic/libc_init_common.cpp
 |--------------------| ---------------------- 低地址
 ```
 
-**注意**: 函数function的局部变量buffer[14]由14个字符组成，其大小按说应为14字节，但是在堆栈帧中
+**注意**:
+
+A. 函数function的局部变量buffer[14]由14个字符组成，其大小按说应为14字节，但是在堆栈帧中
 却为其分配了16个字节。这是时间效率和空间效率之间的一种折衷，因为ARM是32架构的处理器，其每次内存
 访问都必须是4字节对齐的，而高30位地址相同的4个字节就构成了一个机器字。因此，如果为了填补
 buffer[14]留下的两个字节而将__stack_chk_guard分配在两个不同的机器字中，那么每次访问
@@ -468,6 +474,22 @@ __stack_chk_guard就需要两次内存操作，这显然是无法接受的。
 例如, char buffer[size];
 
 **__stack_chk_guard值保存在堆栈中的地址 = (size % 4 == 0 ? size / 4 : (size / 4 + 1))**
+
+B. 根据function_no_stack_chk_guard堆栈图和function_stack_chk_guard堆栈图我们还可以得到如下规律:
+在gcc编译器添加对应的编译选项-fno-stack-protector的时候, 对于局部变量中含有char数组的函数,
+char数组前一个对齐的字是其它局部变量;
+在gcc编译器添加对应的编译选项-fstack-protector的时候, 对于局部变量中含有char数组的函数,
+char数组前一个对齐的字是__stack_chk_guard值, 但是针对这种情况有多个char数组的，不会对
+所有的char数组都设置一个__stack_chk_guard, 保护的仅仅是靠近frame pointer(fp)寄存器的那个
+char数组,而在frame_pointer和被保护的char数组之间就是__stack_chk_guard值;
+
+可参考如下例子:
+
+https://github.com/leeminghao/doc-linux/blob/master/linker/src/ex4/stack_guard_double_buffer.c
+
+https://github.com/leeminghao/doc-linux/blob/master/linker/src/ex4/stack_guard_double_buffer.s
+
+**补充**:
 
 由于android开发的arm-linux-androideabi-gcc编译器在链接时候采用的是bionic库以及linker链接器，
 所以对于GOT表相关的看起来比较复杂, 可参考另外一个使用gnu库编译生成的汇编文件如下:
