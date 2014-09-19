@@ -1,5 +1,6 @@
 int function(int a, int b, int c)
 {
+
     char buffer[14] = { 0 };
     int sum;
 
