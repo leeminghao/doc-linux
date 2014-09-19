@@ -303,16 +303,17 @@ bail:
 这究竟是为什么呢？processDeflatedEntry函数都执行完成了，而且检查/system/priv-app/下也发现了
 解压缩成功的Settings.apk(push可用),可是仅仅在函数返回过程中报出了如上所示错误.
 
-这不科学呀! 在函数返回过程中究竟发生了什么? 为什么没有返回到调用函数中继续执行?
+在函数返回过程中究竟发生了什么? 为什么没有返回到调用函数中继续执行?
 
-抱着这样的疑问，我们不得不反汇编processDefaltedEntry函数查看对应的汇编代码.
-使用arm-linux-androideabi-objdump命令反汇编processDefaltedEntry函数汇编实现如下所示.
+抱着这样的疑问，我们不得不反汇编processDefaltedEntry函数查看对应的汇编代码, 由于反汇编出来代码
+太长了，我们只关注函数调用返回的时候所执行的代码.
+函数汇编实现如下所示:
 
 ```
     # 根据arm过程调用的规定，stmdb是预先减少存储，先修改sp栈顶指针，然后将调用processDeflatedEntry
     # 函数的r4-r14寄存器值压栈,特别注意fp指针是函数的栈帧指针.
+    /* 开始执行processDefaltedEntry函数 */
     83a8:    e92d 4ff0     stmdb    sp!, {r4, r5, r6, r7, r8, r9, sl, fp, lr}
-
     83ac:    469b          mov    fp, r3
 
     83ae:    4b4f          ldr    r3, [pc, #316]    ; (84ec <processDeflatedEntry+0x144>)
@@ -327,136 +328,25 @@ bail:
     # 下面是为其余的临时变量分配空间.
     83bc:    b093          sub    sp, #76    ; 0x4c
 
-    83be:    460e          mov    r6, r1
 
-    83c0:    5898          ldr    r0, [r3, r2]
-
-    83c2:    f50d 3180     add.w    r1, sp, #65536    ; 0x10000
-    83c6:    3144          adds    r1, #68    ; 0x44
-
-    83c8:    2238          movs    r2, #56    ; 0x38
-    83ca:    2702          movs    r7, #2
-    83cc:    68f5          ldr    r5, [r6, #12]
-
-    83ce:    6803          ldr    r3, [r0, #0]
-
-    83d0:    f50d 4400     add.w    r4, sp, #32768    ; 0x8000
-
-    83d4:    9001          str    r0, [sp, #4]
-
-    83d6:    a803          add    r0, sp, #12
-
-    83da:    f44f 4800     mov.w    r8, #32768    ; 0x8000
-
-    83de:    600b          str    r3, [r1, #0]
-
-    83e0:    2100          movs    r1, #0
-    83e2:    f006 e8fa     blx    e5d8 <memset>
-    83e6:    970e          str    r7, [sp, #56]    ; 0x38
-    83e8:    4f42          ldr    r7, [pc, #264]    ; (84f4 <processDeflatedEntry+0x14c>)
-    83ea:    f06f 010e     mvn.w    r1, #14
-    83ee:    a803          add    r0, sp, #12
-    83f0:    2338          movs    r3, #56    ; 0x38
-    83f2:    447f          add    r7, pc
-    83f4:    9406          str    r4, [sp, #24]
-    83f6:    f8cd 801c     str.w    r8, [sp, #28]
-    83fa:    463a          mov    r2, r7
-    83fc:    f001 ea6a     blx    98d4 <inflateInit2_>
-    8400:    4601          mov    r1, r0
-    8402:    b160          cbz    r0, 841e <processDeflatedEntry+0x76>
-    8404:    1d82          adds    r2, r0, #6
-    8406:    d103          bne.n    8410 <processDeflatedEntry+0x68>
-    8408:    483b          ldr    r0, [pc, #236]    ; (84f8 <processDeflatedEntry+0x150>)
-    840a:    4639          mov    r1, r7
-    840c:    4478          add    r0, pc
-    840e:    e001          b.n    8414 <processDeflatedEntry+0x6c>
-    8410:    483a          ldr    r0, [pc, #232]    ; (84fc <processDeflatedEntry+0x154>)
-    8412:    4478          add    r0, pc
-    8414:    f006 feea     bl    f1ec <printf>
-    8418:    f04f 34ff     mov.w    r4, #4294967295    ; 0xffffffff
-    841c:    e049          b.n    84b2 <processDeflatedEntry+0x10a>
-    841e:    af11          add    r7, sp, #68    ; 0x44
-    8420:    9a04          ldr    r2, [sp, #16]
-    8422:    b9ba          cbnz    r2, 8454 <processDeflatedEntry+0xac>
-    8424:    f5b5 4f00     cmp.w    r5, #32768    ; 0x8000
-    8428:    bfb4          ite    lt
-    842a:    46a8          movlt    r8, r5
-    842c:    f44f 4800     movge.w    r8, #32768    ; 0x8000
-    8430:    4639          mov    r1, r7
-    8432:    f8d9 0000     ldr.w    r0, [r9]
-    8436:    4642          mov    r2, r8
-    8438:    f005 edae     blx    df98 <read>
-    843c:    4540          cmp    r0, r8
-    843e:    4601          mov    r1, r0
-    8440:    d005          beq.n    844e <processDeflatedEntry+0xa6>
-    8442:    482f          ldr    r0, [pc, #188]    ; (8500 <processDeflatedEntry+0x158>)
-    8444:    4642          mov    r2, r8
-    8446:    4478          add    r0, pc
-    8448:    f006 fed0     bl    f1ec <printf>
-    844c:    e024          b.n    8498 <processDeflatedEntry+0xf0>
-    844e:    1a2d          subs    r5, r5, r0
-    8450:    9703          str    r7, [sp, #12]
-    8452:    9004          str    r0, [sp, #16]
-    8454:    2100          movs    r1, #0
-    8456:    a803          add    r0, sp, #12
-    8458:    f001 eac2     blx    99e0 <inflate>
-    845c:    2801          cmp    r0, #1
-    845e:    4603          mov    r3, r0
-    8460:    d905          bls.n    846e <processDeflatedEntry+0xc6>
-    8462:    4828          ldr    r0, [pc, #160]    ; (8504 <processDeflatedEntry+0x15c>)
-    8464:    4619          mov    r1, r3
-    8466:    4478          add    r0, pc
-    8468:    f006 fec0     bl    f1ec <printf>
-    846c:    e014          b.n    8498 <processDeflatedEntry+0xf0>
-    846e:    9807          ldr    r0, [sp, #28]
-    8470:    b130          cbz    r0, 8480 <processDeflatedEntry+0xd8>
-    8472:    2b01          cmp    r3, #1
-    8474:    d1d4          bne.n    8420 <processDeflatedEntry+0x78>
-    8476:    f5b0 4f00     cmp.w    r0, #32768    ; 0x8000
-    847a:    d101          bne.n    8480 <processDeflatedEntry+0xd8>
-    847c:    9c08          ldr    r4, [sp, #32]
-    847e:    e015          b.n    84ac <processDeflatedEntry+0x104>
-    8480:    9906          ldr    r1, [sp, #24]
-    8482:    465a          mov    r2, fp
-    8484:    4620          mov    r0, r4
-    8486:    9300          str    r3, [sp, #0]
-    8488:    1b09          subs    r1, r1, r4
-    848a:    47d0          blx    sl
-    848c:    9a00          ldr    r2, [sp, #0]
-    848e:    b930          cbnz    r0, 849e <processDeflatedEntry+0xf6>
-    8490:    481d          ldr    r0, [pc, #116]    ; (8508 <processDeflatedEntry+0x160>)
-    8492:    4478          add    r0, pc
-    8494:    f005 fcd6     bl    de44 <puts>
-    8498:    f04f 34ff     mov.w    r4, #4294967295    ; 0xffffffff
-    849c:    e006          b.n    84ac <processDeflatedEntry+0x104>
-    849e:    f44f 4300     mov.w    r3, #32768    ; 0x8000
-    84a2:    9406          str    r4, [sp, #24]
-    84a4:    9307          str    r3, [sp, #28]
-    84a6:    2a00          cmp    r2, #0
-    84a8:    d0ba          beq.n    8420 <processDeflatedEntry+0x78>
-    84aa:    e7e7          b.n    847c <processDeflatedEntry+0xd4>
-    84ac:    a803          add    r0, sp, #12
-    84ae:    f003 e944     blx    b738 <inflateEnd>
-    84b2:    6932          ldr    r2, [r6, #16]
-    84b4:    4294          cmp    r4, r2
-    84b6:    d007          beq.n    84c8 <processDeflatedEntry+0x120>
-    84b8:    1c63          adds    r3, r4, #1
-    84ba:    d007          beq.n    84cc <processDeflatedEntry+0x124>
-    84bc:    4813          ldr    r0, [pc, #76]    ; (850c <processDeflatedEntry+0x164>)
-    84be:    4621          mov    r1, r4
-    84c0:    4478          add    r0, pc
-    84c2:    f006 fe93     bl    f1ec <printf>
-    84c6:    e001          b.n    84cc <processDeflatedEntry+0x124>
-    84c8:    2001          movs    r0, #1
-
+    # 由于反汇编出来的代码实在太长了，什么都不管，先来找到函数返回过程执行的代码，
+    # **注意**:
+    # arm架构cpu的堆栈是自高地址向低地址增长,所以指向栈顶的寄存器sp总是指向的是低地址位置,
+    # 一般默认是使用小端存储来存储数据的(也就是高字节存储在高地址，低字节存储在低地址).
+    # 例如, buffer[10] - buffer[0]元素存储在低地址，buffer[9]元素存储在高地址.
     # 函数调用返回开始的位置
     84ca:    e000          b.n    84ce <processDeflatedEntry+0x126>
+    # 将r1寄存器指向距离栈顶64KB的位置
     84ce:    f50d 3180     add.w    r1, sp, #65536    ; 0x10000
+    # 取出距离栈顶指针一个字位置处的值
     84d2:    9b01          ldr    r3, [sp, #4]
+    # 将r1地址再次上调68各字节
     84d4:    3144          adds    r1, #68    ; 0x44
     84d6:    680a          ldr    r2, [r1, #0]
     84d8:    6819          ldr    r1, [r3, #0]
-    # 这里做了一个check
+    # 这里做了一个check,大致的意思就是比较两个栈中什么玩意儿的值,
+    # 相等的话就跳转到84e2地址返回到上一级的调用函数继续执行,不相等的话
+    # 就要调用__stack_chk_fail函数.
     84da:    428a          cmp    r2, r1
     84dc:    d001          beq.n    84e2 <processDeflatedEntry+0x13a>
     84de:    f004 fc95     bl    ce0c <__stack_chk_fail>
@@ -465,21 +355,198 @@ bail:
     84e2:    b013          add    sp, #76    ; 0x4c
     84e4:    f50d 3d80     add.w    sp, sp, #65536    ; 0x10000
     # 这里就是返回到调用函数的地方,如果函数调用逻辑能够走到这里，那么就能够正常恢复调用函数的
-    # 栈帧指针,就能够成功返回到调用函数中继续执行，现在
+    # 栈帧指针,就能够成功返回到调用函数中继续执行.
     84e8:    e8bd 8ff0     ldmia.w    sp!, {r4, r5, r6, r7, r8, r9, sl, fp, pc}
-
-    84ec:    00018c3a     .word    0x00018c3a
-    84f0:    ffffff84     .word    0xffffff84
-    84f4:    00011d6b     .word    0x00011d6b
-    84f8:    00011d71     .word    0x00011d71
-    84fc:    00011dae     .word    0x00011dae
-    8500:    00011da9     .word    0x00011da9
-    8504:    00011db2     .word    0x00011db2
-    8508:    00011db2     .word    0x00011db2
-    850c:    00011dba     .word    0x00011dba
 ```
 
-从反汇编出来的processDeflatedEntry函数的汇编代码来看，先来看函数调用返回的地方:
+看到这段反汇编的代码我们明白了，原来gcc编译器做了额外的工作, 在编译程序的时候添加了一段check
+程序, 这段check程序就是使我们代码出现分叉导致错误的地方.
+
+到了这里我们初步怀疑是android系统在编译c代码的时候默认打开了函数堆栈检查的标记.
+
+于是查看gcc的编译选项, 看到如下选项:
+
+path: build/core/combo/TARGET_linux-arm.mk
+```
+TARGET_GLOBAL_CFLAGS += \
+    ...
+    -fstack-protector \  // 这就是gcc的堆栈保护开关
+    ...
+```
+
+现代gcc编译器为了防止函数堆栈溢出做了一个堆栈保护选项"-fstack-protector", 这个保护选项的作用就是:
+启用堆栈保护，不过只为局部变量中含有 char 数组的函数插入保护代码.
+
+到了这里我们首先通过一个简单的小例子来说明下这个-fstack-protector选项的作用.
+
+https://github.com/leeminghao/doc-linux/blob/master/linker/GccSsp.md
+
+通过上述例子我们知道，正是由于android默认打开了这个开关选项，此时如果有代码越界访问char数组
+的缓冲区，那么就有可能覆盖gcc在函数堆栈中插入检查缓冲区越界的标志变量: __stack_chk_guard,
+此时，根据我们总结的两个规律, 我们在processDeflatedEntry函数中使用了这样一个小技巧，如下
+代码所示:
+
+**注意**: 在这里为了说明这个小技巧我们没有把我们所添加的所有log加上，只是为了说明这个问题而已.
 
 ```
+// 这个变量就是在bionic/libc/bionic/libc_init_common.cpp中定义，并在运行程序的随机进行初始化的
+// 这个值会在具有char数组局部变量缓冲区的函数并且在设置-fstack-protector选项编译之后会在函数
+// 运行之后保存在紧挨着靠近缓冲区的前一个4字节对齐的字中. 其在每次函数运行时是不变的的，但是
+// 根据前面的例子我们知道，如果我们越界访问缓冲区的话极有可能会覆盖其值导致在函数返回时从
+// 堆栈中读取出来的值跟直接从GOT表中获取到的不一致就会造成类似错误:
+// 09-15 14:47:15.008  3661  3661 F libc    : stack corruption detected
+// 最终导致函数执行失败
+extern uintptr_t __stack_chk_guard;
+uintptr_t *guardptr;
+
+static bool processDeflatedEntry(const ZipArchive *pArchive,
+    const ZipEntry *pEntry, ProcessZipEntryContentsFunction processFunction,
+    void *cookie)
+{
+    // 1. 在进入函数执行前打印出__stack_chk_guard值.
+    LOGD("__stack_chk_guard=%x\n", __stack_chk_guard);
+
+    long result = -1;
+    unsigned char readBuf[32 * 1024];
+    unsigned char procBuf[32 * 1024];
+    z_stream zstream;
+    int zerr;
+    long compRemaining;
+
+    // 2. 接着找到其保存在函数堆栈中的地址, 并且输出其值，查看是否和__stack_chk_guard
+    // 一致. 其实如何找到保存在堆栈中的__stack_chk_guard值的地址很简单: 根据arm的堆栈
+    // 是从高地址向低地址增长; 默认采用小端存储数据; 读取按照4字节对齐; -fstack-protector
+    // 选项是针对char数组缓冲区进行check的. 那么这个值存储的位置只有一个地方，那就是:
+    // 对应char数组缓冲区最后一个元素所保存的地址字节前一个4字节对齐的地址处.
+    // 在这里因为有两个缓冲区, 但是根据实例2，我们知道只可能有一个缓冲区前面的4字节地址
+    // 对齐位置保存了__stack_chk_guard变量值. 我们分别实验了两次，找到最终保存在了procBuf
+    // 缓冲区的最后一个元素的前一个4字节对齐地址处，我们使用如下代码取出地址值:
+    guardptr = (uintptr_t*)procBuf + 8 * 1024; // 8 == 32 / 4
+    LOGD("procBuf guardptr=%x\n", *guardptr);
+
+    compRemaining = pEntry->compLen;
+
+    /*
+     * Initialize the zlib stream.
+     */
+    memset(&zstream, 0, sizeof(zstream));
+    zstream.zalloc = Z_NULL;
+    zstream.zfree = Z_NULL;
+    zstream.opaque = Z_NULL;
+    zstream.next_in = NULL;
+    zstream.avail_in = 0;
+    zstream.next_out = (Bytef*) procBuf;
+    zstream.avail_out = sizeof(procBuf);
+    zstream.data_type = Z_UNKNOWN;
+
+    /*
+     * Use the undocumented "negative window bits" feature to tell zlib
+     * that there's no zlib header waiting for it.
+     */
+    zerr = inflateInit2(&zstream, -MAX_WBITS);
+    if (zerr != Z_OK) {
+        if (zerr == Z_VERSION_ERROR) {
+            LOGE("Installed zlib is not compatible with linked version (%s)\n",
+                ZLIB_VERSION);
+        } else {
+            LOGE("Call to inflateInit2 failed (zerr=%d)\n", zerr);
+        }
+        goto bail;
+    }
+
+    /*
+     * Loop while we have data.
+     */
+    do {
+        /* read as much as we can */
+        if (zstream.avail_in == 0) {
+            long getSize = (compRemaining > (long)sizeof(readBuf)) ?
+                        (long)sizeof(readBuf) : compRemaining;
+            LOGVV("+++ reading %ld bytes (%ld left)\n",
+                getSize, compRemaining);
+
+            int cc = read(pArchive->fd, readBuf, getSize);
+            if (cc != (int) getSize) {
+                LOGW("inflate read failed (%d vs %ld)\n", cc, getSize);
+                goto z_bail;
+            }
+
+            compRemaining -= getSize;
+
+            zstream.next_in = readBuf;
+            zstream.avail_in = getSize;
+        }
+
+        /* uncompress the data */
+        // 3. 我们在所有能够改变procBuf缓冲区值的函数前后都添加了如下的LOG
+        // 就是打印保存在堆栈中的__stack_chk_guard值，查看在什么时候改变的.
+        LOGD("check ib guardptr=%x\n", *guardptr);
+        zerr = inflate(&zstream, Z_NO_FLUSH);
+        LOGD("check ei guardptr=%x\n", *guardptr);
+        if (zerr != Z_OK && zerr != Z_STREAM_END) {
+            LOGD("zlib inflate call failed (zerr=%d)\n", zerr);
+            goto z_bail;
+        }
+
+        /* write when we're full or when we're done */
+        if (zstream.avail_out == 0 ||
+            (zerr == Z_STREAM_END && zstream.avail_out != sizeof(procBuf)))
+        {
+            long procSize = zstream.next_out - procBuf;
+            LOGVV("+++ processing %d bytes\n", (int) procSize);
+            bool ret = processFunction(procBuf, procSize, cookie);
+            if (!ret) {
+                LOGW("Process function elected to fail (in inflate)\n");
+                goto z_bail;
+            }
+
+            zstream.next_out = procBuf;
+            zstream.avail_out = sizeof(procBuf);
+        }
+    } while (zerr == Z_OK);
+
+    assert(zerr == Z_STREAM_END);       /* other errors should've been caught */
+
+    // success!
+    result = zstream.total_out;
+
+z_bail:
+    inflateEnd(&zstream);        /* free up any allocated structures */
+
+bail:
+    if (result != pEntry->uncompLen) {
+        if (result != -1)        // error already shown?
+            LOGW("Size mismatch on inflated file (%ld vs %ld)\n",
+                result, pEntry->uncompLen);
+        return false;
+    }
+
+    LOGD("exit guardptr=%x\n", *guardptr);
+    return true;
+}
 ```
+
+利用如上所示的小技巧，我们不断的在改变procBuf函数的前后输出堆栈中的__stack_chk_guard值,
+并和通过GOT表找到的__stack_chk_guard(也就是直接输出的那个值)进行比较看在哪个调用函数的
+地方进行其发生了改变。类似如下的log:
+
+```
+minzip: __stack_chk_guard=5ffbedfa
+minzip: enter guardptr=5ffbedfa
+...
+// 这里显示的是在调用inflate函数stack_chk_guard值发生了变化.
+minzip: check ib guardptr=5f fb ed fa
+minzip: check ei guardptr=5f fb ed d4
+...
+minzip: exit guardptr=5ffbedd4
+```
+
+后续的调试办法就没有什么技巧而言，就是不断类似的缩小查找的范围，最后在external/zlib库中的inflate
+函数。该函数会调用一个汇编函数inflate_fast_copy_neon执行拷贝动作，此函数根据不同情况会对拷贝的
+大小进行每次4, 8, 16字节这样的拷贝方式。当缓冲区拷贝剩余只有3个字节的时候，由于4字节进行拷贝，后边
+的一个字节就会被覆盖(也就是如上log中的fa 变成了 d4)，就这样造成了缓冲区溢出。
+
+最终在函数返回的时候读取了guardptr所指向的保存__stack_chk_guard值的地址处的值同__stack_chk_guard
+值进行了比较，不相等的时候就跳转到__stack_chk_fail函数中abort当前执行的函数, 在这里只是为了介绍
+c函数的调用方式以及gcc编译器-fstack-protector相关选项的作用，以及这类错误的调试办法，具体我们怎么
+修复这个函数的在此就不做赘述.
