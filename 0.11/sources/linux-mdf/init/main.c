@@ -108,8 +108,8 @@ void main(void)        /* This really IS void, no error here. */
  * Interrupts are still disabled. Do necessary setups, then
  * enable them
  */
-     ROOT_DEV = ORIG_ROOT_DEV;
-     drive_info = DRIVE_INFO;
+    ROOT_DEV = ORIG_ROOT_DEV;
+    drive_info = DRIVE_INFO;
     memory_end = (1<<20) + (EXT_MEM_K<<10);
     memory_end &= 0xfffff000;
     if (memory_end > 16*1024*1024)
