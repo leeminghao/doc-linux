@@ -191,7 +191,7 @@ __asm__("pushl %%edx\n\t" \
     "movw %%dx,%0\n\t"       \
     "rorl $16,%%edx\n\t" \
     "movb %%dl,%1\n\t" \
-    "movb %%dh,%2" \
+    "movb %%dh,%2\n\t" \
     "pop %%edx"      \
     ::"m" (*((addr)+2)), \
       "m" (*((addr)+4)), \
@@ -200,12 +200,14 @@ __asm__("pushl %%edx\n\t" \
     )
 
 #define _set_limit(addr,limit) \
-__asm__("movw %%dx,%0\n\t" \
+__asm__("pushl %%edx\n\t" \
+    "movw %%dx,%0\n\t"       \
     "rorl $16,%%edx\n\t" \
     "movb %1,%%dh\n\t" \
     "andb $0xf0,%%dh\n\t" \
     "orb %%dh,%%dl\n\t" \
-    "movb %%dl,%1" \
+    "movb %%dl,%1\n\t" \
+    "pop %%edx"  \
     ::"m" (*(addr)), \
       "m" (*((addr)+6)), \
       "d" (limit) \
@@ -216,10 +218,12 @@ __asm__("movw %%dx,%0\n\t" \
 
 #define _get_base(addr) ({\
 unsigned long __base; \
-__asm__("movb %3,%%dh\n\t" \
+__asm__("pushl %%edx\n\t" \
+    "movb %3,%%dh\n\t" \
     "movb %2,%%dl\n\t" \
     "shll $16,%%edx\n\t" \
-    "movw %1,%%dx" \
+    "movw %1,%%dx\n\t" \
+    "pop %%edx" \
     :"=d" (__base) \
     :"m" (*((addr)+2)), \
      "m" (*((addr)+4)), \

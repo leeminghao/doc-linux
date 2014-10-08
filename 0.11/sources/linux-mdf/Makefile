@@ -36,7 +36,7 @@ LIBS	=lib/lib.a
 	$(CC) $(CFLAGS) \
 	-nostdinc -Iinclude -c -o $*.o $<
 
-all:	Image
+all:	bootimage #Image
 
 Image: boot/bootsect boot/setup tools/system tools/build
 	tools/build boot/bootsect boot/setup tools/system $(ROOT_DEV) > Image
@@ -100,7 +100,7 @@ tmp.s:	boot/bootsect.s tools/system
 	cat boot/bootsect.s >> tmp.s
 
 clean:
-	rm -f Image System.map tmp_make core boot/bootsect boot/setup
+	rm -f Image System.map tmp_make core boot/bootsect boot/setup bootimage
 	rm -f init/*.o tools/system tools/build boot/*.o
 	(cd mm;make clean)
 	(cd fs;make clean)

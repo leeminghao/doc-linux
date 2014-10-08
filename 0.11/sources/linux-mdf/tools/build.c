@@ -20,13 +20,13 @@
  * Changes by tytso to allow root device specification
  */
 
-#include <stdio.h>	/* fprintf */
+#include <stdio.h>    /* fprintf */
 #include <string.h>
-#include <stdlib.h>	/* contains exit */
-#include <sys/types.h>	/* unistd.h needs this */
+#include <stdlib.h>    /* contains exit */
+#include <sys/types.h>    /* unistd.h needs this */
 #include <sys/stat.h>
 #include <linux/fs.h>
-#include <unistd.h>	/* contains read/write */
+#include <unistd.h>    /* contains read/write */
 #include <fcntl.h>
 
 #define MINIX_HEADER 32
@@ -48,13 +48,13 @@
 
 void die(char * str)
 {
-	fprintf(stderr,"%s\n",str);
-	exit(1);
+    fprintf(stderr,"%s\n",str);
+    exit(1);
 }
 
 void usage(void)
 {
-	die("Usage: build bootsect setup system [rootdev] [> image]");
+    die("Usage: build bootsect setup system [rootdev] [> image]");
 }
 
 int main(int argc, char ** argv)
@@ -90,6 +90,7 @@ int main(int argc, char ** argv)
         die("Bad root device --- major #");
     }
     for (i=0;i<sizeof buf; i++) buf[i]=0;
+
     if ((id=open(argv[1],O_RDONLY,0))<0)
         die("Unable to open 'boot'");
     if (read(id,buf,MINIX_HEADER) != MINIX_HEADER)

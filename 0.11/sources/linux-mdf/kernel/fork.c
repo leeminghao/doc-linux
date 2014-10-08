@@ -45,7 +45,6 @@ int copy_mem(int nr,struct task_struct * p)
     data_limit=get_limit(0x17);
     old_code_base = get_base(current->ldt[1]);
     old_data_base = get_base(current->ldt[2]);
-    printk("pid = %ld\n", current->pid);
     printk("ldt[1]: %x, %x\n", current->ldt[1].a, current->ldt[1].b);
     printk("ldt[2]: %x, %x\n", current->ldt[2].a, current->ldt[2].b);
     printk("%x, %x\n", old_code_base, old_data_base);
