@@ -424,7 +424,7 @@ CALL）时的栈指针大小。如果该标志置位，则使用32位栈指针�
 （Write-enable）和扩展方向E（Expansion-direction），参见下表中有关代码和数据段类型字段位的说明。
 根据可写位W的设置，一个数据段可以是只读的，也可以是可读可写的。
 
-https://github.com/leeminghao/doc-linux/blob/master/arch/x86/code_data_type.jpg
+https://github.com/leeminghao/doc-linux/blob/master/arch/x86/code_data_type.png
 
 堆栈段必须是可读/写的数据段。若使用不可写数据段的选择符加载到SS寄存器中，将导致一个一般保护异常。
 如果堆栈段的长度需要动态地改变，那么堆栈段可以是一个向下扩展的数据段（扩展方向标志置位）。这里，
