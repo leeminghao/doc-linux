@@ -11,7 +11,7 @@ AS	=as
 LD	=ld
 LDFLAGS	=-s -x -M -m elf_i386 -Ttext 0 -e startup_32
 CC	=gcc $(RAMDISK)
-CFLAGS	=-Wall -O -fstrength-reduce -fomit-frame-pointer \
+CFLAGS	=-Wall -g -fstrength-reduce -fomit-frame-pointer \
          -m32 -fno-stack-protector -mcpu=i386
 CPP	=cpp -nostdinc -Iinclude
 
@@ -20,7 +20,7 @@ CPP	=cpp -nostdinc -Iinclude
 # This can be either FLOPPY, /dev/xxxx or empty, in which case the
 # default of /dev/hd6 is used by 'build'.
 #
-ROOT_DEV= #FLOPPY
+ROOT_DEV= FLOPPY
 
 ARCHIVES=kernel/kernel.o mm/mm.o fs/fs.o
 DRIVERS =kernel/blk_drv/blk_drv.a kernel/chr_drv/chr_drv.a

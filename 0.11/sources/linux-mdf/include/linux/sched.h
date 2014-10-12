@@ -187,7 +187,7 @@ __asm__("cmpl %%ecx,current\n\t" \
 #define PAGE_ALIGN(n) (((n)+0xfff)&0xfffff000)
 
 #define _set_base(addr,base) \
-__asm__("pushl %%edx\n\t" \
+__asm__("push %%edx\n\t" \
     "movw %%dx,%0\n\t"       \
     "rorl $16,%%edx\n\t" \
     "movb %%dl,%1\n\t" \
@@ -200,7 +200,7 @@ __asm__("pushl %%edx\n\t" \
     )
 
 #define _set_limit(addr,limit) \
-__asm__("pushl %%edx\n\t" \
+__asm__("push %%edx\n\t" \
     "movw %%dx,%0\n\t"       \
     "rorl $16,%%edx\n\t" \
     "movb %1,%%dh\n\t" \
@@ -218,7 +218,7 @@ __asm__("pushl %%edx\n\t" \
 
 #define _get_base(addr) ({\
 unsigned long __base; \
-__asm__("pushl %%edx\n\t" \
+__asm__("push %%edx\n\t" \
     "movb %3,%%dh\n\t" \
     "movb %2,%%dl\n\t" \
     "shll $16,%%edx\n\t" \

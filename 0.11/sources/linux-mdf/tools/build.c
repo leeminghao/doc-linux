@@ -75,8 +75,8 @@ int main(int argc, char ** argv)
             major_root = MAJOR(sb.st_rdev);
             minor_root = MINOR(sb.st_rdev);
         } else {
-            major_root = 0;
-            minor_root = 0;
+            major_root = 0x02; //0;
+            minor_root = 0x1d; //0;
         }
     } else {
         major_root = DEFAULT_MAJOR_ROOT;
