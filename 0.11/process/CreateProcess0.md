@@ -146,8 +146,11 @@ path: include/linux/sched.h
 #define FIRST_TSS_ENTRY 4
 #define FIRST_LDT_ENTRY (FIRST_TSS_ENTRY+1)
 #define _TSS(n) ((((unsigned long) n)<<4)+(FIRST_TSS_ENTRY<<3))
+// 计算任务0在GDT中的索引值.
+// 左移三位的目的是将段选择符设置为索引GDT表，特权级为0
 #define _LDT(n) ((((unsigned long) n)<<4)+(FIRST_LDT_ENTRY<<3))
 #define ltr(n) __asm__("ltr %%ax"::"a" (_TSS(n)))
+// 将段选择符保存到lldt寄存器中
 #define lldt(n) __asm__("lldt %%ax"::"a" (_LDT(n)))
 
 ......
