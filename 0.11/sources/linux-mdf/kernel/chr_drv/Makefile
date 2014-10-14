@@ -9,7 +9,7 @@
 AR	=ar
 AS	=as
 LD	=ld -m elf_i386
-LDFLAGS	=-s -x
+LDFLAGS	=-x
 CC	=gcc
 CFLAGS	=-Wall -g -fstrength-reduce -fomit-frame-pointer \
 	-finline-functions -nostdinc -I../../include \
