@@ -1,17 +1,19 @@
 #define move_to_user_mode() \
-__asm__ ("movl %%esp,%%eax\n\t" \
+__asm__ ("pushl %%eax\n\t" \
+        "movl %%esp,%%eax\n\t"    \
 	"pushl $0x17\n\t" \
 	"pushl %%eax\n\t" \
 	"pushfl\n\t" \
 	"pushl $0x0f\n\t" \
 	"pushl $1f\n\t" \
+        "pop %%eax\n\t" \
 	"iret\n" \
 	"1:\tmovl $0x17,%%eax\n\t" \
 	"movw %%ax,%%ds\n\t" \
 	"movw %%ax,%%es\n\t" \
 	"movw %%ax,%%fs\n\t" \
 	"movw %%ax,%%gs" \
-	:::"ax")
+	::)
 
 #define sti() __asm__ ("sti"::)
 #define cli() __asm__ ("cli"::)
@@ -20,7 +22,7 @@ __asm__ ("movl %%esp,%%eax\n\t" \
 #define iret() __asm__ ("iret"::)
 
 #define _set_gate(gate_addr,type,dpl,addr) \
-__asm__ ("movw %%dx,%%ax\n\t" \
+__asm__ ("movw %%dx,%%ax\n\t"       \
 	"movw %0,%%dx\n\t" \
 	"movl %%eax,%1\n\t" \
 	"movl %%edx,%2" \
