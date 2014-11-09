@@ -1,0 +1,517 @@
+From: <ÓÉ Microsoft Internet Explorer 5 ±£´æ>
+Subject: Bison 1.25 - Table of Contents
+Date: Sat, 9 Apr 2011 21:55:43 +0800
+MIME-Version: 1.0
+Content-Type: text/html;
+	charset="gb2312"
+Content-Transfer-Encoding: quoted-printable
+Content-Location: http://www.cs.princeton.edu/~appel/modern/c/software/bison/bison_toc.html
+X-MimeOLE: Produced By Microsoft MimeOLE V6.00.2900.5994
+
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.0 Transitional//EN">
+<HTML><HEAD><TITLE>Bison 1.25 - Table of Contents</TITLE>
+<META http-equiv=3DContent-Type content=3D"text/html; =
+charset=3Dgb2312"><!-- This HTML file has been created by texi2html 1.51=0A=
+     from bison.texinfo on 21 November 1996 -->
+<META content=3D"MSHTML 6.00.2900.6058" name=3DGENERATOR></HEAD>
+<BODY>
+<H1>Bison</H1>
+<H2>The YACC-compatible Parser Generator</H2>
+<H2>November 1995, Bison Version 1.25</H2>
+<ADDRESS>by Charles Donnelly and Richard Stallman</ADDRESS>
+<P>
+<P>
+<HR>
+
+<P>
+<UL>
+  <LI><A=20
+  =
+href=3D"http://www.cs.princeton.edu/~appel/modern/c/software/bison/bison_=
+1.html#SEC1"=20
+  name=3DTOC1>Introduction</A>=20
+  <LI><A=20
+  =
+href=3D"http://www.cs.princeton.edu/~appel/modern/c/software/bison/bison_=
+2.html#SEC2"=20
+  name=3DTOC2>Conditions for Using Bison</A>=20
+  <LI><A=20
+  =
+href=3D"http://www.cs.princeton.edu/~appel/modern/c/software/bison/bison_=
+3.html#SEC3"=20
+  name=3DTOC3>GNU GENERAL PUBLIC LICENSE</A>=20
+  <UL>
+    <LI><A=20
+    =
+href=3D"http://www.cs.princeton.edu/~appel/modern/c/software/bison/bison_=
+3.html#SEC4"=20
+    name=3DTOC4>Preamble</A>=20
+    <LI><A=20
+    =
+href=3D"http://www.cs.princeton.edu/~appel/modern/c/software/bison/bison_=
+3.html#SEC5"=20
+    name=3DTOC5>TERMS AND CONDITIONS FOR COPYING, DISTRIBUTION AND=20
+    MODIFICATION</A>=20
+    <LI><A=20
+    =
+href=3D"http://www.cs.princeton.edu/~appel/modern/c/software/bison/bison_=
+3.html#SEC6"=20
+    name=3DTOC6>How to Apply These Terms to Your New Programs</A> =
+</LI></UL>
+  <LI><A=20
+  =
+href=3D"http://www.cs.princeton.edu/~appel/modern/c/software/bison/bison_=
+4.html#SEC7"=20
+  name=3DTOC7>The Concepts of Bison</A>=20
+  <UL>
+    <LI><A=20
+    =
+href=3D"http://www.cs.princeton.edu/~appel/modern/c/software/bison/bison_=
+4.html#SEC8"=20
+    name=3DTOC8>Languages and Context-Free Grammars</A>=20
+    <LI><A=20
+    =
+href=3D"http://www.cs.princeton.edu/~appel/modern/c/software/bison/bison_=
+4.html#SEC9"=20
+    name=3DTOC9>From Formal Rules to Bison Input</A>=20
+    <LI><A=20
+    =
+href=3D"http://www.cs.princeton.edu/~appel/modern/c/software/bison/bison_=
+4.html#SEC10"=20
+    name=3DTOC10>Semantic Values</A>=20
+    <LI><A=20
+    =
+href=3D"http://www.cs.princeton.edu/~appel/modern/c/software/bison/bison_=
+4.html#SEC11"=20
+    name=3DTOC11>Semantic Actions</A>=20
+    <LI><A=20
+    =
+href=3D"http://www.cs.princeton.edu/~appel/modern/c/software/bison/bison_=
+4.html#SEC12"=20
+    name=3DTOC12>Bison Output: the Parser File</A>=20
+    <LI><A=20
+    =
+href=3D"http://www.cs.princeton.edu/~appel/modern/c/software/bison/bison_=
+4.html#SEC13"=20
+    name=3DTOC13>Stages in Using Bison</A>=20
+    <LI><A=20
+    =
+href=3D"http://www.cs.princeton.edu/~appel/modern/c/software/bison/bison_=
+4.html#SEC14"=20
+    name=3DTOC14>The Overall Layout of a Bison Grammar</A> </LI></UL>
+  <LI><A=20
+  =
+href=3D"http://www.cs.princeton.edu/~appel/modern/c/software/bison/bison_=
+5.html#SEC15"=20
+  name=3DTOC15>Examples</A>=20
+  <UL>
+    <LI><A=20
+    =
+href=3D"http://www.cs.princeton.edu/~appel/modern/c/software/bison/bison_=
+5.html#SEC16"=20
+    name=3DTOC16>Reverse Polish Notation Calculator</A>=20
+    <UL>
+      <LI><A=20
+      =
+href=3D"http://www.cs.princeton.edu/~appel/modern/c/software/bison/bison_=
+5.html#SEC17"=20
+      name=3DTOC17>Declarations for <CODE>rpcalc</CODE></A>=20
+      <LI><A=20
+      =
+href=3D"http://www.cs.princeton.edu/~appel/modern/c/software/bison/bison_=
+5.html#SEC18"=20
+      name=3DTOC18>Grammar Rules for <CODE>rpcalc</CODE></A>=20
+      <UL>
+        <LI><A=20
+        =
+href=3D"http://www.cs.princeton.edu/~appel/modern/c/software/bison/bison_=
+5.html#SEC19"=20
+        name=3DTOC19>Explanation of <CODE>input</CODE></A>=20
+        <LI><A=20
+        =
+href=3D"http://www.cs.princeton.edu/~appel/modern/c/software/bison/bison_=
+5.html#SEC20"=20
+        name=3DTOC20>Explanation of <CODE>line</CODE></A>=20
+        <LI><A=20
+        =
+href=3D"http://www.cs.princeton.edu/~appel/modern/c/software/bison/bison_=
+5.html#SEC21"=20
+        name=3DTOC21>Explanation of <CODE>expr</CODE></A> </LI></UL>
+      <LI><A=20
+      =
+href=3D"http://www.cs.princeton.edu/~appel/modern/c/software/bison/bison_=
+5.html#SEC22"=20
+      name=3DTOC22>The <CODE>rpcalc</CODE> Lexical Analyzer</A>=20
+      <LI><A=20
+      =
+href=3D"http://www.cs.princeton.edu/~appel/modern/c/software/bison/bison_=
+5.html#SEC23"=20
+      name=3DTOC23>The Controlling Function</A>=20
+      <LI><A=20
+      =
+href=3D"http://www.cs.princeton.edu/~appel/modern/c/software/bison/bison_=
+5.html#SEC24"=20
+      name=3DTOC24>The Error Reporting Routine</A>=20
+      <LI><A=20
+      =
+href=3D"http://www.cs.princeton.edu/~appel/modern/c/software/bison/bison_=
+5.html#SEC25"=20
+      name=3DTOC25>Running Bison to Make the Parser</A>=20
+      <LI><A=20
+      =
+href=3D"http://www.cs.princeton.edu/~appel/modern/c/software/bison/bison_=
+5.html#SEC26"=20
+      name=3DTOC26>Compiling the Parser File</A> </LI></UL>
+    <LI><A=20
+    =
+href=3D"http://www.cs.princeton.edu/~appel/modern/c/software/bison/bison_=
+5.html#SEC27"=20
+    name=3DTOC27>Infix Notation Calculator: <CODE>calc</CODE></A>=20
+    <LI><A=20
+    =
+href=3D"http://www.cs.princeton.edu/~appel/modern/c/software/bison/bison_=
+5.html#SEC28"=20
+    name=3DTOC28>Simple Error Recovery</A>=20
+    <LI><A=20
+    =
+href=3D"http://www.cs.princeton.edu/~appel/modern/c/software/bison/bison_=
+5.html#SEC29"=20
+    name=3DTOC29>Multi-Function Calculator: <CODE>mfcalc</CODE></A>=20
+    <UL>
+      <LI><A=20
+      =
+href=3D"http://www.cs.princeton.edu/~appel/modern/c/software/bison/bison_=
+5.html#SEC30"=20
+      name=3DTOC30>Declarations for <CODE>mfcalc</CODE></A>=20
+      <LI><A=20
+      =
+href=3D"http://www.cs.princeton.edu/~appel/modern/c/software/bison/bison_=
+5.html#SEC31"=20
+      name=3DTOC31>Grammar Rules for <CODE>mfcalc</CODE></A>=20
+      <LI><A=20
+      =
+href=3D"http://www.cs.princeton.edu/~appel/modern/c/software/bison/bison_=
+5.html#SEC32"=20
+      name=3DTOC32>The <CODE>mfcalc</CODE> Symbol Table</A> </LI></UL>
+    <LI><A=20
+    =
+href=3D"http://www.cs.princeton.edu/~appel/modern/c/software/bison/bison_=
+5.html#SEC33"=20
+    name=3DTOC33>Exercises</A> </LI></UL>
+  <LI><A=20
+  =
+href=3D"http://www.cs.princeton.edu/~appel/modern/c/software/bison/bison_=
+6.html#SEC34"=20
+  name=3DTOC34>Bison Grammar Files</A>=20
+  <UL>
+    <LI><A=20
+    =
+href=3D"http://www.cs.princeton.edu/~appel/modern/c/software/bison/bison_=
+6.html#SEC35"=20
+    name=3DTOC35>Outline of a Bison Grammar</A>=20
+    <UL>
+      <LI><A=20
+      =
+href=3D"http://www.cs.princeton.edu/~appel/modern/c/software/bison/bison_=
+6.html#SEC36"=20
+      name=3DTOC36>The C Declarations Section</A>=20
+      <LI><A=20
+      =
+href=3D"http://www.cs.princeton.edu/~appel/modern/c/software/bison/bison_=
+6.html#SEC37"=20
+      name=3DTOC37>The Bison Declarations Section</A>=20
+      <LI><A=20
+      =
+href=3D"http://www.cs.princeton.edu/~appel/modern/c/software/bison/bison_=
+6.html#SEC38"=20
+      name=3DTOC38>The Grammar Rules Section</A>=20
+      <LI><A=20
+      =
+href=3D"http://www.cs.princeton.edu/~appel/modern/c/software/bison/bison_=
+6.html#SEC39"=20
+      name=3DTOC39>The Additional C Code Section</A> </LI></UL>
+    <LI><A=20
+    =
+href=3D"http://www.cs.princeton.edu/~appel/modern/c/software/bison/bison_=
+6.html#SEC40"=20
+    name=3DTOC40>Symbols, Terminal and Nonterminal</A>=20
+    <LI><A=20
+    =
+href=3D"http://www.cs.princeton.edu/~appel/modern/c/software/bison/bison_=
+6.html#SEC41"=20
+    name=3DTOC41>Syntax of Grammar Rules</A>=20
+    <LI><A=20
+    =
+href=3D"http://www.cs.princeton.edu/~appel/modern/c/software/bison/bison_=
+6.html#SEC42"=20
+    name=3DTOC42>Recursive Rules</A>=20
+    <LI><A=20
+    =
+href=3D"http://www.cs.princeton.edu/~appel/modern/c/software/bison/bison_=
+6.html#SEC43"=20
+    name=3DTOC43>Defining Language Semantics</A>=20
+    <UL>
+      <LI><A=20
+      =
+href=3D"http://www.cs.princeton.edu/~appel/modern/c/software/bison/bison_=
+6.html#SEC44"=20
+      name=3DTOC44>Data Types of Semantic Values</A>=20
+      <LI><A=20
+      =
+href=3D"http://www.cs.princeton.edu/~appel/modern/c/software/bison/bison_=
+6.html#SEC45"=20
+      name=3DTOC45>More Than One Value Type</A>=20
+      <LI><A=20
+      =
+href=3D"http://www.cs.princeton.edu/~appel/modern/c/software/bison/bison_=
+6.html#SEC46"=20
+      name=3DTOC46>Actions</A>=20
+      <LI><A=20
+      =
+href=3D"http://www.cs.princeton.edu/~appel/modern/c/software/bison/bison_=
+6.html#SEC47"=20
+      name=3DTOC47>Data Types of Values in Actions</A>=20
+      <LI><A=20
+      =
+href=3D"http://www.cs.princeton.edu/~appel/modern/c/software/bison/bison_=
+6.html#SEC48"=20
+      name=3DTOC48>Actions in Mid-Rule</A> </LI></UL>
+    <LI><A=20
+    =
+href=3D"http://www.cs.princeton.edu/~appel/modern/c/software/bison/bison_=
+6.html#SEC49"=20
+    name=3DTOC49>Bison Declarations</A>=20
+    <UL>
+      <LI><A=20
+      =
+href=3D"http://www.cs.princeton.edu/~appel/modern/c/software/bison/bison_=
+6.html#SEC50"=20
+      name=3DTOC50>Token Type Names</A>=20
+      <LI><A=20
+      =
+href=3D"http://www.cs.princeton.edu/~appel/modern/c/software/bison/bison_=
+6.html#SEC51"=20
+      name=3DTOC51>Operator Precedence</A>=20
+      <LI><A=20
+      =
+href=3D"http://www.cs.princeton.edu/~appel/modern/c/software/bison/bison_=
+6.html#SEC52"=20
+      name=3DTOC52>The Collection of Value Types</A>=20
+      <LI><A=20
+      =
+href=3D"http://www.cs.princeton.edu/~appel/modern/c/software/bison/bison_=
+6.html#SEC53"=20
+      name=3DTOC53>Nonterminal Symbols</A>=20
+      <LI><A=20
+      =
+href=3D"http://www.cs.princeton.edu/~appel/modern/c/software/bison/bison_=
+6.html#SEC54"=20
+      name=3DTOC54>Suppressing Conflict Warnings</A>=20
+      <LI><A=20
+      =
+href=3D"http://www.cs.princeton.edu/~appel/modern/c/software/bison/bison_=
+6.html#SEC55"=20
+      name=3DTOC55>The Start-Symbol</A>=20
+      <LI><A=20
+      =
+href=3D"http://www.cs.princeton.edu/~appel/modern/c/software/bison/bison_=
+6.html#SEC56"=20
+      name=3DTOC56>A Pure (Reentrant) Parser</A>=20
+      <LI><A=20
+      =
+href=3D"http://www.cs.princeton.edu/~appel/modern/c/software/bison/bison_=
+6.html#SEC57"=20
+      name=3DTOC57>Bison Declaration Summary</A> </LI></UL>
+    <LI><A=20
+    =
+href=3D"http://www.cs.princeton.edu/~appel/modern/c/software/bison/bison_=
+6.html#SEC58"=20
+    name=3DTOC58>Multiple Parsers in the Same Program</A> </LI></UL>
+  <LI><A=20
+  =
+href=3D"http://www.cs.princeton.edu/~appel/modern/c/software/bison/bison_=
+7.html#SEC59"=20
+  name=3DTOC59>Parser C-Language Interface</A>=20
+  <UL>
+    <LI><A=20
+    =
+href=3D"http://www.cs.princeton.edu/~appel/modern/c/software/bison/bison_=
+7.html#SEC60"=20
+    name=3DTOC60>The Parser Function <CODE>yyparse</CODE></A>=20
+    <LI><A=20
+    =
+href=3D"http://www.cs.princeton.edu/~appel/modern/c/software/bison/bison_=
+7.html#SEC61"=20
+    name=3DTOC61>The Lexical Analyzer Function <CODE>yylex</CODE></A>=20
+    <UL>
+      <LI><A=20
+      =
+href=3D"http://www.cs.princeton.edu/~appel/modern/c/software/bison/bison_=
+7.html#SEC62"=20
+      name=3DTOC62>Calling Convention for <CODE>yylex</CODE></A>=20
+      <LI><A=20
+      =
+href=3D"http://www.cs.princeton.edu/~appel/modern/c/software/bison/bison_=
+7.html#SEC63"=20
+      name=3DTOC63>Semantic Values of Tokens</A>=20
+      <LI><A=20
+      =
+href=3D"http://www.cs.princeton.edu/~appel/modern/c/software/bison/bison_=
+7.html#SEC64"=20
+      name=3DTOC64>Textual Positions of Tokens</A>=20
+      <LI><A=20
+      =
+href=3D"http://www.cs.princeton.edu/~appel/modern/c/software/bison/bison_=
+7.html#SEC65"=20
+      name=3DTOC65>Calling Conventions for Pure Parsers</A> </LI></UL>
+    <LI><A=20
+    =
+href=3D"http://www.cs.princeton.edu/~appel/modern/c/software/bison/bison_=
+7.html#SEC66"=20
+    name=3DTOC66>The Error Reporting Function <CODE>yyerror</CODE></A>=20
+    <LI><A=20
+    =
+href=3D"http://www.cs.princeton.edu/~appel/modern/c/software/bison/bison_=
+7.html#SEC67"=20
+    name=3DTOC67>Special Features for Use in Actions</A> </LI></UL>
+  <LI><A=20
+  =
+href=3D"http://www.cs.princeton.edu/~appel/modern/c/software/bison/bison_=
+8.html#SEC68"=20
+  name=3DTOC68>The Bison Parser Algorithm</A>=20
+  <UL>
+    <LI><A=20
+    =
+href=3D"http://www.cs.princeton.edu/~appel/modern/c/software/bison/bison_=
+8.html#SEC69"=20
+    name=3DTOC69>Look-Ahead Tokens</A>=20
+    <LI><A=20
+    =
+href=3D"http://www.cs.princeton.edu/~appel/modern/c/software/bison/bison_=
+8.html#SEC70"=20
+    name=3DTOC70>Shift/Reduce Conflicts</A>=20
+    <LI><A=20
+    =
+href=3D"http://www.cs.princeton.edu/~appel/modern/c/software/bison/bison_=
+8.html#SEC71"=20
+    name=3DTOC71>Operator Precedence</A>=20
+    <UL>
+      <LI><A=20
+      =
+href=3D"http://www.cs.princeton.edu/~appel/modern/c/software/bison/bison_=
+8.html#SEC72"=20
+      name=3DTOC72>When Precedence is Needed</A>=20
+      <LI><A=20
+      =
+href=3D"http://www.cs.princeton.edu/~appel/modern/c/software/bison/bison_=
+8.html#SEC73"=20
+      name=3DTOC73>Specifying Operator Precedence</A>=20
+      <LI><A=20
+      =
+href=3D"http://www.cs.princeton.edu/~appel/modern/c/software/bison/bison_=
+8.html#SEC74"=20
+      name=3DTOC74>Precedence Examples</A>=20
+      <LI><A=20
+      =
+href=3D"http://www.cs.princeton.edu/~appel/modern/c/software/bison/bison_=
+8.html#SEC75"=20
+      name=3DTOC75>How Precedence Works</A> </LI></UL>
+    <LI><A=20
+    =
+href=3D"http://www.cs.princeton.edu/~appel/modern/c/software/bison/bison_=
+8.html#SEC76"=20
+    name=3DTOC76>Context-Dependent Precedence</A>=20
+    <LI><A=20
+    =
+href=3D"http://www.cs.princeton.edu/~appel/modern/c/software/bison/bison_=
+8.html#SEC77"=20
+    name=3DTOC77>Parser States</A>=20
+    <LI><A=20
+    =
+href=3D"http://www.cs.princeton.edu/~appel/modern/c/software/bison/bison_=
+8.html#SEC78"=20
+    name=3DTOC78>Reduce/Reduce Conflicts</A>=20
+    <LI><A=20
+    =
+href=3D"http://www.cs.princeton.edu/~appel/modern/c/software/bison/bison_=
+8.html#SEC79"=20
+    name=3DTOC79>Mysterious Reduce/Reduce Conflicts</A>=20
+    <LI><A=20
+    =
+href=3D"http://www.cs.princeton.edu/~appel/modern/c/software/bison/bison_=
+8.html#SEC80"=20
+    name=3DTOC80>Stack Overflow, and How to Avoid It</A> </LI></UL>
+  <LI><A=20
+  =
+href=3D"http://www.cs.princeton.edu/~appel/modern/c/software/bison/bison_=
+9.html#SEC81"=20
+  name=3DTOC81>Error Recovery</A>=20
+  <LI><A=20
+  =
+href=3D"http://www.cs.princeton.edu/~appel/modern/c/software/bison/bison_=
+10.html#SEC82"=20
+  name=3DTOC82>Handling Context Dependencies</A>=20
+  <UL>
+    <LI><A=20
+    =
+href=3D"http://www.cs.princeton.edu/~appel/modern/c/software/bison/bison_=
+10.html#SEC83"=20
+    name=3DTOC83>Semantic Info in Token Types</A>=20
+    <LI><A=20
+    =
+href=3D"http://www.cs.princeton.edu/~appel/modern/c/software/bison/bison_=
+10.html#SEC84"=20
+    name=3DTOC84>Lexical Tie-ins</A>=20
+    <LI><A=20
+    =
+href=3D"http://www.cs.princeton.edu/~appel/modern/c/software/bison/bison_=
+10.html#SEC85"=20
+    name=3DTOC85>Lexical Tie-ins and Error Recovery</A> </LI></UL>
+  <LI><A=20
+  =
+href=3D"http://www.cs.princeton.edu/~appel/modern/c/software/bison/bison_=
+11.html#SEC86"=20
+  name=3DTOC86>Debugging Your Parser</A>=20
+  <LI><A=20
+  =
+href=3D"http://www.cs.princeton.edu/~appel/modern/c/software/bison/bison_=
+12.html#SEC87"=20
+  name=3DTOC87>Invoking Bison</A>=20
+  <UL>
+    <LI><A=20
+    =
+href=3D"http://www.cs.princeton.edu/~appel/modern/c/software/bison/bison_=
+12.html#SEC88"=20
+    name=3DTOC88>Bison Options</A>=20
+    <LI><A=20
+    =
+href=3D"http://www.cs.princeton.edu/~appel/modern/c/software/bison/bison_=
+12.html#SEC89"=20
+    name=3DTOC89>Option Cross Key</A>=20
+    <LI><A=20
+    =
+href=3D"http://www.cs.princeton.edu/~appel/modern/c/software/bison/bison_=
+12.html#SEC90"=20
+    name=3DTOC90>Invoking Bison under VMS</A> </LI></UL>
+  <LI><A=20
+  =
+href=3D"http://www.cs.princeton.edu/~appel/modern/c/software/bison/bison_=
+13.html#SEC91"=20
+  name=3DTOC91>Bison Symbols</A>=20
+  <LI><A=20
+  =
+href=3D"http://www.cs.princeton.edu/~appel/modern/c/software/bison/bison_=
+14.html#SEC92"=20
+  name=3DTOC92>Glossary</A>=20
+  <LI><A=20
+  =
+href=3D"http://www.cs.princeton.edu/~appel/modern/c/software/bison/bison_=
+15.html#SEC93"=20
+  name=3DTOC93>Index</A> </LI></UL>
+<P>
+<HR>
+
+<P>This document was generated on 21 November 1996 using the <A=20
+href=3D"http://wwwcn.cern.ch/dci/texi2html/">texi2html</A> translator =
+version=20
+1.51.</P></BODY></HTML>

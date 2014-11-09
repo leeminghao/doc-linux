@@ -1,0 +1,161 @@
+From: <ÓÉ Microsoft Internet Explorer 5 ±£´æ>
+Subject: Flex - a scanner generator - Table of Contents
+Date: Sat, 9 Apr 2011 21:54:57 +0800
+MIME-Version: 1.0
+Content-Type: text/html;
+	charset="gb2312"
+Content-Transfer-Encoding: quoted-printable
+Content-Location: http://www.cs.princeton.edu/~appel/modern/c/software/flex/flex_toc.html
+X-MimeOLE: Produced By Microsoft MimeOLE V6.00.2900.5994
+
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.0 Transitional//EN">
+<HTML><HEAD><TITLE>Flex - a scanner generator - Table of =
+Contents</TITLE>
+<META http-equiv=3DContent-Type content=3D"text/html; =
+charset=3Dgb2312"><!-- This HTML file has been created by texi2html 1.51=0A=
+     from flex.texi on 21 November 1996 -->
+<META content=3D"MSHTML 6.00.2900.6058" name=3DGENERATOR></HEAD>
+<BODY>
+<H1>Flex, version 2.5</H1>
+<H2>A fast scanner generator</H2>
+<H2>Edition 2.5, March 1995</H2>
+<ADDRESS>Vern Paxson</ADDRESS>
+<P>
+<P>
+<HR>
+
+<P>
+<UL>
+  <UL>
+    <LI><A=20
+    =
+href=3D"http://www.cs.princeton.edu/~appel/modern/c/software/flex/flex.ht=
+ml#SEC1"=20
+    name=3DTOC1>Name</A>=20
+    <LI><A=20
+    =
+href=3D"http://www.cs.princeton.edu/~appel/modern/c/software/flex/flex.ht=
+ml#SEC2"=20
+    name=3DTOC2>Synopsis</A>=20
+    <LI><A=20
+    =
+href=3D"http://www.cs.princeton.edu/~appel/modern/c/software/flex/flex.ht=
+ml#SEC3"=20
+    name=3DTOC3>Overview</A>=20
+    <LI><A=20
+    =
+href=3D"http://www.cs.princeton.edu/~appel/modern/c/software/flex/flex.ht=
+ml#SEC4"=20
+    name=3DTOC4>Description</A>=20
+    <LI><A=20
+    =
+href=3D"http://www.cs.princeton.edu/~appel/modern/c/software/flex/flex.ht=
+ml#SEC5"=20
+    name=3DTOC5>Some simple examples</A>=20
+    <LI><A=20
+    =
+href=3D"http://www.cs.princeton.edu/~appel/modern/c/software/flex/flex.ht=
+ml#SEC6"=20
+    name=3DTOC6>Format of the input file</A>=20
+    <LI><A=20
+    =
+href=3D"http://www.cs.princeton.edu/~appel/modern/c/software/flex/flex.ht=
+ml#SEC7"=20
+    name=3DTOC7>Patterns</A>=20
+    <LI><A=20
+    =
+href=3D"http://www.cs.princeton.edu/~appel/modern/c/software/flex/flex.ht=
+ml#SEC8"=20
+    name=3DTOC8>How the input is matched</A>=20
+    <LI><A=20
+    =
+href=3D"http://www.cs.princeton.edu/~appel/modern/c/software/flex/flex.ht=
+ml#SEC9"=20
+    name=3DTOC9>Actions</A>=20
+    <LI><A=20
+    =
+href=3D"http://www.cs.princeton.edu/~appel/modern/c/software/flex/flex.ht=
+ml#SEC10"=20
+    name=3DTOC10>The generated scanner</A>=20
+    <LI><A=20
+    =
+href=3D"http://www.cs.princeton.edu/~appel/modern/c/software/flex/flex.ht=
+ml#SEC11"=20
+    name=3DTOC11>Start conditions</A>=20
+    <LI><A=20
+    =
+href=3D"http://www.cs.princeton.edu/~appel/modern/c/software/flex/flex.ht=
+ml#SEC12"=20
+    name=3DTOC12>Multiple input buffers</A>=20
+    <LI><A=20
+    =
+href=3D"http://www.cs.princeton.edu/~appel/modern/c/software/flex/flex.ht=
+ml#SEC13"=20
+    name=3DTOC13>End-of-file rules</A>=20
+    <LI><A=20
+    =
+href=3D"http://www.cs.princeton.edu/~appel/modern/c/software/flex/flex.ht=
+ml#SEC14"=20
+    name=3DTOC14>Miscellaneous macros</A>=20
+    <LI><A=20
+    =
+href=3D"http://www.cs.princeton.edu/~appel/modern/c/software/flex/flex.ht=
+ml#SEC15"=20
+    name=3DTOC15>Values available to the user</A>=20
+    <LI><A=20
+    =
+href=3D"http://www.cs.princeton.edu/~appel/modern/c/software/flex/flex.ht=
+ml#SEC16"=20
+    name=3DTOC16>Interfacing with <CODE>yacc</CODE></A>=20
+    <LI><A=20
+    =
+href=3D"http://www.cs.princeton.edu/~appel/modern/c/software/flex/flex.ht=
+ml#SEC17"=20
+    name=3DTOC17>Options</A>=20
+    <LI><A=20
+    =
+href=3D"http://www.cs.princeton.edu/~appel/modern/c/software/flex/flex.ht=
+ml#SEC18"=20
+    name=3DTOC18>Performance considerations</A>=20
+    <LI><A=20
+    =
+href=3D"http://www.cs.princeton.edu/~appel/modern/c/software/flex/flex.ht=
+ml#SEC19"=20
+    name=3DTOC19>Generating C++ scanners</A>=20
+    <LI><A=20
+    =
+href=3D"http://www.cs.princeton.edu/~appel/modern/c/software/flex/flex.ht=
+ml#SEC20"=20
+    name=3DTOC20>Incompatibilities with <CODE>lex</CODE> and POSIX</A>=20
+    <LI><A=20
+    =
+href=3D"http://www.cs.princeton.edu/~appel/modern/c/software/flex/flex.ht=
+ml#SEC21"=20
+    name=3DTOC21>Diagnostics</A>=20
+    <LI><A=20
+    =
+href=3D"http://www.cs.princeton.edu/~appel/modern/c/software/flex/flex.ht=
+ml#SEC22"=20
+    name=3DTOC22>Files</A>=20
+    <LI><A=20
+    =
+href=3D"http://www.cs.princeton.edu/~appel/modern/c/software/flex/flex.ht=
+ml#SEC23"=20
+    name=3DTOC23>Deficiencies / Bugs</A>=20
+    <LI><A=20
+    =
+href=3D"http://www.cs.princeton.edu/~appel/modern/c/software/flex/flex.ht=
+ml#SEC24"=20
+    name=3DTOC24>See also</A>=20
+    <LI><A=20
+    =
+href=3D"http://www.cs.princeton.edu/~appel/modern/c/software/flex/flex.ht=
+ml#SEC25"=20
+    name=3DTOC25>Author</A> </LI></UL></UL>
+<P>
+<HR>
+
+<P>This document was generated on 21 November 1996 using the <A=20
+href=3D"http://wwwcn.cern.ch/dci/texi2html/">texi2html</A> translator =
+version=20
+1.51.</P></BODY></HTML>
