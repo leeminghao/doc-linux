@@ -1,0 +1,246 @@
+From: <ÓÉ Microsoft Internet Explorer 5 ±£´æ>
+Subject: A garbage collector for C and C++
+Date: Sat, 9 Apr 2011 21:53:38 +0800
+MIME-Version: 1.0
+Content-Type: text/html;
+	charset="gb2312"
+Content-Transfer-Encoding: quoted-printable
+Content-Location: http://www.cs.princeton.edu/~appel/modern/c/software/boehm/gc.html
+X-MimeOLE: Produced By Microsoft MimeOLE V6.00.2900.5994
+
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" =
+"http://www.w3c.org/TR/1999/REC-html401-19991224/loose.dtd">
+<HTML><HEAD><TITLE>A garbage collector for C and C++</TITLE>
+<META http-equiv=3DContent-Type content=3D"text/html; charset=3Dgb2312">
+<META content=3D"MSHTML 6.00.2900.6058" name=3DGENERATOR></HEAD>
+<BODY>
+<H1>A garbage collector for C and C++</H1>[ This is a November 1996 copy =
+of <A=20
+href=3D"http://reality.sgi.com/employees/boehm_mti/gc.html"><TT>http://re=
+ality.sgi.com/employees/boehm_mti/gc.html</TT></A>.]=20
+
+<P>The Boehm-Demers-Weiser conservative garbage collector can be used as =
+a=20
+garbage collecting replacement for C <TT>malloc</TT> or C++ =
+<TT>new</TT>. It is=20
+also used by a number of programming language implementations that use C =
+as=20
+intermediate code. Alternatively, it may be used as a leak detector for =
+C or C++=20
+programs, though that is not its primary goal.=20
+<P>Typically several versions will be available. Usually you should =
+first try to=20
+use <A=20
+href=3D"http://reality.sgi.com/employees/boehm_mti/gc_source/gc.tar.gz"><=
+TT>gc_source/gc.tar.gz</TT></A>,=20
+which is normally an older, more stable version.=20
+<P>If that fails, try the latest explicitly numbered version in <A=20
+href=3D"http://reality.sgi.com/employees/boehm_mti/gc_source/"><TT>http:/=
+/reality.sgi.com/employees/boehm_mti/gc_source/</TT></A>.=20
+Later versions may contain additional features, platform support, or bug =
+fixes,=20
+but are likely to be less well tested. Note that versions containing the =
+letters=20
+<TT>alpha</TT> are even less well tested than others, especially on =
+non-SGI=20
+platforms.=20
+<P>The arguments for and against conservative garbage collection in C =
+and C++=20
+are briefly discussed in <A=20
+href=3D"ftp://parcftp.xerox.com/pub/gc/issues.html">issues.html</A>.=20
+<P>The garbage collector code is copyrighted by <A=20
+href=3D"http://reality.sgi.com/employees/boehm_mti">Hans-J. Boehm</A>, =
+Alan J.=20
+Demers, <A href=3D"http://www.xerox.com/">Xerox Corporation</A> and, for =
+the=20
+latest version, <A href=3D"http://www.sgi.com/">Silicon Graphics</A>. It =
+may be=20
+used and copied without payment of a fee under minimal restrictions. See =
+the=20
+README file in the distribution for more details. <B>IT IS PROVIDED AS =
+IS, WITH=20
+ABSOLUTELY NO WARRANTY EXPRESSED OR IMPLIED. ANY USE IS AT YOUR OWN =
+RISK</B>.=20
+<P>Empirically, this collector works with most unmodified C programs, =
+simply by=20
+replacing <TT>malloc</TT> with <TT>GC_malloc</TT> calls, replacing=20
+<TT>realloc</TT> with <TT>GC_realloc</TT> calls, and removing free =
+calls.=20
+Exceptions are discussed in <A=20
+href=3D"ftp://parcftp.xerox.com/pub/gc/issues.html">issues.html</A>.=20
+<P>The collector is not completely portable, but the distribution =
+includes ports=20
+to most standard PC and UNIX platforms. Win32, win32s, OS/2, and UNIX=20
+environments are supported on Intel-based PCs, as are all common UNIX=20
+workstations, MacOS, and AmigaDOS. Some ports are more polished than =
+others.=20
+Solaris threads and <A =
+href=3D"ftp://parcftp.xerox.com/pub/ppcr">PPCR</A> threads=20
+are supported, though this version of the collector itself is only =
+active in one=20
+thread at a time. For MacOS use, I recommend retrieving the latest =
+available=20
+port from <A href=3D"ftp://ftp.bdt.com/home/beard/">Patrick Beard's ftp=20
+directory</A>. (I'm not in a position to test under MacOS, and it is =
+impossible=20
+for me to update the project file.)=20
+<P>The collector uses a <A=20
+href=3D"http://www.cs.princeton.edu/~appel/modern/c/software/boehm/comple=
+xity.html">mark-sweep</A>=20
+algorithm. It provides incremental and generational collection under =
+operating=20
+systems which provide the right kind of virtual memory support. =
+(Currently this=20
+includes SunOS[45], IRIX, OSF/1, Linux, Windows NT, and Windows 95, with =
+varying=20
+restrictions.) It allows <A=20
+href=3D"http://www.cs.princeton.edu/~appel/modern/c/software/boehm/finali=
+zation.html"><I>finalization</I></A>=20
+code to be invoked when an object is collected. It can take advantage of =
+type=20
+information to locate pointers if such information is provided, but it =
+is=20
+usually used without such information. See the README and gc.h files in =
+the=20
+distribution for more details.=20
+<P>The garbage collector distribution includes a C string (<I>cord</I>) =
+package=20
+that provides for fast concatenation and substring operations on long =
+strings. A=20
+simple curses- and win32-based editor that represents the entire file as =
+a cord=20
+is included as a sample application.=20
+<P>Performance of the nonicnremental collector is typically competitive =
+with=20
+malloc/free implementations. Both space and time overhead are likely to =
+be only=20
+slightly higher for programs written for malloc/free (see Detlefs, =
+Dosser and=20
+Zorn's <A=20
+href=3D"ftp://ftp.cs.colorado.edu/pub/techreports/zorn/CU-CS-665-93.ps.Z"=
+>Memory=20
+Allocation Costs in Large C and C++ Programs</A>.) We expect that in =
+many cases=20
+the additional overhead will be more than compensated for by decreased =
+copying=20
+etc. if programs are written and tuned for garbage collection.=20
+<H1>Further Reading: </H1>The following papers describe the collector=20
+algorithms. The first two are not available electronically due to =
+copyright=20
+considerations. The others are subject to ACM copyright.=20
+<P>Boehm, H., "Dynamic Memory Allocation and Garbage Collection", =
+<I>Computers=20
+in Physics 9</I>, 3, May/June 1995, pp. 297-303. This is directed at an=20
+otherwise sophisticated audience unfamiliar with memory allocation =
+issues. The=20
+algorithmic details differ from those in the implementation. There is a =
+related=20
+letter to the editor and a minor correction in the next issue.=20
+<P>Boehm, H., and <A =
+href=3D"http://www.ubiq.com/hypertext/weiser/weiser.html">M.=20
+Weiser</A>, "Garbage Collection in an Uncooperative Environment", =
+<I>Software=20
+Practice &amp; Experience</I>, September 1988, pp. 807-820.=20
+<P>Boehm, H., A. Demers, and S. Shenker, <A=20
+href=3D"ftp://parcftp.xerox.com/pub/gc/papers/pldi91.ps.Z">"Mostly =
+Parallel=20
+Garbage Collection"</A>, Proceedings of the ACM SIGPLAN '91 Conference =
+on=20
+Programming Language Design and Implementation, <I>SIGPLAN Notices =
+26</I>, 6=20
+(June 1991), pp. 157-164.=20
+<P>Boehm, H., <A =
+href=3D"ftp://parcftp.xerox.com/pub/gc/papers/pldi93.ps.Z">"Space=20
+Efficient Conservative Garbage Collection"</A>, Proceedings of the ACM =
+SIGPLAN=20
+'91 Conference on Programming Language Design and Implementation, =
+<I>SIGPLAN=20
+Notices 28</I>, 6 (June 1993), pp. 197-206.=20
+<P>The following papers discusses language and compiler restrictions =
+necessary=20
+to guaranteed safety of conservative garbage collection. We thank John =
+Levine=20
+and JCLT for allowing us to make the second paper available =
+electronically, and=20
+providing PostScript for the final version.=20
+<P>Boehm, H., <A=20
+href=3D"http://reality.sgi.com/employees/boehm_mti/papers/pldi96.ps.gz">`=
+`Simple=20
+Garbage-Collector-Safety''</A>, Proceedings of the ACM SIGPLAN '96 =
+Conference on=20
+Programming Language Design and Implementation.=20
+<P>Boehm, H., and D. Chase, <A=20
+href=3D"http://reality.sgi.com/employees/boehm_mti/papers/boecha.ps.gz">`=
+`A=20
+Proposal for Garbage-Collector-Safe C Compilation''</A>, <I>Journal of C =
+
+Language Translation 4</I>, 2 (Decemeber 1992), pp. 126-141.=20
+<H1>Related information: </H1>The Detlefs, Dosser and Zorn's <A=20
+href=3D"ftp://ftp.cs.colorado.edu/pub/techreports/zorn/CU-CS-665-93.ps.Z"=
+>Memory=20
+Allocation Costs in Large C and C++ Programs</A>. This is a performance=20
+comparison of the Boehm-Demers-Weiser collector to malloc/free, using =
+programs=20
+written for malloc/free.=20
+<P>Joel Bartlett's <A href=3D"ftp://ftp.digital.com/pub/DEC/CCgc">mostly =
+copying=20
+conservative garbage collector for C++</A>.=20
+<P>John Ellis and David Detlef's <A=20
+href=3D"ftp://parcftp.xerox.com/pub/ellis/gc/gc.ps">Safe Efficient =
+Garbage=20
+Collection for C++</A> proposal.=20
+<P>Paul Wilson's<A href=3D"ftp://ftp.cs.utexas.edu/pub/garbage"> garbage =
+
+collection ftp archive</A> and <A=20
+href=3D"ftp://ftp.cs.utexas.edu/pub/garbage/gcsurvey.ps">GC survey</A>.=20
+<P>David Chase's <A=20
+href=3D"http://www.centerline.com/people/chase/GC/GC-faq.html">GC =
+FAQ</A>.=20
+<P>Richard Jones' <A=20
+href=3D"http://www.ukc.ac.uk/computer_science/Html/Jones/gc.html">GC =
+page</A>.=20
+<P>Henry Baker's <A =
+href=3D"ftp://ftp.netcom.com/pub/hb/hbaker/home.html">paper=20
+collection</A>.=20
+<H1>Current users:</H1>Known current users of some variant of this =
+collector=20
+include:=20
+<P>Some versions of the <A=20
+href=3D"http://www.xerox.com/Products/DocuPrint/Overview.html">Xerox =
+DocuPrint</A>=20
+printer software.=20
+<P><A href=3D"http://www.icsi.berkeley.edu/Sather/">The Berkeley Sather=20
+implementation</A>.=20
+<P><A href=3D"http://www.nag.co.uk/nagware/NCNJNKNM/rel21.html">The =
+NAGWare f90=20
+Fortran 90 compiler</A>.=20
+<P><A=20
+href=3D"ftp://ftp.inria.fr/INRIA/Projects/icsla/Implementations/index.htm=
+l">The=20
+Bigloo and Camloo Scheme and ML compilers</A> written by Manuel Serrano =
+and=20
+others.=20
+<P>Brent Benson's <A=20
+href=3D"http://ftp.cs.indiana.edu/pub/scheme-repository/imp/">libscheme</=
+A>.=20
+<P>The <A=20
+href=3D"http://www.cs.washington.edu/research/projects/cecil/www/cecil-ho=
+me.html">University=20
+of Washington Cecil Implementation</A>.=20
+<P>The <A =
+href=3D"http://progwww.vub.ac.be/prog/pools/agora/agora.html">Agora96=20
+interpreter</A> at the Free University Of Brussels.=20
+<H1>Commercially supported garbage collectors for C and C++:</H1>The =
+following=20
+organizations sell commercially supported garbage collectors for C and =
+C++:=20
+<P>- <A href=3D"http://www.geodesic.com/">Geodesic Systems</A> ((800) =
+360-8388 or=20
+sales@geodesic.com).=20
+<P>- Kevin Warne ((800) 707-7171 or kevinw@direct.ca).=20
+<P>Both are unrelated to <A href=3D"http://www.xerox.com/">Xerox =
+Corporation</A>=20
+and <A href=3D"http://www.sgi.com/">Silicon Graphics</A>.<BR>
+<P>Hans-J. Boehm<BR>(<A =
+href=3D"mailto:boehm@mti.sgi.com">boehm@mti.sgi.com</A>)=20
+<BR></P></BODY></HTML>

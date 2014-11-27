@@ -106,6 +106,29 @@ struct task_struct {
     struct tss_struct tss;
 };
 
+/* x/8tb 0x1c418 - task[0] ldt[1]:
+ *
+ * 10011111 (limit) - 0 (0-7)
+ * 00000000 (limit) - 1 (8-15)
+ * 00000000 (base)  - 2 (0-7)
+ * 00000000 (base)  - 3 (8-15)
+ * 00000000 (base)  - 4 (16-23)
+ * 1(P) 11(DPL) 1(S) 1010(type)
+ * 1(G) 1(D/B) 0(R) 0(AVL) 0000(limit: 16-20)
+ * 00000000 (base)  - 7 (24-31)
+ *
+ * x/8tb 0x1c420 - task[1] ldt[2]:
+ *
+ * 10011111
+ * 00000000
+ * 00000000
+ * 00000000
+ * 00000000
+ * 1 11 1 0011(type)
+ * 1 1 0 0 0000
+ * 00000000
+ */
+
 /*
  *  INIT_TASK is used to set up the first task table, touch at
  * your own risk!. Base=0, limit=0x9ffff (=640kB)
@@ -218,7 +241,8 @@ __asm__("pushl %%edx\n\t" \
 
 #define _get_base(addr) ({\
 unsigned long __base; \
-__asm__("movb %3,%%dh\n\t" \
+__asm__("andl $0x0,%%edx\n\t" \
+    "movb %3,%%dh\n\t"     \
     "movb %2,%%dl\n\t" \
     "shll $16,%%edx\n\t" \
     "movw %1,%%dx" \
