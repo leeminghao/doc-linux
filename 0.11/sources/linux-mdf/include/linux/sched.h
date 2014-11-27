@@ -218,12 +218,10 @@ __asm__("pushl %%edx\n\t" \
 
 #define _get_base(addr) ({\
 unsigned long __base; \
-__asm__("pushl %%edx\n\t" \
-    "movb %3,%%dh\n\t" \
+__asm__("movb %3,%%dh\n\t" \
     "movb %2,%%dl\n\t" \
     "shll $16,%%edx\n\t" \
-    "movw %1,%%dx\n\t" \
-    "pop %%edx" \
+    "movw %1,%%dx" \
     :"=d" (__base) \
     :"m" (*((addr)+2)), \
      "m" (*((addr)+4)), \
