@@ -244,13 +244,13 @@ unsigned long __base; \
 __asm__("andl $0x0,%%edx\n\t" \
     "movb %3,%%dh\n\t"     \
     "movb %2,%%dl\n\t" \
-    "shll $16,%%edx\n\t" \
+    "shlw $16,%%edx\n\t" \
     "movw %1,%%dx" \
     :"=d" (__base) \
     :"m" (*((addr)+2)), \
      "m" (*((addr)+4)), \
      "m" (*((addr)+7))); \
-__base;})
+     __base;})
 
 #define get_base(ldt) _get_base( ((char *)&(ldt)) )
 
