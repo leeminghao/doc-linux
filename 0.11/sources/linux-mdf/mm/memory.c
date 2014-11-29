@@ -57,8 +57,8 @@ __asm__("cld ; rep ; movsl"::"S" (from),"D" (to),"c" (1024))
 static unsigned char mem_map [ PAGING_PAGES ] = {0,};
 
 /*
- * Get physical address of first (actually last :-) free page, and mark it
- * used. If no free pages left, return 0.
+ * Get physical address of first (actually last :-) free page,
+ * and mark it used. If no free pages left, return 0.
  */
 unsigned long get_free_page(void)
 {

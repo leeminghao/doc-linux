@@ -102,12 +102,15 @@ static long main_memory_start = 0;
 
 struct drive_info { char dummy[32]; } drive_info;
 
-void main(void)        /* This really IS void, no error here. */
-{            /* The startup routine assumes (well, ...) this */
-/*
- * Interrupts are still disabled. Do necessary setups, then
- * enable them
+/* This really IS void, no error here.
+ * The startup routine assumes (well, ...) this
  */
+void main(void)
+{
+    /*
+     * Interrupts are still disabled. Do necessary setups, then
+     * enable them
+     */
     ROOT_DEV = ORIG_ROOT_DEV;
     drive_info = DRIVE_INFO;
     memory_end = (1<<20) + (EXT_MEM_K<<10);
@@ -136,17 +139,22 @@ void main(void)        /* This really IS void, no error here. */
     floppy_init();
     sti();
     move_to_user_mode();
-    if (!fork()) {        /* we count on this going ok */
+    int pid = fork();
+    if (pid == 0) {        /* we count on this going ok */
         init();
     }
-/*
- *   NOTE!!   For any other task 'pause()' would mean we have to get a
- * signal to awaken, but task0 is the sole exception (see 'schedule()')
- * as task 0 gets activated at every idle moment (when no other tasks
- * can run). For task0 'pause()' just means we go check if some other
- * task can run, and if not we return here.
- */
-    for(;;) pause();
+
+    /*
+     * NOTE!!   For any other task 'pause()' would mean we have to
+     * get a signal to awaken, but task0 is the sole exception
+     * (see 'schedule()')
+     * as task 0 gets activated at every idle moment (when no other
+     * tasks can run). For task0 'pause()' just means we go check
+     * if some other task can run, and if not we return here.
+     */
+    for(;;) {
+        pause();
+    }
 }
 
 static int printf(const char *fmt, ...)

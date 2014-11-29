@@ -16,6 +16,7 @@
 #include <linux/kernel.h>
 #include <asm/segment.h>
 #include <asm/system.h>
+#include <asm/memory.h>
 
 extern void write_verify(unsigned long address);
 
@@ -74,11 +75,14 @@ int copy_process(int nr,long ebp,long edi,long esi,long gs,long none,
     int i;
     struct file *f;
 
-    p = (struct task_struct *) get_free_page();
+    p = (struct task_struct *)get_free_page();
     if (!p)
         return -EAGAIN;
     task[nr] = p;
-    *p = *current;    /* NOTE! this doesn't copy the supervisor stack */
+    /* NOTE! this doesn't copy the supervisor stack */
+    //*p = *current;
+    memcpy(p, current, sizeof (struct task_struct));
+
     p->state = TASK_UNINTERRUPTIBLE;
     p->pid = last_pid;
     p->father = current->pid;
@@ -94,7 +98,7 @@ int copy_process(int nr,long ebp,long edi,long esi,long gs,long none,
     p->tss.ss0 = 0x10;
     p->tss.eip = eip;
     p->tss.eflags = eflags;
-    p->tss.eax = 0;
+    p->tss.eax = 0x0;
     p->tss.ecx = ecx;
     p->tss.edx = edx;
     p->tss.ebx = ebx;
@@ -126,6 +130,7 @@ int copy_process(int nr,long ebp,long edi,long esi,long gs,long none,
         current->root->i_count++;
     if (current->executable)
         current->executable->i_count++;
+    /* x/<n/f/u>: x/8xg */
     set_tss_desc(gdt+(nr<<1)+FIRST_TSS_ENTRY,&(p->tss));
     set_ldt_desc(gdt+(nr<<1)+FIRST_LDT_ENTRY,&(p->ldt));
     p->state = TASK_RUNNING;    /* do this last, just in case */

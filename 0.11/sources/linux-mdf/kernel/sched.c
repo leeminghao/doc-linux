@@ -107,8 +107,9 @@ void schedule(void)
     int i,next,c;
     struct task_struct ** p;
 
-/* check alarm, wake up any interruptible tasks that have got a signal */
-
+    /* check alarm, wake up any interruptible tasks that have
+     * got a signal
+     */
     for(p = &LAST_TASK ; p > &FIRST_TASK ; --p)
         if (*p) {
             if ((*p)->alarm && (*p)->alarm < jiffies) {
@@ -120,8 +121,7 @@ void schedule(void)
                 (*p)->state=TASK_RUNNING;
         }
 
-/* this is the scheduler proper: */
-
+    /* this is the scheduler proper: */
     while (1) {
         c = -1;
         next = 0;
@@ -139,6 +139,7 @@ void schedule(void)
                 (*p)->counter = ((*p)->counter >> 1) +
                         (*p)->priority;
     }
+    printk("next=%d, c=%d\n", next, c);
     switch_to(next);
 }
 
