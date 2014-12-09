@@ -16,7 +16,6 @@
 #include <linux/kernel.h>
 #include <asm/segment.h>
 #include <asm/system.h>
-#include <asm/memory.h>
 
 extern void write_verify(unsigned long address);
 
@@ -79,9 +78,19 @@ int copy_process(int nr,long ebp,long edi,long esi,long gs,long none,
     if (!p)
         return -EAGAIN;
     task[nr] = p;
+    /* *p=*current并没有将进程0的进程描述体赋值给进程p地址指向的内存，
+     * 而是赋给了以p地址为末尾、以sizeof(task_struct)为大小的一段内存。
+     * 那么问题明显了，这句c语句一定是用了rep指令，df位为向下拷贝（之前某个地方使用了std指令）。
+     * 而新编译器编译c代码时，会认为已经cld过了，因此没加修改df位的指令。所以在所有c语言汇编后使用了
+     * rep指令拷贝数据的地方（使用objdump生成的反汇编文件中，搜索rep），都加上cld内嵌汇编。
+     *
+     * CLD(CLear Direction flag)是清方向标志位，也就是使DF的值为0，在执行串操作时，
+     * 使地址按递增的方式变化，这样便于调整相关段的的当前指针。
+     * 这条指令与STD(SeT Direction flag)的执行结果相反，即置DF的值为1。
+     */
+    __asm__ volatile ("cld");
     /* NOTE! this doesn't copy the supervisor stack */
-    //*p = *current;
-    memcpy(p, current, sizeof (struct task_struct));
+    *p = *current;
 
     p->state = TASK_UNINTERRUPTIBLE;
     p->pid = last_pid;
