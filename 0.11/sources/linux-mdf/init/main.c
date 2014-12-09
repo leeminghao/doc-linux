@@ -139,8 +139,16 @@ void main(void)
     floppy_init();
     sti();
     move_to_user_mode();
-    int pid = fork();
-    if (pid == 0) {        /* we count on this going ok */
+    //int pid = fork();
+    //if (pid == 0) {        /* we count on this going ok */
+    //    init();
+    //}
+    long __res, __rs;
+    __asm__ volatile (      \
+        "int $0x80"         \
+        : "=a" (__res)      \
+        : "0" (__NR_fork));
+    if (__res == 0) {
         init();
     }
 
@@ -153,7 +161,11 @@ void main(void)
      * if some other task can run, and if not we return here.
      */
     for(;;) {
-        pause();
+        //pause();
+        __asm__ volatile (       \
+            "int $0x80"          \
+            : "=a" (__rs)       \
+            : "0" (__NR_pause));
     }
 }
 

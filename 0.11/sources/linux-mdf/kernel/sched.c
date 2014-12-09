@@ -139,7 +139,6 @@ void schedule(void)
                 (*p)->counter = ((*p)->counter >> 1) +
                         (*p)->priority;
     }
-    printk("next=%d, c=%d\n", next, c);
     switch_to(next);
 }
 
