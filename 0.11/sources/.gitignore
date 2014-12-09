@@ -11,7 +11,7 @@ build
 system
 boot
 head
-*.img
+hdc-0.11-new.img
 *.bin
 bootimage
 kernel
