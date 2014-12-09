@@ -70,92 +70,90 @@ extern void rd_load(void);
 /* This may be used only once, enforced by 'static int callable' */
 int sys_setup(void * BIOS)
 {
-	static int callable = 1;
-	int i,drive;
-	unsigned char cmos_disks;
-	struct partition *p;
-	struct buffer_head * bh;
+    static int callable = 1;
+    int i,drive;
+    unsigned char cmos_disks;
+    struct partition *p;
+    struct buffer_head * bh;
 
-	if (!callable)
-		return -1;
-	callable = 0;
+    if (!callable)
+        return -1;
+    callable = 0;
 #ifndef HD_TYPE
-	for (drive=0 ; drive<2 ; drive++) {
-		hd_info[drive].cyl = *(unsigned short *) BIOS;
-		hd_info[drive].head = *(unsigned char *) (2+BIOS);
-		hd_info[drive].wpcom = *(unsigned short *) (5+BIOS);
-		hd_info[drive].ctl = *(unsigned char *) (8+BIOS);
-		hd_info[drive].lzone = *(unsigned short *) (12+BIOS);
-		hd_info[drive].sect = *(unsigned char *) (14+BIOS);
-		BIOS += 16;
-	}
-	if (hd_info[1].cyl)
-		NR_HD=2;
-	else
-		NR_HD=1;
+    for (drive=0 ; drive<2 ; drive++) {
+        hd_info[drive].cyl = *(unsigned short *) BIOS;
+        hd_info[drive].head = *(unsigned char *) (2+BIOS);
+        hd_info[drive].wpcom = *(unsigned short *) (5+BIOS);
+        hd_info[drive].ctl = *(unsigned char *) (8+BIOS);
+        hd_info[drive].lzone = *(unsigned short *) (12+BIOS);
+        hd_info[drive].sect = *(unsigned char *) (14+BIOS);
+        BIOS += 16;
+    }
+    if (hd_info[1].cyl)
+        NR_HD=2;
+    else
+        NR_HD=1;
 #endif
-	for (i=0 ; i<NR_HD ; i++) {
-		hd[i*5].start_sect = 0;
-		hd[i*5].nr_sects = hd_info[i].head*
-				hd_info[i].sect*hd_info[i].cyl;
-	}
+    for (i=0 ; i<NR_HD ; i++) {
+        hd[i*5].start_sect = 0;
+        hd[i*5].nr_sects = hd_info[i].head*
+                hd_info[i].sect*hd_info[i].cyl;
+    }
 
-	/*
-		We querry CMOS about hard disks : it could be that
-		we have a SCSI/ESDI/etc controller that is BIOS
-		compatable with ST-506, and thus showing up in our
-		BIOS table, but not register compatable, and therefore
-		not present in CMOS.
+    /*
+      We querry CMOS about hard disks : it could be that
+      we have a SCSI/ESDI/etc controller that is BIOS
+      compatable with ST-506, and thus showing up in our
+      BIOS table, but not register compatable, and therefore
+      not present in CMOS.
 
-		Furthurmore, we will assume that our ST-506 drives
-		<if any> are the primary drives in the system, and
-		the ones reflected as drive 1 or 2.
+      Furthurmore, we will assume that our ST-506 drives
+      <if any> are the primary drives in the system, and
+      the ones reflected as drive 1 or 2.
 
-		The first drive is stored in the high nibble of CMOS
-		byte 0x12, the second in the low nibble.  This will be
-		either a 4 bit drive type or 0xf indicating use byte 0x19
-		for an 8 bit type, drive 1, 0x1a for drive 2 in CMOS.
+      The first drive is stored in the high nibble of CMOS
+      byte 0x12, the second in the low nibble.  This will be
+      either a 4 bit drive type or 0xf indicating use byte 0x19
+      for an 8 bit type, drive 1, 0x1a for drive 2 in CMOS.
 
-		Needless to say, a non-zero value means we have
-		an AT controller hard disk for that drive.
+      Needless to say, a non-zero value means we have
+      an AT controller hard disk for that drive.
+    */
 
-
-	*/
-
-	if ((cmos_disks = CMOS_READ(0x12)) & 0xf0)
-		if (cmos_disks & 0x0f)
-			NR_HD = 2;
-		else
-			NR_HD = 1;
-	else
-		NR_HD = 0;
-	for (i = NR_HD ; i < 2 ; i++) {
-		hd[i*5].start_sect = 0;
-		hd[i*5].nr_sects = 0;
-	}
-	for (drive=0 ; drive<NR_HD ; drive++) {
-		if (!(bh = bread(0x300 + drive*5,0))) {
-			printk("Unable to read partition table of drive %d\n\r",
-				drive);
-			panic("");
-		}
-		if (bh->b_data[510] != 0x55 || (unsigned char)
-		    bh->b_data[511] != 0xAA) {
-			printk("Bad partition table on drive %d\n\r",drive);
-			panic("");
-		}
-		p = 0x1BE + (void *)bh->b_data;
-		for (i=1;i<5;i++,p++) {
-			hd[i+5*drive].start_sect = p->start_sect;
-			hd[i+5*drive].nr_sects = p->nr_sects;
-		}
-		brelse(bh);
-	}
-	if (NR_HD)
-		printk("Partition table%s ok.\n\r",(NR_HD>1)?"s":"");
-	rd_load();
-	mount_root();
-	return (0);
+    if ((cmos_disks = CMOS_READ(0x12)) & 0xf0)
+        if (cmos_disks & 0x0f)
+            NR_HD = 2;
+        else
+            NR_HD = 1;
+    else
+        NR_HD = 0;
+    for (i = NR_HD ; i < 2 ; i++) {
+        hd[i*5].start_sect = 0;
+        hd[i*5].nr_sects = 0;
+    }
+    for (drive=0 ; drive<NR_HD ; drive++) {
+        if (!(bh = bread(0x300 + drive*5,0))) {
+            printk("Unable to read partition table of drive %d\n\r",
+                   drive);
+            panic("");
+        }
+        if (bh->b_data[510] != 0x55 || (unsigned char)
+            bh->b_data[511] != 0xAA) {
+            printk("Bad partition table on drive %d\n\r",drive);
+            panic("");
+        }
+        p = 0x1BE + (void *)bh->b_data;
+        for (i=1;i<5;i++,p++) {
+            hd[i+5*drive].start_sect = p->start_sect;
+            hd[i+5*drive].nr_sects = p->nr_sects;
+        }
+        brelse(bh);
+    }
+    if (NR_HD)
+        printk("Partition table%s ok.\n\r",(NR_HD>1)?"s":"");
+    rd_load();
+    mount_root();
+    return (0);
 }
 
 static int controller_ready(void)
