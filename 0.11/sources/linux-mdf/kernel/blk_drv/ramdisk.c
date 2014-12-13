@@ -81,7 +81,7 @@ void rd_load(void)
         return;
     printk("Ram disk: %d bytes, starting at 0x%x\n", rd_length,
            (int) rd_start);
-    if (MAJOR(ROOT_DEV) != 2)
+   if (MAJOR(ROOT_DEV) != 2)
         return;
     bh = breada(ROOT_DEV,block+1,block,block+2,-1);
     if (!bh) {
