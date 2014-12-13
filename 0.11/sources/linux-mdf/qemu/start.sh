@@ -1,8 +1,7 @@
 #!/bin/bash
 
-# -hdc hdc-0.11-new.img
-# -fdb diskb.img
-# -fdb rootimage-0.11
-qemu-system-i386 -m 16 -boot a -fda bootimage -fdb qemu/diskb.img
+# $1 - kernel image
+# $2 - rootfs image
+qemu-system-i386 -m 16 -boot a -fda $1 -fdb $2
 
 # bochs -f bochsrc.bxrc
