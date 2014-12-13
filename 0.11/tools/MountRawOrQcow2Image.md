@@ -53,3 +53,8 @@ killall qemu-nbd
 kpartx -d /dev/loop0
 losetup -d /dev/loop0
 ```
+
+Mount a image file to a directory:
+--------------------------------------------------------------------------------
+
+sudo mount -r -o loop rootfs.img mnt/
