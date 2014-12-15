@@ -17,3 +17,5 @@ bootimage
 kernel
 
 keyboard.s
+
+bochsout.txt
