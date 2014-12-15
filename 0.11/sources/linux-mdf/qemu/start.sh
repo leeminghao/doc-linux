@@ -32,6 +32,6 @@
 #
 # Note: The legacy format '-boot drives' is still supported but its use is discouraged as it may be removed from future versions.
 
-qemu-system-i386 -m 16 -boot a -fda $1 -fdb $2
+qemu-system-i386 -L pc-bios -m 16 -boot a -fda $1 -fdb $2
 
 # bochs -f bochsrc.bxrc
