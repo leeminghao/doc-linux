@@ -113,6 +113,9 @@ void main(void)
      */
     ROOT_DEV = ORIG_ROOT_DEV;
     drive_info = DRIVE_INFO;
+    /* | kernel | buffer | ramdisk | main memory |
+     * 0MB     end      4MB       6MB           memory_end
+     */
     memory_end = (1<<20) + (EXT_MEM_K<<10);
     memory_end &= 0xfffff000;
     if (memory_end > 16*1024*1024)
