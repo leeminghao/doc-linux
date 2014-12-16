@@ -83,14 +83,14 @@ static struct floppy_struct {
     unsigned int size, sect, head, track, stretch;
     unsigned char gap,rate,spec1;
 } floppy_type[] = {
-    {    0, 0,0, 0,0,0x00,0x00,0x00 },	/* no testing */
-    {  720, 9,2,40,0,0x2A,0x02,0xDF },	/* 360kB PC diskettes */
-    { 2400,15,2,80,0,0x1B,0x00,0xDF },	/* 1.2 MB AT-diskettes */
-    {  720, 9,2,40,1,0x2A,0x02,0xDF },	/* 360kB in 720kB drive */
-    { 1440, 9,2,80,0,0x2A,0x02,0xDF },	/* 3.5" 720kB diskette */
-    {  720, 9,2,40,1,0x23,0x01,0xDF },	/* 360kB in 1.2MB drive */
-    { 1440, 9,2,80,0,0x23,0x01,0xDF },	/* 720kB in 1.2MB drive */
-    { 2880,18,2,80,0,0x1B,0x00,0xCF },	/* 1.44MB diskette */
+    {    0, 0,0, 0,0,0x00,0x00,0x00 }, /* no testing */
+    {  720, 9,2,40,0,0x2A,0x02,0xDF }, /* 360kB PC diskettes */
+    { 2400,15,2,80,0,0x1B,0x00,0xDF }, /* 1.2 MB AT-diskettes */
+    {  720, 9,2,40,1,0x2A,0x02,0xDF }, /* 360kB in 720kB drive */
+    { 1440, 9,2,80,0,0x2A,0x02,0xDF }, /* 3.5" 720kB diskette */
+    {  720, 9,2,40,1,0x23,0x01,0xDF }, /* 360kB in 1.2MB drive */
+    { 1440, 9,2,80,0,0x23,0x01,0xDF }, /* 720kB in 1.2MB drive */
+    { 2880,18,2,80,0,0x1B,0x00,0xCF }, /* 1.44MB diskette */
 };
 /*
  * Rate is 0 for 500kb/s, 2 for 300kbps, 1 for 250kbps
