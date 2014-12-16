@@ -110,7 +110,7 @@ extern struct request request[NR_REQUEST]; // 请求队列数组(NR_REQUEST = 32
 在为建立新的请求项而搜索请求项数组时,把建立写操作时的空闲项搜索范围限制在整个请求项数组的前
 2/3范围内,而剩下的 1/3 请求项专门给读操作建立请求项使用。
 
-硬盘设备命名方式：
+硬盘设备命名方式:
 --------------------------------------------------------------------------------
 
 硬盘的主设备号是3。其它设备的主设备号分别为:
@@ -126,3 +126,16 @@ extern struct request request[NR_REQUEST]; // 请求队列数组(NR_REQUEST = 32
 Linux 0.11中两个硬盘的所有逻辑设备号如下表所示:
 
 https://github.com/leeminghao/doc-linux/blob/master/0.11/driver/hd_num.png
+
+其中 0x300 和 0x305 并不与哪个分区对应,而是代表整个硬盘。
+
+软盘驱动器的设备号:
+--------------------------------------------------------------------------------
+
+在Linux中,软驱的主设备号是2,次设备号 = TYPE*4 + DRIVE.
+其中, DRIVE 为 0-3, 分别对应软驱A,B,C或D;
+TYPE 是软驱的类型, 2 表示1.2M软驱,7表示1.44M软驱, 也即floppy.c中定义的软盘类型(floppy_type[])
+数组的索引值.
+软盘类型如下表所示:
+
+https://github.com/leeminghao/doc-linux/blob/master/0.11/driver/floppy_type.png
