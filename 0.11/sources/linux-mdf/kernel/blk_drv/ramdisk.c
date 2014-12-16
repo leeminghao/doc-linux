@@ -72,7 +72,11 @@ void rd_load(void)
 {
     struct buffer_head *bh;
     struct super_block  s;
-    int   block = 256; /* Start at block 256 */
+    /* If we start root filesystem image from other floppy, we need to change
+     * the block number to zero.
+     */
+    //int   block = 256; /* Start at block 256 */
+    int block = 0;
     int   i = 1;
     int   nblocks;
     char *cp;    /* Move pointer */
