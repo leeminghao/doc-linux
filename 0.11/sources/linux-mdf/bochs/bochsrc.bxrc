@@ -5,8 +5,8 @@ vgaromimage: file=/usr/local/share/bochs/VGABIOS-elpin-2.40
 vga: extension=vbe
 floppya: 1_44=../bootimage, status=inserted
 #floppya: 1_44=bootimage-0.11, status=inserted
-#floppyb: 1_44=rootimage-0.11, status=inserted
-floppyb: 1_44=rootimage-small, status=inserted
+floppyb: 1_44=rootimage-0.11, status=inserted
+#floppyb: 1_44=rootimage-small, status=inserted
 boot: a
 log: bochsout.txt
 #parport1: enable=0
@@ -14,7 +14,7 @@ log: bochsout.txt
 #keyboard_serial_delay: 200
 #floppy_command_delay: 50000
 #ips: 4000000
-mouse: enabled=0
+mouse: enabled=1
 private_colormap: enabled=0
 fullscreen: enabled=0
 screenmode: name="sample"
