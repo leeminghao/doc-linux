@@ -75,8 +75,8 @@ void rd_load(void)
     /* If we start root filesystem image from other floppy, we need to change
      * the block number to zero.
      */
-    //int   block = 256; /* Start at block 256 */
-    int block = 0;
+    int   block = 256; /* Start at block 256 */
+    //int block = 0;
     int   i = 1;
     int   nblocks;
     char *cp;    /* Move pointer */

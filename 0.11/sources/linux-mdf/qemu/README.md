@@ -21,3 +21,12 @@ $ file boot.img rootfs.img
 boot.img:   x86 boot sector
 rootfs.img: data
 ```
+
+Put bootimage and rootimage into a floppy:
+--------------------------------------------------------------------------------
+
+```
+$ dd if=/dev/zero of=boot.img bs=1024 count=1440    # 1.44MB
+$ dd if=bootimage of=floppy.img
+$ dd if=rootimage-small of=floppy.img seek=256 obs=1024
+```
