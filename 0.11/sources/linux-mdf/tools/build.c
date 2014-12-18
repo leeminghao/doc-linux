@@ -34,7 +34,7 @@
 
 #define SYS_SIZE 0x3000
 
-#define DEFAULT_MAJOR_ROOT 2
+#define DEFAULT_MAJOR_ROOT 0x2
 #define DEFAULT_MINOR_ROOT 0x1d
 
 /* max nr of sectors of setup: don't change unless you also change
