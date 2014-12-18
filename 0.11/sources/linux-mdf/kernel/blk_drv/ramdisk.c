@@ -118,7 +118,7 @@ void rd_load(void)
         }
         (void) memcpy(cp, bh->b_data, BLOCK_SIZE);
         brelse(bh);
-        printk("\010\010\010\010\010%4dk\n",i);
+        printk("\010\010\010\010\010%4dk",i);
         cp += BLOCK_SIZE;
         block++;
         nblocks--;
