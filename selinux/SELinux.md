@@ -60,10 +60,11 @@ SELinux 全称 Security Enhanced Linux (安全强化 Linux)，是MAC (Mandatory 
 Android系统基于Linux实现。针对传统Linux系统，NSA开发了一套安全机制SELinux，用来加强安全性。然而，由于Android系 统有着独特的用户空间运行时，因此SELinux不能完全适用于Android系统。
 
 为此，NSA同Google一起针对Android系统，在SELinux基础上开发了 SEAndroid。
-整体框架
-https://github.com/leeminghao/doc-linux/tree/master/selinux/selinux.png
 
-                                                       图1 SEAndroid整体框架图
+整体框架:
+--------------------------------------------------------------------------------
+
+https://github.com/leeminghao/doc-linux/tree/master/selinux/selinux.png
 
 如图1所示，SEAndroid安全机制包含有内核空间和用户空间两部分支持。
 
