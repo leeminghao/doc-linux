@@ -17,7 +17,7 @@ Configure
 --------------------------------------------------------------------------------
 
 ```
-$ LDFLAGS=-lpthread ./configure --with-x11 --enable-debugger --enable-disasm
+$ LDFLAGS=-lpthread ./configure --with-x11 --enable-disasm --enable-gdb-stub [--enable-debugger]
 $ make
 $ sudo make install
 ```
