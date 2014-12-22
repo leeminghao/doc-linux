@@ -167,7 +167,7 @@ int copy_page_tables(unsigned long from,unsigned long to,long size)
             continue;
         from_page_table = (unsigned long *) (0xfffff000 & *from_dir);
         if (!(to_page_table = (unsigned long *) get_free_page()))
-            return -1;	/* Out of memory, see freeing */
+            return -1;    /* Out of memory, see freeing */
         *to_dir = ((unsigned long) to_page_table) | 7;
         nr = (from==0)?0xA0:1024;
         for ( ; nr-- > 0 ; from_page_table++,to_page_table++) {
@@ -276,7 +276,7 @@ void get_empty_page(unsigned long address)
     unsigned long tmp;
 
     if (!(tmp=get_free_page()) || !put_page(tmp,address)) {
-        free_page(tmp);		/* 0 is ok - ignored */
+        free_page(tmp);        /* 0 is ok - ignored */
         oom();
     }
 }
