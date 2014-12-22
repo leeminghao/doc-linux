@@ -21,10 +21,10 @@
  * won't be any messing with the stack from main(), but we define
  * some others too.
  */
-static inline _syscall0(int,fork)
-static inline _syscall0(int,pause)
-static inline _syscall1(int,setup,void *,BIOS)
-static inline _syscall0(int,sync)
+static inline __attribute__((always_inline)) _syscall0(int,fork)
+static inline __attribute__((always_inline)) _syscall0(int,pause)
+static inline __attribute__((always_inline)) _syscall1(int,setup,void *,BIOS)
+static inline __attribute__((always_inline)) _syscall0(int,sync)
 
 #include <linux/tty.h>
 #include <linux/sched.h>
@@ -142,16 +142,7 @@ void main(void)
     floppy_init();
     sti();
     move_to_user_mode();
-    //int pid = fork();
-    //if (pid == 0) {        /* we count on this going ok */
-    //    init();
-    //}
-    long __res, __rs;
-    __asm__ volatile (      \
-        "int $0x80"         \
-        : "=a" (__res)      \
-        : "0" (__NR_fork));
-    if (__res == 0) {
+    if (!fork()) {        /* we count on this going ok */
         init();
     }
 
@@ -164,11 +155,7 @@ void main(void)
      * if some other task can run, and if not we return here.
      */
     for(;;) {
-        //pause();
-        __asm__ volatile (       \
-            "int $0x80"          \
-            : "=a" (__rs)       \
-            : "0" (__NR_pause));
+        pause();
     }
 }
 
