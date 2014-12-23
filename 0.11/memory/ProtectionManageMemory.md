@@ -96,7 +96,7 @@ setup_paging:
 在分析完这段代码之后,应该对初始化后的页目录表和页表有了一个大概的了解了,
 当这段代码运行完后内存中的映射关系应该如图所示:
 
-https://github.com/leeminghao/doc-linux/blob/master/0.11/setup_paging.png
+https://github.com/leeminghao/doc-linux/blob/master/0.11/memory/setup_paging.png
 
 接下来将内核代码段描述符gdt设置为:
 
