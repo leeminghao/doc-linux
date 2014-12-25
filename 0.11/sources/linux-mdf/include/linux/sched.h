@@ -256,6 +256,9 @@ __asm__("andl $0x0,%%edx\n\t" \
 
 #define get_base(ldt) _get_base( ((char *)&(ldt)) )
 
+/* lsll 是加载段界限的指令，即把segment 段描述符中的段界限字段装入某个寄存器
+ * (这个寄存器与__limit 结合)，函数返回__limit 加1，即段长。
+ */
 #define get_limit(segment) ({ \
 unsigned long __limit; \
 __asm__("lsll %1,%0\n\tincl %0":"=r" (__limit):"r" (segment)); \
