@@ -92,33 +92,37 @@ int copy_page_tables(unsigned long from,unsigned long to,long size)
     // 计算起始页目录项
     from_dir = (unsigned long *) ((from>>20) & 0xffc); /* _pg_dir = 0 */
     to_dir = (unsigned long *) ((to>>20) & 0xffc);
-    // 计算要共享的页表数
+    // 计算要共享的页目录项个数.
+    // 一个页目录项能够映射4MB内存，一个页表项能够映射4KB内存.
     size = ((unsigned) (size+0x3fffff)) >> 22;
     for( ; size-->0 ; from_dir++,to_dir++) {
-        if (1 & *to_dir)
+        if (1 & *to_dir) // 被共享到的页表(页目录项)已经存在
             panic("copy_page_tables: already exist");
-        if (!(1 & *from_dir))
+        if (!(1 & *from_dir)) // 被共享的页表(页目录项)不存在
             continue;
+        // 取源页表地址
         from_page_table = (unsigned long *) (0xfffff000 & *from_dir);
         if (!(to_page_table = (unsigned long *) get_free_page()))
             return -1;    /* Out of memory, see freeing */
+        // 设置该页属性(可写、用户、有效)
         *to_dir = ((unsigned long) to_page_table) | 7;
+        // 如果是前4M空间,只共享 640K(160 页 )
         nr = (from==0)?0xA0:1024;
         for ( ; nr-- > 0 ; from_page_table++,to_page_table++) {
             this_page = *from_page_table;
-            if (!(1 & this_page))
+            if (!(1 & this_page)) // 如果当前源页表项没有使用,则不用复制
                 continue;
-            this_page &= ~2;
+            this_page &= ~2;      // 将目的页表项设为只读
             *to_page_table = this_page;
-            if (this_page > LOW_MEM) {
-                *from_page_table = this_page;
+            if (this_page > LOW_MEM) { // 如果被共享页在主内存块映射表映射范围内
+                *from_page_table = this_page; // 源页表项设为只读
                 this_page -= LOW_MEM;
                 this_page >>= 12;
-                mem_map[this_page]++;
+                mem_map[this_page]++; // 共享数加一
             }
         }
     }
-    invalidate();
+    invalidate(); // 刷新页变换高速缓冲。
     return 0;
 }
 ```

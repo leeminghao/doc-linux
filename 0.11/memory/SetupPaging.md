@@ -87,11 +87,10 @@ setup_paging:
     jge 1b # 如果 eax 小于0则说明全填写好了。
     xorl %eax,%eax /* pg_dir is at 0x0000 */ # 令 eax=0x0000 0000(页目录表基址)
     movl %eax,%cr3 # 使页目录表基址寄存器 cr3 指向页目录表。/* cr3 - page directory start */
-    # 设置 cr0 的 PG 标志(位 31),启动保护模式
+    # 设置 cr0 的 PG 标志(位 31),启动分页模式.
     movl %cr0,%eax
     orl $0x80000000,%eax  # 添上 PG 标志位。
-    movl %eax,%cr0
-   /* set paging (PG) bit */
+    movl %eax,%cr0   /* set paging (PG) bit */
 ```
 
 在分析完这段代码之后,应该对初始化后的页目录表和页表有了一个大概的了解了,
