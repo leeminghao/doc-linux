@@ -189,3 +189,180 @@ int copy_mem(int nr,struct task_struct * p)
     return 0;
 }
 ```
+
+### 后期共享
+
+当子进程被fork出来后,就会和父进程分道扬镳,独立地被内核调度执行,在这个过程中父进程和
+子进程的执行是独立的,互不影响。如果父进程因为缺页新申请了物理页面,子进程是不知道的。
+示例如下:
+
+https://github.com/leeminghao/doc-linux/blob/master/0.11/memory/fork_share.png
+
+当子进程产生缺页时,子进程还是要尽量地“偷懒”,除了在被fork出来时可以与父进程共享内存外,
+父进程新申请的物理页也是可以被共享的。只要申请页被读入之后还没有被改变过就可以共享。
+其实上面说的例子中,如果是子进程申请了新的物理页,父进程同样可以拿来用,如果子进程还fork了孙进程,
+孙进程申请的页面子进程和父进程都可以使用。因为分道扬镳之后各个进程是平等的,只要大家都使用同一个
+可执行程序,谁先申请新物理页都是一样的。
+试图共享内存的算法如下:
+
+```
+算法:share_page
+输入:共享地址 address
+输出:如果成功,返回 1
+{
+    if ( 要求共享的进程 A 没有对应的可执行文件 )
+        return 0 ;
+    if (A 对应的可执行文件没有被多个进程使用 )
+        return 0 ;
+    for( 每个存在的进程 P)
+    {
+        if (P 就是要求共享的进程本身 )
+            continue ;
+        if (P 对应可执行文件与要求共享的进程的不同 )
+            continue ;
+        if (P 进程共享地址对应的物理页不存在或不干净 )
+            continue ;
+        if ( 对应物理页不属于主内存块 )
+            continue ;
+        if ( 进程 A 共享地址对应的页表不存在 ){
+            为页表分配新的物理页;
+            设置页目录项;
+        }
+        if ( 进程 A 对应的页表项已经存在 )
+            显示错误信息,死循环;
+        将进程 P 对应的页表项属性设为只读;
+        设置进程 A 对应地址的页表项;
+        物理页引用数加 1 ;
+        刷新页变换高速缓冲。
+        return 1 ;
+    }
+    return 0 ;
+}
+```
+
+对于每一个进程都应该对应一个可执行文件,当进程处于某些特定时刻(如:正在作进行初始化设置)时
+没有对应的可执行文件,当然也就不应该作共享处理。如果对应的可执行文件应用数不大于1,则表示
+没有进程与要求共享的进程共享对应的可执行文件,也不会有共享对象。
+
+接下来的任务就是找到一个符合要求的共享物理页,条件有:
+* 进程对应可执行文件相同;
+* 对应物理页在被读入之后没有被修改过。
+
+如果要求共享进程对应地址的页表项存在,但是原来是因为缺页才进入共享操作的,肯定系统出现了严重错误。
+最后进程P对应的页表项属性修改为只读,设置进程A对应地址的页表项,使它指向共享物理页,属性为只读,
+物理页对应主内存块映射数组项加1;因为页表发生了变化,所以要刷新页变换高速缓冲。
+下面是具体代码:
+
+path: mm/memory.c
+```
+/*
+ * share_page() tries to find a process that could share a page with
+ * the current one. Address is the address of the wanted page relative
+ * to the current data space.
+ *
+ * We first check if it is at all feasible by checking executable->i_count.
+ * It should be >1 if there are other tasks sharing this inode.
+ */
+/*
+* share_page() 试图找到一个进程,它可以与当前进程共享页面。参数 address 是
+* 当前数据空间中期望共享的某页面地址。
+*
+* 首先我们通过检测 executable->i_count 来查证是否可行。如果有其它任务已共享
+* 该 inode ,则它应该大于 1 。
+*/
+static int share_page(unsigned long address)
+{
+    struct task_struct ** p;
+
+    if (!current->executable) // 没有对应的可执行文件
+        return 0;
+    if (current->executable->i_count < 2) // 不是多进程共享可执行文件
+        return 0;
+    for (p = &LAST_TASK ; p > &FIRST_TASK ; --p) { // 搜索每个进程控制块指针
+        if (!*p) // 没有对应进程
+            continue;
+        if (current == *p) // 就是指向当前任务
+            continue;
+        if ((*p)->executable != current->executable) // 不是与当前任务使用同一个可执行文件
+            continue;
+        if (try_to_share(address,*p)) // 试图共享页面
+            return 1;
+    }
+    return 0;
+}
+```
+
+下面是try_to_share(address,*p)的代码:
+
+path: mm/memory.c
+```
+/*
+ * try_to_share() checks the page at address "address" in the task "p",
+ * to see if it exists, and if it is clean. If so, share it with the current
+ * task.
+ *
+ * NOTE! This assumes we have checked that p != current, and that they
+ * share the same executable.
+ */
+/*
+* try_to_share() 在任务 "p" 中检查位于地址 "address" 处的页面,看页面是否存在,是否干净。
+* 如果是干净的话,就与当前任务共享。
+* current 共享 p 已有的物理页面
+* 注意!这里我们已假定 p != 当前任务,并且它们共享同一个执行程序。
+*/
+// address 是线性地址,是一个相对于 code_start 的偏移量,在执行完这个函数后, p 和 current 偏移是
+// address 的位置共享物理内存 !!!
+static int try_to_share(unsigned long address, struct task_struct * p)
+{
+    unsigned long from;
+    unsigned long to;
+    unsigned long from_page;
+    unsigned long to_page;
+    unsigned long phys_addr;
+
+    // 计算相对于起始代码偏移的页目录项数
+    from_page = to_page = ((address>>20) & 0xffc);
+    // 加上自身的start_code的页目录项,得到 address 分别在 p 和 current 中对应的页目录项
+    from_page += ((p->start_code>>20) & 0xffc);
+    to_page += ((current->start_code>>20) & 0xffc);
+    /* is there a page-directory at from? */
+    from = *(unsigned long *) from_page; // 取页目录项的内容
+    if (!(from & 1))  // 对应页表是否存在
+        return 0;
+    // 取对应的页表项
+    from &= 0xfffff000;
+    from_page = from + ((address>>10) & 0xffc);
+    phys_addr = *(unsigned long *) from_page;
+    /* is the page clean and present? */
+    /* 页面干净并且存在吗? */
+    if ((phys_addr & 0x41) != 0x01)
+        return 0;
+    phys_addr &= 0xfffff000;
+    // 是否在主内存块中
+    if (phys_addr >= HIGH_MEMORY || phys_addr < LOW_MEM)
+        return 0;
+    // 取页目录项内容to. 如果该目录项无效(P=0), 则取空闲页面,并更新to_page所指的目录项。
+    to = *(unsigned long *) to_page; // 取目标地址的页目录项
+    if (!(to & 1)) // 如果对应页表不存在
+        if (to = get_free_page()) // 分配新的物理页
+            *(unsigned long *) to_page = to | 7;
+        else
+            oom();
+    to &= 0xfffff000; // 取目标地址的页表项
+    to_page = to + ((address>>10) & 0xffc);
+    if (1 & *(unsigned long *) to_page) // 如果对应页表项已经存在,则出错,死循环
+        panic("try_to_share: to_page already exists");
+    /* share them: write-protect */
+    /* 对它们进行共享处理:写保护 . */
+    *(unsigned long *) from_page &= ~2;
+    // 共享物理内存
+    *(unsigned long *) to_page = *(unsigned long *) from_page;
+    // 刷新页变换高速缓冲。
+    invalidate();
+    // 共享物理页引用数加1
+    phys_addr -= LOW_MEM;
+    phys_addr >>= 12;
+    mem_map[phys_addr]++;
+    return 1;
+}
+```
