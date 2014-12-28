@@ -15,7 +15,7 @@ log: bochsout.txt
 #keyboard_serial_delay: 200
 #floppy_command_delay: 50000
 #ips: 4000000
-mouse: enabled=1
+mouse: enabled=0
 private_colormap: enabled=0
 fullscreen: enabled=0
 screenmode: name="sample"
