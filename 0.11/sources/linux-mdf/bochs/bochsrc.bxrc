@@ -10,7 +10,7 @@ floppya: 1_44="bootimage-0.11-hd", status=inserted
 
 #floppyb: 1_44=rootimage-0.11, status=inserted
 #floppyb: 1_44=rootimage-small, status=inserted
-floppyb: 1_44=diskb.img, status=inserted
+#floppyb: 1_44=diskb.img, status=inserted
 
 ata0-master: type=disk, path="hdc-0.11-new.img", mode=flat, cylinders=410, heads=16, spt=38
 
