@@ -111,6 +111,7 @@ void main(void)
      * Interrupts are still disabled. Do necessary setups, then
      * enable them
      */
+    __asm__ volatile ("cld");
     ROOT_DEV = ORIG_ROOT_DEV;
     drive_info = DRIVE_INFO;
     /* | kernel | buffer | ramdisk | main memory |
