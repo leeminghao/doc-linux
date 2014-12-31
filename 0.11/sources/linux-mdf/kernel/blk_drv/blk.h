@@ -125,7 +125,7 @@ static inline void end_request(int uptodate)
 }
 
 #define INIT_REQUEST                                    \
-    repeat:                                             \
+repeat:                                                 \
     if (!CURRENT)                                       \
         return;                                         \
     if (MAJOR(CURRENT->dev) != MAJOR_NR)                \
@@ -134,7 +134,6 @@ static inline void end_request(int uptodate)
         if (!CURRENT->bh->b_lock)                       \
             panic(DEVICE_NAME ": block not locked");    \
     }
-
 #endif
 
 #endif
