@@ -108,14 +108,17 @@ static struct buffer_head * find_entry(struct m_inode ** dir,
     *res_dir = NULL;
     if (!namelen)
         return NULL;
-/* check for '..', as we might have to do some "magic" for it */
+    /* check for '..', as we might have to do some "magic" for it */
     if (namelen==2 && get_fs_byte(name)=='.' && get_fs_byte(name+1)=='.') {
-/* '..' in a pseudo-root results in a faked '.' (just change namelen) */
+        /* '..' in a pseudo-root results in a faked '.'
+         * (just change namelen) */
         if ((*dir) == current->root)
             namelen=1;
         else if ((*dir)->i_num == ROOT_INO) {
-/* '..' over a mount-point results in 'dir' being exchanged for the mounted
-   directory-inode. NOTE! We set mounted, so that we can iput the new dir */
+            /* '..' over a mount-point results in 'dir' being
+             * exchanged for the mounted directory-inode.
+             * NOTE! We set mounted, so that we can iput the new dir
+             */
             sb=get_super((*dir)->i_dev);
             if (sb->s_imount) {
                 iput(*dir);
