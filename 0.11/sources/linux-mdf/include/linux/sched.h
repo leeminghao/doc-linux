@@ -241,14 +241,25 @@ __asm__("pushl %%edx\n\t" \
 #define set_base(ldt,base) _set_base( ((char *)&(ldt)) , base )
 #define set_limit(ldt,limit) _set_limit( ((char *)&(ldt)) , (limit-1)>>12 )
 
-#define _get_base(addr) ({\
+/* #define _get_base(addr) ({                   \
 unsigned long __base; \
-__asm__("andl $0x0,%%edx\n\t" \
-    "movb %3,%%dh\n\t"     \
+__asm__("movb %3,%%dh\n\t"     \
     "movb %2,%%dl\n\t" \
-    "shlw $16,%%edx\n\t" \
+    "shll $16,%%edx\n\t" \
     "movw %1,%%dx" \
     :"=d" (__base) \
+    :"m" (*((addr)+2)), \
+     "m" (*((addr)+4)), \
+     "m" (*((addr)+7))); \
+     __base;})*/
+
+#define _get_base(addr) ({\
+unsigned long __base; \
+__asm__("movb %3,%%bh\n\t"     \
+    "movb %2,%%bl\n\t" \
+    "shll $16,%%ebx\n\t" \
+    "movw %1,%%bx" \
+    :"=b" (__base) \
     :"m" (*((addr)+2)), \
      "m" (*((addr)+4)), \
      "m" (*((addr)+7))); \
