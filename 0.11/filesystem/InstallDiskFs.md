@@ -272,6 +272,7 @@ int sys_setup(void * BIOS)
     /* 一个物理硬盘最多可以分为4各逻辑盘,0是物理盘,1~4是逻辑盘,共5个.
      * 第1个物理盘是0 * 5, 第2个物理盘是1 * 5.
      */
+    // 设置每个硬盘的起始扇区号和扇区总数。
     for (i=0 ; i<NR_HD ; i++) {
         hd[i*5].start_sect = 0;
         hd[i*5].nr_sects = hd_info[i].head*
@@ -297,7 +298,18 @@ int sys_setup(void * BIOS)
         Needless to say, a non-zero value means we have
         an AT controller hard disk for that drive.
     */
-
+    /*
+     * 我们对 CMOS 有关硬盘的信息有些怀疑:可能会出现这样的情况,我们有一块 SCSI/ESDI/等的
+     * 控制器,它是以 ST-506 方式与 BIOS 兼容的,因而会出现在我们的 BIOS 参数表中,但却又不
+     * 是寄存器兼容的,因此这些参数在 CMOS 中又不存在。
+     * 另外,我们假设 ST-506 驱动器(如果有的话)是系统中的基本驱动器,也即以驱动器 1 或 2
+     * 出现的驱动器。
+     * 第 1 个驱动器参数存放在 CMOS 字节 0x12 的高半字节中,第 2 个存放在低半字节中。该 4 位字节
+     * 信息可以是驱动器类型,也可能仅是 0xf。0xf 表示使用 CMOS 中 0x19 字节作为驱动器 1 的 8 位
+     * 类型字节,使用 CMOS 中 0x1A 字节作为驱动器 2 的类型字节。
+     * 总之,一个非零值意味着我们有一个 AT 控制器硬盘兼容的驱动器。
+     */
+    // 这里根据上述原理来检测硬盘到底是否是 AT 控制器兼容的。
     if ((cmos_disks = CMOS_READ(0x12)) & 0xf0)
         if (cmos_disks & 0x0f)
             NR_HD = 2;
@@ -311,6 +323,19 @@ int sys_setup(void * BIOS)
     }
 
     /* 第一个物理盘号是0x300, 第2个是0x305, 读每个物理硬盘的0号块，即引导块, 有分区信息 */
+    /* MBR(master boot record)扇区：
+     * 计算机在按下power键以后，开始执行主板bios程序。进行完一系列检测和配置以后。
+     * 开始按bios中设定的系统引导顺序引导系统。假定现在是硬盘。Bios执行完自己的程序
+     * 后如何把执行权交给硬盘呢。交给硬盘后又执行存储在哪里的程序呢。
+     * 其实，称为mbr的一段代码起着举足轻重的作用。MBR(master boot record),即主引导记录，
+     * 有时也称主引导扇区。位于整个硬盘的0柱面0磁头1扇区(可以看作是硬盘的第一个扇区)，
+     * bios在执行自己固有的程序以后就会jump到mbr中的第一条指令。将系统的控制权交由mbr来执行。
+     * 在总共512byte的主引导记录中，MBR的引导程序占了其中的前446个字节(偏移0H~偏移1BDH)，
+     * 随后的64个字节(偏移1BEH~偏移1FDH)为DPT(Disk PartitionTable，硬盘分区表)，
+     * 最后的两个字节“55 AA”(偏移1FEH~偏移1FFH)是分区有效结束标志。
+     * MBR不随操作系统的不同而不同，意即不同的操作系统可能会存在相同的MBR，
+     * 即使不同，MBR也不会夹带操作系统的性质。具有公共引导的特性。
+     */
     for (drive=0 ; drive<NR_HD ; drive++) {
         if (!(bh = bread(0x300 + drive*5,0))) {
             printk("Unable to read partition table of drive %d\n\r",
@@ -322,7 +347,7 @@ int sys_setup(void * BIOS)
             printk("Bad partition table on drive %d\n\r",drive);
             panic("");
         }
-        p = 0x1BE + (void *)bh->b_data;
+        p = 0x1BE + (void *)bh->b_data; // 分区表位于硬盘第1扇区的 0x1BE 处。
         for (i=1;i<5;i++,p++) {
             hd[i+5*drive].start_sect = p->start_sect;
             hd[i+5*drive].nr_sects = p->nr_sects;
