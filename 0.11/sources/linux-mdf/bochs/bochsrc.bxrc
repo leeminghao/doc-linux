@@ -6,8 +6,8 @@ vgaromimage: file=/usr/local/share/bochs/VGABIOS-elpin-2.40
 vga: extension=vbe
 #floppya: 1_44=floppy.img, status=inserted
 #floppya: 1_44=bootimage-0.11, status=inserted
-floppya: 1_44="bootimage-0.11-hd", status=inserted
-#floppya: 1_44="../bootimage", status=inserted
+#floppya: 1_44="bootimage-0.11-hd", status=inserted
+floppya: 1_44="../bootimage", status=inserted
 
 #floppyb: 1_44=rootimage-0.11, status=inserted
 #floppyb: 1_44=rootimage-small, status=inserted
