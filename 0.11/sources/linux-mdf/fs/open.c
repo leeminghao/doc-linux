@@ -159,7 +159,7 @@ int sys_open(const char * filename,int flag,int mode)
         f->f_count=0;
         return i;
     }
-/* ttys are somewhat special (ttyxx major==4, tty major==5) */
+    /* ttys are somewhat special (ttyxx major==4, tty major==5) */
     if (S_ISCHR(inode->i_mode))
         if (MAJOR(inode->i_zone[0])==4) {
             if (current->leader && current->tty<0) {
@@ -173,7 +173,7 @@ int sys_open(const char * filename,int flag,int mode)
                 f->f_count=0;
                 return -EPERM;
             }
-/* Likewise with block-devices: check for floppy_change */
+    /* Likewise with block-devices: check for floppy_change */
     if (S_ISBLK(inode->i_mode))
         check_disk_change(inode->i_zone[0]);
     f->f_mode = inode->i_mode;
