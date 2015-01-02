@@ -478,17 +478,20 @@ https://github.com/leeminghao/doc-linux/blob/master/0.11/process/argv_env.png
 
 下面我们以将环境变量和参数复制为例来讲解p指针的移动过程:
 ```
-    // 如果sh_bang标志没有设置,则复制指定个数的环境变量字符串和参数到参数和环境空间中。
-    // 若sh_bang标志已经设置,则表明是将运行脚本程序,此时环境变量页面已经复制,无须再复制。
-    if (!sh_bang) {
-        p = copy_strings(envc,envp,page,p,0); // 将环境变量复制到进程空间
-        p = copy_strings(argc,argv,page,p,0); // 将参数复制到进程空间
-        // 如果 p=0,则表示环境变量与参数空间页面已经被占满,容纳不下了。转至出错处理处。
-        if (!p) {
-            retval = -ENOMEM;
-            goto exec_error2;
-        }
+// 设置参数或环境变量在进程空间的初始偏移指针
+unsigned long p = PAGE_SIZE*MAX_ARG_PAGES-4;
+
+// 如果sh_bang标志没有设置,则复制指定个数的环境变量字符串和参数到参数和环境空间中。
+// 若sh_bang标志已经设置,则表明是将运行脚本程序,此时环境变量页面已经复制,无须再复制。
+if (!sh_bang) {
+    p = copy_strings(envc,envp,page,p,0); // 将环境变量复制到进程空间
+    p = copy_strings(argc,argv,page,p,0); // 将参数复制到进程空间
+    // 如果 p=0,则表示环境变量与参数空间页面已经被占满,容纳不下了。转至出错处理处。
+    if (!p) {
+        retval = -ENOMEM;
+        goto exec_error2;
     }
+}
 ```
 
 ### copy_strings
@@ -590,6 +593,66 @@ static unsigned long copy_strings(int argc,char ** argv,unsigned long *page,
 }
 ```
 
+### change_ldt
+
+change_ldt用于修改局部描述符表中的描述符基址和段限长,并将参数和环境空间页面放置在数据段末端。
+
+path: fs/exec.c
+```
+// 重新设置进程2的局部描述符表:
+// 根据a_text修改局部表中描述符基址和段限长,并将参数和环境空间页面放置在数据段末端。
+// 执行下面语句之后, p此时是以数据段起始处为原点的偏移值,仍指向参数和环境空间数据开始处,
+// 也即转换成为堆栈的指针。
+p += change_ldt(ex.a_text,page)-MAX_ARG_PAGES*PAGE_SIZE;
+```
+
+path: fs/exec.c
+```
+// 参数: text_size - 执行文件头部中a_text字段给出的代码段长度值; page - 参数和环境空间页面指针数组。
+// 返回: 数据段限长值(64MB)。
+static unsigned long change_ldt(unsigned long text_size,unsigned long * page)
+{
+    unsigned long code_limit,data_limit,code_base,data_base;
+    int i;
+
+    // 根据执行文件头部 a_text 值,计算以页面长度为边界的代码段限长。并设置数据段长度为 64MB
+    code_limit = text_size+PAGE_SIZE -1;
+    code_limit &= 0xFFFFF000;
+    data_limit = 0x4000000;
+
+    // 取当前进程中局部描述符表代码段描述符中代码段基址,代码段基址与数据段基址相同。
+    code_base = get_base(current->ldt[1]);
+    data_base = code_base;
+
+    // 重新设置局部表中代码段和数据段描述符的基址和段限长。
+    set_base(current->ldt[1],code_base);
+    set_limit(current->ldt[1],code_limit);
+    set_base(current->ldt[2],data_base);
+    set_limit(current->ldt[2],data_limit);
+
+    /* make sure fs points to the NEW data segment */
+    /* 要确信 fs 段寄存器已指向新的数据段 */
+    // fs 段寄存器中放入局部表数据段描述符的选择符(0x17)。
+    __asm__("pushl $0x17\n\tpop %%fs"::);
+
+    // 将参数和环境空间已存放数据的页面(共可有MAX_ARG_PAGES页,128kB)放到数据段线性地址的
+    // 末端。是调用函数 put_page()进行操作的
+    data_base += data_limit;
+    for (i=MAX_ARG_PAGES-1 ; i>=0 ; i--) {
+        data_base -= PAGE_SIZE;
+        /* 因为page[31]在为参数和环境变量空间调用get_free_page给他分配了一个空闲的
+         * 物理页面用来保存参数和环境变量。但是进程2是采用线性地址来获取对应的参数和
+         * 环境变量的，所以要将物理页面映射到线性地址上,就应该修改页目录表和页表的相关内容,
+         * 这样进程才能通过线性地址找到相应的物理页面。put_page函数所做的工作正是将线性地址映射到物理地址
+         * page[i]指向的页面是真实物理地址页面，data_base指向的是线性地址页面.
+         */
+        if (page[i])
+            put_page(page[i],data_base);
+    }
+    return data_limit;
+}
+```
+
 ### create_tables
 
 ```
@@ -597,8 +660,8 @@ static unsigned long copy_strings(int argc,char ** argv,unsigned long *page,
 * create_tables()函数在进程空间内存中解析环境变量和参数字符串,由此
 * 创建指针表,并将它们的地址放到"堆栈"上,然后返回新栈的指针值。
 */
-// 参数:p - 以数据段为起点的参数和环境信息偏移指针;argc - 参数个数;envc -环境变量数。
-// 返回:栈指针。
+// 参数: p - 以数据段为起点的参数和环境信息偏移指针; argc - 参数个数; envc -环境变量数。
+// 返回: 栈指针。
 static unsigned long * create_tables(char * p,int argc,int envc)
 {
     unsigned long *argv,*envp;
