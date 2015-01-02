@@ -7,6 +7,7 @@ vga: extension=vbe
 #floppya: 1_44=floppy.img, status=inserted
 #floppya: 1_44=bootimage-0.11, status=inserted
 #floppya: 1_44="bootimage-0.11-hd", status=inserted
+#floppya: 1_44="hdboot.img", status=inserted
 floppya: 1_44="../bootimage", status=inserted
 
 #floppyb: 1_44=rootimage-0.11, status=inserted
