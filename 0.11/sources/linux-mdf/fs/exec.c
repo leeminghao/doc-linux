@@ -316,7 +316,7 @@ restart_interp:
             goto exec_error2;
         }
     }
-/* OK, This is the point of no return */
+    /* OK, This is the point of no return */
     if (current->executable)
         iput(current->executable);
     current->executable = inode;
