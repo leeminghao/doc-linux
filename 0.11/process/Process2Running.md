@@ -85,7 +85,7 @@ sys_execve:
     lea EIP(%esp),%eax
     pushl %eax
     call do_execve
-    addl $4,%esp
+    addl $4,%esp  # 丢弃调用时压入栈的 EIP 值。
     ret
 ```
 
@@ -426,8 +426,20 @@ int do_execve(unsigned long * eip,long tmp,char * filename,
     // iret指令将弹出这些堆栈数据并使得CPU去执行新的执行程序,因此不会返回到原调用系统中断的程序中去.
     // 在这里用shell程序的起始地址设置eip, 用进程2新的堆栈地址值设置esp, 这样软中断从iret返回后
     // 进程2将从shell程序开始执行.
-    eip[0] = ex.a_entry;        /* eip, magic happens :-) */
-    eip[3] = p;                 /* esp, stack pointer */
+    // int 0x80导致CPU硬件自动将ss、esp、eflags、cs、eip的值压栈
+    // (gdb) p/x eip[0] - eip
+    // $6 = 0x0
+    // (gdb) p/x eip[1] - cs
+    // $7 = 0xf
+    // (gdb) p/x eip[2] - eflags
+    // $8 = 0x202
+    // (gdb) p/x eip[3] - esp
+    // $9 = 0x3ffffd0
+    // (gdb) p/x eip[4] - ss
+    // $10 = 0x17
+    eip[0] = ex.a_entry;  /* eip, magic happens :-) */ // 设置进程2开始执行的EIP.
+    eip[3] = p;           /* esp, stack pointer */ // 设置进程2的栈顶指针.
+    //
     return 0;
 exec_error2:
     iput(inode);
@@ -437,6 +449,12 @@ exec_error1:
     return(retval);
 }
 ```
+
+shell程序开始执行后，其线性地址空间对应的程序内容并未加载，也就不存在相应的页面，
+因此就会产生一个"页异常"中断.此中断会进一步调用"缺页中断"处理程序来分配该页面，并
+加载一页shell程序. 执行流程如下所示:
+
+https://github.com/leeminghao/doc-linux/blob/master/0.11/memory/PageFault.md
 
 总结补充
 --------------------------------------------------------------------------------
