@@ -719,3 +719,11 @@ envc ,在新的程序堆栈中创建环境和参数变量指针表,并返回此�
 针表的形式见下图所示：
 
 https://github.com/leeminghao/doc-linux/blob/master/0.11/process/create_tables.png
+
+在经过上述步骤之后，我们可以看到一个可执行程序进程的代码和数据在虚拟的线性地址空间中的
+分布情况,如下图所示:
+
+https://github.com/leeminghao/doc-linux/blob/master/0.11/process/proc_lineaddr_layout.png
+
+每个进程在线性地址中都是从nr*64M的地址位置开始(nr是任务号),占用线性地址空间的范围是64M。
+其中最后部的环境参数数据块最长为128K,其左面起始堆栈指针。在进程创建时bss段的第一页被初始化为全0。
