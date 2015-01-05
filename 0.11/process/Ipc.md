@@ -24,3 +24,13 @@ https://github.com/leeminghao/doc-linux/blob/master/0.11/process/pipe.jpeg
 下面我们通过实例对这两部分内容进行介绍。如下所示：
 
 https://github.com/leeminghao/doc-linux/blob/master/0.11/process/Pipe.md
+
+信号机制
+--------------------------------------------------------------------------------
+
+信号机制是Linux 0.11为进程提供的一套“局部的类中断机制”，即在进程执行的过程中，如果系统发现
+某个进程接收到了信号，就暂时打断进程的执行，转而去执行该进程的信号处理程序，处理完毕后，
+再从进程“被打断”之处继续执行。
+下面我们通过实例对这部分内容进行介绍。如下所示：
+
+https://github.com/leeminghao/doc-linux/blob/master/0.11/process/Signal.md
