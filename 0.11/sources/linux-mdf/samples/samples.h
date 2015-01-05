@@ -22,4 +22,32 @@ static inline __attribute__((always_inline)) int test_pipe(void)
     }
 }
 
+#include <signal.h>
+
+static inline void sig_usr(int signo)
+{
+    if (signo == SIGUSR1) {
+        printf("received SIGUSR1\n");
+    } else {
+        printf("received %d\n", signo);
+    }
+    _exit(0);
+}
+
+static inline __attribute__((always_inline)) int test_signal(void)
+{
+    pid_t pid;
+
+    if ((pid = fork()) < 0) {
+        return -1;
+    } else if (pid == 0) {
+        signal(SIGUSR1, sig_usr);
+        for (;;)
+            pause();
+        return 0;
+    } else {
+        return kill(2, SIGUSR1);
+    }
+}
+
 #endif /* _SAMPLES_H */

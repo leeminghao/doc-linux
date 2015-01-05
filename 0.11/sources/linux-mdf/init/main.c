@@ -194,7 +194,9 @@ void init(void)
         NR_BUFFERS*BLOCK_SIZE);
     printf("Free mem: %d bytes\n\r",memory_end-main_memory_start);
 #if WITH_SAMPLES
-    int ret = test_pipe();
+    //int ret = test_pipe();
+    //printf("ret = %d\n\r", ret);
+    int ret = test_signal();
     printf("ret = %d\n\r", ret);
 #endif /* WITH_SAMPLES */
     if (!(pid=fork())) {

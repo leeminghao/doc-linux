@@ -25,7 +25,8 @@ CPP	=gcc -E -nostdinc -I../include -m32
 	-c -o $*.o $<
 
 OBJS  = ctype.o _exit.o open.o close.o errno.o write.o dup.o setsid.o \
-	execve.o wait.o string.o malloc.o read.o pipe.o
+	execve.o wait.o string.o malloc.o \
+	read.o pipe.o kill.o signal.o
 
 lib.a: $(OBJS)
 	$(AR) rcs lib.a $(OBJS)
@@ -74,4 +75,12 @@ write.s write.o : write.c ../include/unistd.h ../include/sys/stat.h \
 read.s read.o : read.c ../include/unistd.h ../include/sys/stat.h \
   ../include/sys/types.h ../include/sys/times.h ../include/sys/utsname.h \
   ../include/utime.h
-pipe.s pipe.o : pipe.c
+pipe.s pipe.o : pipe.c ../include/unistd.h ../include/sys/stat.h \
+  ../include/sys/types.h ../include/sys/times.h ../include/sys/utsname.h \
+  ../include/utime.h
+signal.s signal.o : signal.c ../include/unistd.h ../include/sys/stat.h \
+  ../include/sys/types.h ../include/sys/times.h ../include/sys/utsname.h \
+  ../include/utime.h
+kill.s kill.o : kill.c ../include/unistd.h ../include/sys/stat.h \
+  ../include/sys/types.h ../include/sys/times.h ../include/sys/utsname.h \
+  ../include/utime.h
