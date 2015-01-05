@@ -177,6 +177,11 @@ static char * envp_rc[] = { "HOME=/", NULL };
 static char * argv[] = { "-/bin/sh",NULL };
 static char * envp[] = { "HOME=/usr/root", NULL };
 
+#define WITH_SAMPLES 1
+#if WITH_SAMPLES
+#include "../samples/samples.h"
+#endif /* WITH_SAMPLES */
+
 void init(void)
 {
     int pid,i;
@@ -188,6 +193,10 @@ void init(void)
     printf("%d buffers = %d bytes buffer space\n\r",NR_BUFFERS,
         NR_BUFFERS*BLOCK_SIZE);
     printf("Free mem: %d bytes\n\r",memory_end-main_memory_start);
+#if WITH_SAMPLES
+    int ret = test_pipe();
+    printf("ret = %d\n\r", ret);
+#endif /* WITH_SAMPLES */
     if (!(pid=fork())) {
         close(0);
         if (open("/etc/rc",O_RDONLY,0))
