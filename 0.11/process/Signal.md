@@ -15,7 +15,6 @@ static inline void sig_usr(int signo)
     } else {
         printf("received %d\n", signo);
     }
-    _exit(0);
 }
 
 static inline __attribute__((always_inline)) int test_signal(void)
@@ -26,8 +25,7 @@ static inline __attribute__((always_inline)) int test_signal(void)
         return -1;
     } else if (pid == 0) {
         signal(SIGUSR1, sig_usr);
-        for (;;)
-            pause();
+        pause();
         return 0;
     } else {
         return kill(2, SIGUSR1);
