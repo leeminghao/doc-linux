@@ -153,22 +153,41 @@ endif
 
 最终所有配置信息将保存在.config文件中.
 
-Make:
+Make -- u-boot:
 ------------------------------------------------------------
-
-all --> $(ALL-y) --> [u-boot.bin ...] --> u-boot
 
 path: Makefile
 ```
+libs-y		:= $(patsubst %/, %/built-in.o, $(libs-y))
+...
+u-boot-main := $(libs-y)
+...
+# Rule to link u-boot
+# May be overridden by arch/$(ARCH)/config.mk
+quiet_cmd_u-boot__ ?= LD      $@
+      cmd_u-boot__ ?= $(LD) $(LDFLAGS) $(LDFLAGS_u-boot) -o $@ \
+      -T u-boot.lds $(u-boot-init)                             \
+      --start-group $(u-boot-main) --end-group                 \
+      $(PLATFORM_LIBS) -Map u-boot.map
+...
 u-boot:	$(u-boot-init) $(u-boot-main) u-boot.lds
 	$(call if_changed,u-boot__)
 ifeq ($(CONFIG_KALLSYMS),y)
 	$(call cmd,smap)
 	$(call cmd,u-boot__) common/system_map.o
 endif
+...
+u-boot.bin: u-boot FORCE
+	$(call if_changed,objcopy)
+	$(call DO_STATIC_RELA,$<,$@,$(CONFIG_SYS_TEXT_BASE))
+	$(BOARD_SIZE_CHECK)
+...
+# Always append ALL so that arch config.mk's can add custom ones
+ALL-y += u-boot.srec u-boot.bin System.map binary_size_check
+...
+all:		$(ALL-y)
+...
 ```
-
-u-boot --> $(u-boot-main) --> $(libs-y) --> $(builtin-target)
 
 Supplements:
 ------------------------------------------------------------
