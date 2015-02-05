@@ -263,3 +263,12 @@ $ cd ..
 $ mkbootfs ramdisk | gzip > ramdisk-new.gz
 $ mkbootimg --cmdline 'console=ttyHSL0 androidboot.hardware=pyramid no_console_suspend=1' --kernel boot.img-zImage --ramdisk ramdisk-new.gz --base 0x48000000 --pagesize 2048 -o boot-new.img
 ```
+
+mount system.img
+----------------------------------------
+
+```
+1. mkdir sys
+2. ./simg2img system.img sys.raw
+3. sudo mount -t ext4 -o loop sys.raw sys/
+```
