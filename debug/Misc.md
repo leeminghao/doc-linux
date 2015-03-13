@@ -272,3 +272,10 @@ mount system.img
 2. ./simg2img system.img sys.raw
 3. sudo mount -t ext4 -o loop sys.raw sys/
 ```
+
+ssh
+----------------------------------------
+
+```
+$ ssh guest@10.237.14.123
+```
