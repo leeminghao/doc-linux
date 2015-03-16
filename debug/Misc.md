@@ -7,6 +7,7 @@ git
 ```
 git remote -v
 git remote add pis ssh://git@git.mioffice.cn/mionew0/android/platform/frameworks/native
+git push ssh://liminghao@git.xiaomi.com:29418/miui/bootable/recovery kk:远程分支名（比如l-alpha）
 ```
 
 
