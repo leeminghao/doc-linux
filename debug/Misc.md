@@ -285,10 +285,11 @@ java
 ----------------------------------------
 
 ```
-sudo update-alternatives --config javac
-sudo update-alternatives --config java
-sudo update-alternatives --config javaws
-sudo update-alternatives --config javap
-sudo update-alternatives --config jar
-sudo update-alternatives --config jarsigner
+$ ls -la /etc/alternatives/java* && ls -la /etc/alternatives/jar
+$ sudo update-alternatives --config javac
+$ sudo update-alternatives --config java
+$ sudo update-alternatives --config javaws
+$ sudo update-alternatives --config javap
+$ sudo update-alternatives --config jar
+$ sudo update-alternatives --config jarsigner
 ```
