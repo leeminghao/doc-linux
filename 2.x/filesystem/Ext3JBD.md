@@ -69,4 +69,4 @@ jbd的思想就是原来内核读写磁盘的逻辑保持不变，但是对于�
 其中绿色的箭头表示正常的磁盘读写，紫色的箭头表示由jbd将元数据块额外写一份到磁盘日志中，红色箭头表示恢复时，由jbd将日志
 中的数据写回磁盘的原始位置。
 
-https://github.com/leeminghao/doc-linux/new/master/2.x/filesystem/
+https://github.com/leeminghao/doc-linux/new/master/2.x/filesystem/jbd.jpg
