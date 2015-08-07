@@ -27,7 +27,7 @@ C 函数调用机制
 在函数执行过程中: **栈指针esp会随着数据的入栈和出栈而移动，因此函数中对大部分数据的访问都基于帧指针ebp进行**
 如下图所示:
 
-https://github.com/leeminghao/doc-linux/blob/master/linker/stack_frame.jpg
+https://github.com/leeminghao/doc-linux/blob/master/linker/StackOverFlow/stack_frame.jpg
 
 对于函数A调用函数B的情况: 传递给B的参数包含在A的栈帧中。当A调用B时，
 函数A的返回地址（调用返回后继续执行的指令地址）被压入栈中，栈中该位置也明确指明了A栈帧的结束处。
@@ -170,7 +170,7 @@ main:
 
 在分析完上述代码之后我们来分析一下main函数执行前后的栈帧结构，如下所示:
 
-https://github.com/leeminghao/doc-linux/blob/master/linker/main_swap.jpg
+https://github.com/leeminghao/doc-linux/blob/master/linker/StackOverFlow/main_swap.jpg
 
 main函数也是一个函数
 --------------------------------------------------------------------------------
@@ -251,7 +251,7 @@ gcc的配置文件specfile指定了这种链接顺序。
 
 更详细有关链接的过程分析可参考:
 
-https://github.com/leeminghao/doc-linux/blob/master/linker/LinkerAndLoader.md
+https://github.com/leeminghao/doc-linux/blob/master/linker/StackOverFlow/LinkerAndLoader.md
 
 Linux下进程地址空间的布局及堆栈帧的结构
 --------------------------------------------------------------------------------
@@ -264,7 +264,7 @@ Linux下进程地址空间的布局及堆栈帧的结构
 
 如下所示为Linux下进程的地址空间布局：
 
-https://github.com/leeminghao/doc-linux/blob/master/linker/proc_address_layout.gif
+https://github.com/leeminghao/doc-linux/blob/master/linker/StackOverFlow/proc_address_layout.gif
 
 * 首先，execve(2)会负责为进程代码段和数据段建立映射，真正将代码段和数据段的内容读入内存是由系统
 的缺页异常处理程序按需完成的;
@@ -279,7 +279,7 @@ https://github.com/leeminghao/doc-linux/blob/master/linker/proc_address_layout.g
 
 实际上堆栈中存放的就是与每个函数对应的堆栈帧: 当函数调用发生时，新的堆栈帧被压入堆栈；当函数返回时，相应的堆栈帧从堆栈中弹出。典型的堆栈帧结构下图所示:
 
-https://github.com/leeminghao/doc-linux/blob/master/linker/stack_frame.gif
+https://github.com/leeminghao/doc-linux/blob/master/linker/StackOverFlow/stack_frame.gif
 
 堆栈的布局大致如下所示:
 
@@ -491,4 +491,4 @@ main:
 使用的-fno-stack-protector选项，这是为了去除堆栈缓冲区溢出而设置的。
 下面我们先来了解下添加这个选项去除gcc编译器对堆栈缓冲区溢出保护的危害.
 
-https://github.com/leeminghao/doc-linux/blob/master/linker/StackBufferOverflower.md
+https://github.com/leeminghao/doc-linux/blob/master/linker/StackOverFlow/StackBufferOverflower.md

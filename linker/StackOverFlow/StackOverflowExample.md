@@ -379,7 +379,7 @@ TARGET_GLOBAL_CFLAGS += \
 
 到了这里我们首先通过一个简单的小例子来说明下这个-fstack-protector选项的作用.
 
-https://github.com/leeminghao/doc-linux/blob/master/linker/GccSsp.md
+https://github.com/leeminghao/doc-linux/blob/master/linker/StackOverFlow/GccSsp.md
 
 通过上述例子我们知道，正是由于android默认打开了这个开关选项，此时如果有代码越界访问char数组
 的缓冲区，那么就有可能覆盖gcc在函数堆栈中插入检查缓冲区越界的标志变量: __stack_chk_guard,

@@ -3,7 +3,7 @@ Linux Linux下缓冲区溢出攻击的原理及对策
 
 在分析完Linux C语言函数调用方式之后:
 
-https://github.com/leeminghao/doc-linux/blob/master/linker/CFunctionCall.md
+https://github.com/leeminghao/doc-linux/blob/master/linker/StackOverFlow/CFunctionCall.md
 
 我们了解了c语言函数的调用方式，其中在使用gcc编译c语言程序的时候我们使用了-fno-stack-protector
 标志，下面我们介绍下有关该编译选项的作用以及危害.
@@ -85,7 +85,10 @@ src/ex3$ ./danger
 结果是多少呢? 结果竟然是0.
 
 为什么结果值会是0呢?
-这里的function函数与c语言调用方式(https://github.com/leeminghao/doc-linux/blob/master/linker/CFunctionCall.md)
+这里的function函数与c语言调用方式
+
+* https://github.com/leeminghao/doc-linux/blob/master/linker/StackOverFlow/CFunctionCall.md
+
 章节中的function函数只是多了一个指针变量ret以及两条对ret进行操作的语句，
 就是它们使得main函数最后打印的结果变成了0。对照下图function的栈帧可知，
 地址"buffer + 26"处保存的正是函数function的返回地址：

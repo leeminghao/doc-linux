@@ -485,9 +485,9 @@ char数组,而在frame_pointer和被保护的char数组之间就是__stack_chk_g
 
 可参考如下例子:
 
-https://github.com/leeminghao/doc-linux/blob/master/linker/src/ex4/stack_guard_double_buffer.c
+https://github.com/leeminghao/doc-linux/blob/master/linker/StackOverFlow/src/ex4/stack_guard_double_buffer.c
 
-https://github.com/leeminghao/doc-linux/blob/master/linker/src/ex4/stack_guard_double_buffer.s
+https://github.com/leeminghao/doc-linux/blob/master/linker/StackOverFlow/src/ex4/stack_guard_double_buffer.s
 
 **补充**:
 
@@ -500,7 +500,7 @@ $ arm-none-linux-gnueabi-gcc -fstack-protector -S stack_guard.c -o stackguardgnu
 
 生成的汇编文件如下:
 
-https://github.com/leeminghao/doc-linux/blob/master/linker/src/ext4/stackguardgnu.s
+https://github.com/leeminghao/doc-linux/blob/master/linker/StackOverFlow/src/ext4/stackguardgnu.s
 
 ### 实例2
 
@@ -509,11 +509,11 @@ overflow和nooverflow两个binary文件，其唯一的区别是overflow.c中多�
 语句，正是由于这条语句将guard值覆盖最终导致stack over flow.
 具体代码如下所示:
 
-* https://github.com/leeminghao/doc-linux/blob/master/linker/src/ex5/overflow.c
+* https://github.com/leeminghao/doc-linux/blob/master/linker/StackOverFlow/src/ex5/overflow.c
 
-* https://github.com/leeminghao/doc-linux/blob/master/linker/src/ex5/nooverflow.c
+* https://github.com/leeminghao/doc-linux/blob/master/linker/StackOverFlow/src/ex5/nooverflow.c
 
-* https://github.com/leeminghao/doc-linux/blob/master/linker/src/ex5/Android.mk
+* https://github.com/leeminghao/doc-linux/blob/master/linker/StackOverFlow/src/ex5/Android.mk
 
 运行nooverflow得到的结果如下所示:
 
