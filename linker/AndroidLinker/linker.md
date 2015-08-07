@@ -15,4 +15,4 @@ Linux/Unix的可执行文件以及动态库都是以ELF(Executable Linkage Forma
 
 我们可以先来查看下main.c编译出来的greet可执行文件的ELF头信息：
 
-https://github.com/leeminghao/doc-linux/blob/master/linker/arm/elf.md
+https://github.com/leeminghao/doc-linux/blob/master/linker/AndroidLinker/elf.md

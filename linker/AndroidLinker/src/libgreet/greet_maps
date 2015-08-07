@@ -1,0 +1,38 @@
+b6eb2000-b6ed2000 r--s 00000000 00:0b 7175       /dev/__properties__
+b6ed2000-b6ed3000 r-xp 00000000 b3:19 16385      /system/lib/libgreet.so
+b6ed3000-b6ed4000 r--p 00000000 b3:19 16385      /system/lib/libgreet.so
+b6ed4000-b6ed5000 rw-p 00001000 b3:19 16385      /system/lib/libgreet.so
+b6ed5000-b6eed000 r-xp 00000000 b3:19 1258       /system/lib/libm.so
+b6eed000-b6eee000 ---p 00000000 00:00 0
+b6eee000-b6eef000 r--p 00018000 b3:19 1258       /system/lib/libm.so
+b6eef000-b6ef0000 rw-p 00019000 b3:19 1258       /system/lib/libm.so
+b6ef0000-b6ef1000 r-xp 00000000 b3:19 1376       /system/lib/libstdc++.so
+b6ef1000-b6ef2000 r--p 00000000 b3:19 1376       /system/lib/libstdc++.so
+b6ef2000-b6ef3000 rw-p 00001000 b3:19 1376       /system/lib/libstdc++.so
+b6ef3000-b6ef6000 r-xp 00000000 b3:19 1256       /system/lib/liblog.so
+b6ef6000-b6ef7000 r--p 00002000 b3:19 1256       /system/lib/liblog.so
+b6ef7000-b6ef8000 rw-p 00003000 b3:19 1256       /system/lib/liblog.so
+b6ef8000-b6f01000 r-xp 00000000 b3:19 1169       /system/lib/libcutils.so
+b6f01000-b6f02000 r--p 00008000 b3:19 1169       /system/lib/libcutils.so
+b6f02000-b6f03000 rw-p 00009000 b3:19 1169       /system/lib/libcutils.so
+b6f03000-b6f4b000 r-xp 00000000 b3:19 1144       /system/lib/libc.so
+b6f4b000-b6f4d000 r--p 00047000 b3:19 1144       /system/lib/libc.so
+b6f4d000-b6f50000 rw-p 00049000 b3:19 1144       /system/lib/libc.so
+b6f50000-b6f5e000 rw-p 00000000 00:00 0
+b6f5e000-b6f5f000 r-xp 00000000 b3:19 2006       /system/vendor/lib/libNimsWrap.so
+b6f5f000-b6f60000 ---p 00000000 00:00 0
+b6f60000-b6f61000 r--p 00001000 b3:19 2006       /system/vendor/lib/libNimsWrap.so
+b6f61000-b6f62000 rw-p 00002000 b3:19 2006       /system/vendor/lib/libNimsWrap.so
+b6f62000-b6f64000 r--p 00000000 00:00 0
+b6f64000-b6f66000 rw-p 00000000 00:00 0
+b6f66000-b6f67000 r-xp 00000000 00:00 0          [sigpage]
+b6f67000-b6f76000 r-xp 00000000 b3:19 212        /system/bin/linker
+b6f76000-b6f77000 r--p 0000e000 b3:19 212        /system/bin/linker
+b6f77000-b6f78000 rw-p 0000f000 b3:19 212        /system/bin/linker
+b6f78000-b6f79000 rw-p 00000000 00:00 0
+b6f79000-b6f7a000 r-xp 00000000 b3:19 32770      /system/bin/greet
+b6f7a000-b6f7b000 r--p 00000000 b3:19 32770      /system/bin/greet
+b6f7b000-b6f7c000 rw-p 00000000 00:00 0
+b7415000-b7416000 rw-p 00000000 00:00 0          [heap]
+bec2a000-bec4b000 rw-p 00000000 00:00 0          [stack]
+ffff0000-ffff1000 r-xp 00000000 00:00 0          [vectors]

@@ -5,5 +5,5 @@
 	path = qemu
 	url = https://github.com/qemu/qemu
 [submodule "2.x/filesystem/ext/android_platform_external_e2fsprogs"]
-	path = 2.x/filesystem/ext/android_platform_external_e2fsprogs
+	path = 2.x/filesystem/ext/e2fsprogs/android_platform_external_e2fsprogs
 	url = https://android.googlesource.com/platform/external/e2fsprogs
