@@ -52,3 +52,21 @@ int prepare_binprm(struct linux_binprm *bprm)
     return kernel_read(bprm->file, 0, bprm->buf, BINPRM_BUF_SIZE);
 }
 ```
+
+file_inode
+----------------------------------------
+
+调用file_inode节点获取可执行文件的inode节点信息.
+
+检查suid
+----------------------------------------
+
+在确认文件来源在读取时没有置位MNT_NOSUID,内核会检测
+SUID和SGID是否置位，如果SUID置位的话那么有效UID和inode
+相同. SGID类似,如果setgid置位但组执行位没有置位，那么
+这可能是强制锁定，而不是setgid的可执行文件.
+
+kernel_read
+----------------------------------------
+
+读取可执行文件的前128个字节填充bprm的buf字段

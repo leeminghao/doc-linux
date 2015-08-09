@@ -190,47 +190,9 @@ do_execveat_common主要工作如下所示:
 * 检查进程的数量限制;
 * 为bprm(struct linux_binprm)调用kzalloc分配内存;
 
-path: include/linux/binfmts.h
-```
-/*
- * This structure is used to hold the arguments that are used when loading binaries.
- */
-struct linux_binprm {
-       char buf[BINPRM_BUF_SIZE];
-#ifdef CONFIG_MMU
-       struct vm_area_struct *vma;
-       unsigned long vma_pages;
-#else
-# define MAX_ARG_PAGES  32
-  struct page *page[MAX_ARG_PAGES];
-#endif
-        struct mm_struct *mm;
-        unsigned long p; /* current top of mem */
-        unsigned int
-             cred_prepared:1, /* true if creds already prepared (multiple
-                               * preps happen for interpreters) */
-             cap_effective:1; /* true if has elevated effective capabilities,
-                               * false if not; except for init which inherits
-                               * its parent's caps anyway */
-#ifdef __alpha__
-       unsigned int taso:1;
-#endif
-        unsigned int recursion_depth;
-        struct file * file;
-        struct cred *cred;      /* new credentials */
-        int unsafe;             /* how unsafe this exec is (mask of LSM_UNSAFE_*) */
-        unsigned int per_clear; /* bits to clear in current->personality */
-        int argc, envc;
-        const char * filename;  /* Name of binary as seen by procps */
-        const char * interp;    /* Name of the binary really executed. Most
-                                 * of the time same as filename, but could be
-                                 * different for binfmt_{misc,script} */
-        unsigned interp_flags;
-        unsigned interp_data;
-        unsigned long loader, exec;
-        char tcomm[TASK_COMM_LEN];
-};
-```
+linux_binprm结构定义如下所示:
+
+* https://github.com/leeminghao/doc-linux/tree/master/2.x-current/fs/exec/binfmts.md
 
 ### 2.prepare_bprm_creds
 
@@ -267,3 +229,11 @@ bprm_mm_init函数调用mm_alloc来生成一个新的mm_struct实例来管理进
 * https://github.com/leeminghao/doc-linux/tree/master/2.x-current/fs/exec/bprm_mm_init.md
 
 ### 6.prepare_binprm
+
+prepare_binprm用于提供一些父进程相关的值(特别数有效UID和GID).
+
+* https://github.com/leeminghao/doc-linux/tree/master/2.x-current/fs/exec/prepare_binprm.md
+
+### 7.exec_binprm
+
+* https://github.com/leeminghao/doc-linux/tree/master/2.x-current/fs/exec/exec_binprm.md
