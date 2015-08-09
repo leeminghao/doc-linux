@@ -364,12 +364,10 @@ Dump of assembler code for function NewObjectV(JNIEnv*, jclass, jmethodID, va_li
 
 其中，栈里的数据录下：
 
-```
 0x7598f7b8:    0x753d0cc8    0x7598f7d8    0x753d0cc8    0x753c86a8
         r0        r1        r4        r5
 0x7598f7c8:    0x753d0cc8    0x400c6384    0x753f0d35    0x753ff19c
         r6        r7        lr              r3
-``
 
 这里的r2是参数Method*，它是"0x753f0baa:    blx    r4"函数调用的返回值。
 
@@ -448,7 +446,9 @@ r0 = 0x753d0cc8
    0x753f0b90:    blx    r3
    0x753f0b92:    ldr    r6, [pc, #52]    ; (0x753f0bc8)
    0x753f0b94:    adds   r1, r0, #0
-   ...
+   0x753f0b96:    add    r6, pc
+   0x753f0b98:    str    r0, [r6, #0]
+   0x753f0b9a:    cmp    r0, #0
 ```
 
 ```
