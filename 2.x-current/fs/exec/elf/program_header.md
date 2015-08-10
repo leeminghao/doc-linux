@@ -50,6 +50,14 @@ path: include/uapi/linux/elf.h
  */
 #define PT_PHDR    6
 #define PT_TLS     7               /* Thread local storage segment */
+#define PT_LOOS    0x60000000      /* OS-specific */
+#define PT_HIOS    0x6fffffff      /* OS-specific */
+/* 此范围PT_LOPROC~PT_HIPROC的类型保留给处理器专用语义 */
+#define PT_LOPROC  0x70000000
+#define PT_HIPROC  0x7fffffff
+#define PT_GNU_EH_FRAME        0x6474e550
+
+#define PT_GNU_STACK    (PT_LOOS + 0x474e551)
 ```
 
 ### p_offset
@@ -66,11 +74,11 @@ path: include/uapi/linux/elf.h
 
 ### p_filesz
 
-指定了段在二进制文件中的长度(单位为字节).
+指定段在二进制文件中的长度(单位为字节).
 
 ### p_memsz
 
-指定了段在虚拟地址空间的长度(单位为字节). 与文件中物理的长度差值可通过截断数据
+指定段在虚拟地址空间的长度(单位为字节). 与文件中物理的长度差值可通过截断数据
 或填充0字节来补偿.
 
 ### p_flags
@@ -149,3 +157,14 @@ Program Headers:
 #### NOTE
 
 保存了专有信息.
+
+#### GNU_STACK
+
+用于描述当前堆栈段的保护权限.
+
+```
+/* Stack area protections */
+#define EXSTACK_DEFAULT   0    /* Whatever the arch defaults to */
+#define EXSTACK_DISABLE_X 1    /* Disable executable stacks */
+#define EXSTACK_ENABLE_X  2    /* Enable executable stacks */
+```

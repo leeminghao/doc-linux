@@ -526,4 +526,167 @@ load_elf_phdrs具体实现如下所示:
 
 * https://github.com/leeminghao/doc-linux/tree/master/2.x-current/fs/exec/elf/elf.md
 
-4.
+4.初始化局部变量
+----------------------------------------
+
+```
+    ...
+    struct elf_phdr *elf_ppnt, *elf_phdata, *interp_elf_phdata = NULL;
+    unsigned long elf_bss, elf_brk;
+    ...
+    unsigned long start_code, end_code, start_data, end_data;
+    ...
+    // 将读出的程序头指针指向elf_ppnt
+    elf_ppnt = elf_phdata;
+    elf_bss = 0;
+    elf_brk = 0;
+
+    start_code = ~0UL;
+    end_code = 0;
+    start_data = 0;
+    end_data = 0;
+```
+
+5. 初始化INTERP段
+----------------------------------------
+
+```
+    struct file *interpreter = NULL; /* to shut gcc up */
+    ...
+    char * elf_interpreter = NULL;
+    ...
+    /* 循环遍历所有程序头找到INTERP段. */
+    for (i = 0; i < loc->elf_ex.e_phnum; i++) {
+        /* 1.找到类型为INERP的程序头. */
+        if (elf_ppnt->p_type == PT_INTERP) {
+            /* This is the program interpreter used for
+             * shared libraries - for now assume that this
+             * is an a.out format binary
+             */
+            retval = -ENOEXEC;
+            if (elf_ppnt->p_filesz > PATH_MAX ||
+                elf_ppnt->p_filesz < 2)
+                goto out_free_ph;
+
+            retval = -ENOMEM;
+            /* 2.为INTERP段分配内存空间. */
+            elf_interpreter = kmalloc(elf_ppnt->p_filesz,
+                          GFP_KERNEL);
+            if (!elf_interpreter)
+                goto out_free_ph;
+
+            /* 3.从二进制文件中读出对应的INTERP段. INTERP段中存这对应链接器的名称. */
+            retval = kernel_read(bprm->file, elf_ppnt->p_offset,
+                         elf_interpreter,
+                         elf_ppnt->p_filesz);
+            if (retval != elf_ppnt->p_filesz) {
+                if (retval >= 0)
+                    retval = -EIO;
+                goto out_free_interp;
+            }
+            /* make sure path is NULL terminated */
+            retval = -ENOEXEC;
+            if (elf_interpreter[elf_ppnt->p_filesz - 1] != '\0')
+                goto out_free_interp;
+
+            /* 4.调用open_exec打开对应链接器文件并保存为一个struct file的结构. */
+            interpreter = open_exec(elf_interpreter);
+            retval = PTR_ERR(interpreter);
+            if (IS_ERR(interpreter))
+                goto out_free_interp;
+
+            /*
+             * If the binary is not readable then enforce
+             * mm->dumpable = 0 regardless of the interpreter's
+             * permissions.
+             */
+            would_dump(bprm, interpreter);
+
+            /* 5.从打开的解释器文件中读出前128个字节到bprm->buf中去. */
+            retval = kernel_read(interpreter, 0, bprm->buf,
+                         BINPRM_BUF_SIZE);
+            if (retval != BINPRM_BUF_SIZE) {
+                if (retval >= 0)
+                    retval = -EIO;
+                goto out_free_dentry;
+            }
+
+            /* Get the exec headers */
+            /* locl->interp_elf_ex指向对应的interp头部. */
+            loc->interp_elf_ex = *((struct elfhdr *)bprm->buf);
+            break;
+        }
+        elf_ppnt++;
+    }
+    ...
+```
+
+6.校验其它程序段
+----------------------------------------
+
+```
+    ...
+    int executable_stack = EXSTACK_DEFAULT;
+    ...
+    elf_ppnt = elf_phdata;
+    for (i = 0; i < loc->elf_ex.e_phnum; i++, elf_ppnt++)
+        switch (elf_ppnt->p_type) {
+        /* 读取堆栈段权限并设置堆栈段权限位. */
+        case PT_GNU_STACK:
+            if (elf_ppnt->p_flags & PF_X)
+                executable_stack = EXSTACK_ENABLE_X;
+            else
+                executable_stack = EXSTACK_DISABLE_X;
+            break;
+        /* 处理器专用段检测. */
+        case PT_LOPROC ... PT_HIPROC:
+            retval = arch_elf_pt_proc(&loc->elf_ex, elf_ppnt,
+                          bprm->file, false,
+                          &arch_state);
+            if (retval)
+                goto out_free_dentry;
+            break;
+        }
+    ...
+```
+
+7. 处理解释器elf文件
+----------------------------------------
+
+```
+    ...
+    /* Some simple consistency checks for the interpreter */
+    if (elf_interpreter) {
+        retval = -ELIBBAD;
+        /* Not an ELF interpreter */
+        /* 1.检查解释器文件是否是elf格式文件. */
+        if (memcmp(loc->interp_elf_ex.e_ident, ELFMAG, SELFMAG) != 0)
+            goto out_free_dentry;
+        /* Verify the interpreter has a valid arch */
+        /* 2.检查解释器文件的arch是否合法. */
+        if (!elf_check_arch(&loc->interp_elf_ex))
+            goto out_free_dentry;
+
+        /* Load the interpreter program headers */
+        /* 3.加载解释器文件的所有程序头部. */
+        interp_elf_phdata = load_elf_phdrs(&loc->interp_elf_ex,
+                           interpreter);
+        if (!interp_elf_phdata)
+            goto out_free_dentry;
+
+        /* Pass PT_LOPROC..PT_HIPROC headers to arch code */
+        /* 4.处理解释器二进制文件的与处理器相关的程序段. */
+        elf_ppnt = interp_elf_phdata;
+        for (i = 0; i < loc->interp_elf_ex.e_phnum; i++, elf_ppnt++)
+            switch (elf_ppnt->p_type) {
+            case PT_LOPROC ... PT_HIPROC:
+                retval = arch_elf_pt_proc(&loc->interp_elf_ex,
+                              elf_ppnt, interpreter,
+                              true, &arch_state);
+                if (retval)
+                    goto out_free_dentry;
+                break;
+            }
+    }
+    ...
+```
