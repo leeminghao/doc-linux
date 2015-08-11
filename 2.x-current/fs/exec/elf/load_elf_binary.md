@@ -503,7 +503,7 @@ elf头部具体定义如下所示:
     /* 3.校验二进制文件的type是否允许是允许load的type. */
     if (loc->elf_ex.e_type != ET_EXEC && loc->elf_ex.e_type != ET_DYN)
         goto out;
-    /* 4.校验体系结构是否合法. */
+    /* 4.校验体系结构arch是否合法. */
     if (!elf_check_arch(&loc->elf_ex))
         goto out;
     /* 5.校验对应二进制文件是否提供mmap函数. */
@@ -524,7 +524,7 @@ elf头部具体定义如下所示:
 
 load_elf_phdrs具体实现如下所示:
 
-* https://github.com/leeminghao/doc-linux/tree/master/2.x-current/fs/exec/elf/elf.md
+* https://github.com/leeminghao/doc-linux/tree/master/2.x-current/fs/exec/elf/load_elf_phdrs.md
 
 4.初始化局部变量
 ----------------------------------------
@@ -541,8 +541,10 @@ load_elf_phdrs具体实现如下所示:
     elf_bss = 0;
     elf_brk = 0;
 
+    /* 可执行代码的虚拟地址空间区域，其开始和结束分别通过start_code和end_code标记 */
     start_code = ~0UL;
     end_code = 0;
+    /* start_data和end_data标记了包含已经初始化数据的区域. */
     start_data = 0;
     end_data = 0;
 ```
@@ -650,7 +652,7 @@ load_elf_phdrs具体实现如下所示:
     ...
 ```
 
-7. 处理解释器elf文件
+7.校验解释器elf文件
 ----------------------------------------
 
 ```
@@ -690,3 +692,43 @@ load_elf_phdrs具体实现如下所示:
     }
     ...
 ```
+
+8.arch_check_elf
+----------------------------------------
+
+目前改实现为空. 目的是提供最后一次机会来拒绝加载对应的ELF文件.
+
+```
+    ...
+    /*
+     * Allow arch code to reject the ELF at this point, whilst it's
+     * still possible to return an error to the code that invoked
+     * the exec syscall.
+     */
+    retval = arch_check_elf(&loc->elf_ex, !!interpreter, &arch_state);
+    if (retval)
+        goto out_free_dentry;
+    ...
+```
+
+9.flush_old_exec
+----------------------------------------
+
+```
+    ...
+    /* Flush all traces of the currently running executable */
+    retval = flush_old_exec(bprm);
+    if (retval)
+        goto out_free_dentry;
+    ...
+```
+
+在bprm_mm_init函数中
+
+* https://github.com/leeminghao/doc-linux/tree/master/2.x-current/fs/exec/bprm_mm_init.md
+
+我们专门为可执行的二进制文件申请了一个地址空间，使用mm_struct来表示，这个地址空间用来
+替换当前进程的地址空间，flush_old_exec函数的作用就是用来替换当前进程地址空间的.
+具体实现如下所示:
+
+* https://github.com/leeminghao/doc-linux/tree/master/2.x-current/fs/exec/flush_old_exec.md
