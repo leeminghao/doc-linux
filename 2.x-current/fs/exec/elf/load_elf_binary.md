@@ -725,10 +725,36 @@ load_elf_phdrs具体实现如下所示:
 
 在bprm_mm_init函数中
 
-* https://github.com/leeminghao/doc-linux/tree/master/2.x-current/fs/exec/bprm_mm_init.md
+https://github.com/leeminghao/doc-linux/tree/master/2.x-current/fs/exec/bprm_mm_init.md
 
 我们专门为可执行的二进制文件申请了一个地址空间，使用mm_struct来表示，这个地址空间用来
 替换当前进程的地址空间，flush_old_exec函数的作用就是用来替换当前进程地址空间的.
 具体实现如下所示:
 
-* https://github.com/leeminghao/doc-linux/tree/master/2.x-current/fs/exec/flush_old_exec.md
+https://github.com/leeminghao/doc-linux/tree/master/2.x-current/fs/exec/flush_old_exec.md
+
+10.设置与体系结构相关特性
+----------------------------------------
+
+```
+    ...
+    struct arch_elf_state arch_state = INIT_ARCH_ELF_STATE;
+    ...
+    /* Do this immediately, since STACK_TOP as used in setup_arg_pages
+       may depend on the personality.  */
+    SET_PERSONALITY2(loc->elf_ex, &arch_state);
+    if (elf_read_implies_exec(loc->elf_ex, executable_stack))
+        current->personality |= READ_IMPLIES_EXEC;
+
+    /* 检查是否需要设置进程的PF_RANDOMIZE标志，如果设置了改标志，则内核不会为栈和内存
+     * 映射的起点选择固定位置，而是每次新进程启动的时候随机改变这些值的设置. 引入这项
+     * 的目的是使得攻击因缓冲区移除导致安全漏洞更加困难.
+     */
+    if (!(current->personality & ADDR_NO_RANDOMIZE) && randomize_va_space)
+        current->flags |= PF_RANDOMIZE;
+    ...
+```
+
+randomize_va_space的描述如下所示:
+
+https://github.com/leeminghao/doc-linux/tree/master/2.x-current/mm/vpm/randomize_va_space.md
