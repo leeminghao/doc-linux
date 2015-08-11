@@ -53,6 +53,25 @@ https://github.com/leeminghao/doc-linux/blob/master/2.x-current/mm/vpm/vpm.gif
 * 环境变量和命令行参数的段.
 * 将文件内容映射到虚拟地址空间中的虚拟内存映射.
 
+### 经典的进程空间布局
+
+https://github.com/leeminghao/doc-linux/blob/master/2.x-current/mm/vpm/old_vpm_layout.png
+
+如果计算机提供了巨大的虚拟地址空间，那么使用上述的地址空间布局会工作得非常好。
+但在32位计算机上可能会出问题. 对于每个用户进程其虚拟地址空间从0到0xc0000000,有
+3GB可用. TASK_UNMAPPED_BASE起始于0x40000000, 即1GB处.糟糕的是，堆只有1GB空间可用
+继续增长会进入到mmap区域. 问题在于内存映射区域位于虚拟地址空间中间. 从2.6.7引入了
+一个新的虚拟地址空间布局.
+
+### 新的进程空间布局
+
+https://github.com/leeminghao/doc-linux/blob/master/2.x-current/mm/vpm/new_vpm_layout.png
+
+其目的在于使用固定值限制栈的最大长度. 由于栈是有界的，因此安置内存映射的区域可以在栈
+末端的下方开始.与经典方法相反，改区域现在是自顶向下扩展。由于堆仍然位于虚拟地址空间
+中较低的区域并向上增长，因此mmap区域和堆区域可以相对扩展，直至耗尽虚拟地址空间中剩余
+的区域。为确保栈和mmap区域不发生冲突，在两者之间设置一个安全间隙.
+
 数据结构
 ----------------------------------------
 
