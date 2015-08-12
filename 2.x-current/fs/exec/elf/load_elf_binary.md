@@ -758,3 +758,18 @@ https://github.com/leeminghao/doc-linux/tree/master/2.x-current/fs/exec/flush_ol
 randomize_va_space的描述如下所示:
 
 https://github.com/leeminghao/doc-linux/tree/master/2.x-current/mm/vpm/randomize_va_space.md
+
+11.setup_new_exec(bprm)
+----------------------------------------
+
+setup_new_exec函数用来设置进程虚拟地址空间的布局.
+
+```
+    ...
+    setup_new_exec(bprm);
+    ...
+```
+
+setup_new_exec函数具体实现如下所示:
+
+https://github.com/leeminghao/doc-linux/tree/master/2.x-current/fs/exec/setup_new_exec.md
