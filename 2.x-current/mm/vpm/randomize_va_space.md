@@ -18,3 +18,24 @@ extern int randomize_va_space;
 ```
 
 此外，用户可以通过"/proc/sys/kernel/randomize_va_space"文件来停用改特性.
+
+Example
+----------------------------------------
+
+path: src/elf/elf
+
+1. randomize_va_space set 0.
+
+https://github.com/leeminghao/doc-linux/blob/master/2.x-current/mm/vpm/src/elf/elf_6163.maps
+
+vs
+
+https://github.com/leeminghao/doc-linux/blob/master/2.x-current/mm/vpm/src/elf/elf_6189.maps
+
+2. randomize_va_space set 2
+
+https://github.com/leeminghao/doc-linux/blob/master/2.x-current/mm/vpm/src/elf/elf_6189.maps
+
+vs
+
+https://github.com/leeminghao/doc-linux/blob/master/2.x-current/mm/vpm/src/elf/elf_6242.maps
