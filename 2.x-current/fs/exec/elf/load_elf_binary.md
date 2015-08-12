@@ -759,7 +759,7 @@ randomize_va_space的描述如下所示:
 
 https://github.com/leeminghao/doc-linux/tree/master/2.x-current/mm/vpm/randomize_va_space.md
 
-11.setup_new_exec(bprm)
+11.设置进程虚拟地址空间的布局
 ----------------------------------------
 
 setup_new_exec函数用来设置进程虚拟地址空间的布局.
@@ -773,3 +773,20 @@ setup_new_exec函数用来设置进程虚拟地址空间的布局.
 setup_new_exec函数具体实现如下所示:
 
 https://github.com/leeminghao/doc-linux/tree/master/2.x-current/fs/exec/setup_new_exec.md
+
+12.在适当位置创建栈
+----------------------------------------
+
+setup_arg_pages函数用来在进程虚拟地址空间适当的位置创建栈.
+
+```
+    ...
+    /* Do this so that we can load the interpreter, if need be.  We will
+       change some of these later */
+    retval = setup_arg_pages(bprm, randomize_stack_top(STACK_TOP),
+                 executable_stack);
+    ...
+    current->mm->start_stack = bprm->p;
+```
+
+setup_arg_pages具体实现如下所示:
