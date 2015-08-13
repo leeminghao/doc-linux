@@ -61,32 +61,10 @@ static int mmap_is_legacy(void)
 https://github.com/leeminghao/doc-linux/blob/master/2.x-current/mm/vpm/old_vpm_layout.png
 
 在经典的配置下，mmap区域的起始点是TASK_UNMAPPED_BASE, 其值位于TASK_SIZE / 3处，大约在
-0x40000000（1GB）处, 而标准函数arch_get_unmapped_area(其名称虽然带着arch, 但改函数不一定是特定于
-体系结构的，内核也提供了一个标准实现)用于自下而上的创建新的映射.
+0x40000000（1GB）处, 而标准函数arch_get_unmapped_area(其名称虽然带着arch, 但该函数不一定
+是特定于体系结构的，内核也提供了一个标准实现)用于自下而上的创建新的映射.
 
-path: arch/arm/include/asm/memory.h
-```
-#ifdef CONFIG_MMU
-
-/*
- * TASK_SIZE - the maximum size of a user space task.
- * TASK_UNMAPPED_BASE - the lower boundary of the mmap VM area
- */
-#define TASK_SIZE             (UL(CONFIG_PAGE_OFFSET) - UL(SZ_16M))
-#define TASK_UNMAPPED_BASE    ALIGN(TASK_SIZE / 3, SZ_16M)
-...
-```
-
-path: include/linux/sizes.h
-```
-#define SZ_16M                              0x01000000
-```
-
-一般CONFIG_PAGE_OFFSET的值配置如下所示:
-
-```
-CONFIG_PAGE_OFFSET=0xC0000000  // 3GB
-```
+https://github.com/leeminghao/doc-linux/blob/master/2.x-current/arch/arm/mm/memory.md
 
 ### mmap_is_legacy等于0表示使用新的布局
 
