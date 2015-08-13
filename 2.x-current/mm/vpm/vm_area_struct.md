@@ -102,7 +102,50 @@ vm_page_prot
 vm_flags
 ----------------------------------------
 
-描述该区域的一组标志.
+描述该区域的一组标志. 这些常用标志定义如下所示:
+
+path: include/linux/mm.h
+```
+/* 如下标志分别指定了页的内容是否可以读，写，执行或者由几个进程共享 */
+#define VM_READ        0x00000001    /* currently active flags */
+#define VM_WRITE       0x00000002
+#define VM_EXEC        0x00000004
+#define VM_SHARED      0x00000008
+
+/* 用于确定是否可以设置对应的VM_*标志。这是mprotecte系统调用需要的. */
+/* mprotect() hardcodes VM_MAYREAD >> 4 == VM_READ, and so for r/w/x bits. */
+#define VM_MAYREAD     0x00000010    /* limits for mprotect() etc */
+#define VM_MAYWRITE    0x00000020
+#define VM_MAYEXEC     0x00000040
+#define VM_MAYSHARE    0x00000080
+
+/* VM_GROWSDOWN和VM_GROWSUP表示一个区域是否可以向下或者向上扩展(到更低或者更高的虚拟地址).
+ * 由于堆自下而上增长，其区域需要设置VM_GROWSUP. VM_GROWSDOWN对栈设置，改区域自顶向下增长.
+ */
+#define VM_GROWSDOWN   0x00000100    /* general info on the segment */
+...
+#ifndef VM_GROWSUP
+# define VM_GROWSUP    VM_NONE
+#endif
+...
+/* 如果区域从头到尾顺序读取，则设置VM_SEQ_READ. VM_RAND_READ指定了读取可能是随机的。
+ * 这两个标志用于"提示"内存管理子系统和块设备层，以优化其性能，访问是顺序的，则启用
+ * 页的预读.
+ */
+#define VM_SEQ_READ     0x00008000    /* App will access data sequentially */
+#define VM_RAND_READ    0x00010000    /* App will not benefit from clustered reads */
+
+/* 如果设置了VM_DONTCOPY, 则相关区域在fork系统调用执行时不复制. */
+#define VM_DONTCOPY     0x00020000      /* Do not copy this vma on fork */
+/* 禁止区域通过mremap系统调用扩展 */
+#define VM_DONTEXPAND   0x00040000    /* Cannot expand with mremap() */
+...
+/* 指定区域是否被归入overcommit特性的计算中. 这些特性以多种方式限制内存分配. */
+#define VM_ACCOUNT      0x00100000    /* Is a VM accounted object */
+...
+/* 如果区域是基于某些特定体系机构支持的巨型页，则设置下列标志 */
+#define VM_HUGETLB      0x00400000    /* Huge TLB Page VM */
+```
 
 shared
 ----------------------------------------
@@ -121,3 +164,29 @@ anon_vma_chain and anon_vma
 充当链表元素。有若干此类链表，具体的数目取决于贡献物理内存页的映射集合的数目。
 anon_vma成员是一个指向与各链表关联的管理结构的指针，改管理结构由一个表头和相关
 的锁组成.
+
+vm_ops
+----------------------------------------
+
+是一个指针，指向许多方法的集合，这些方法用于在区域上执行各种标准操作.
+
+如下所示:
+
+https://github.com/leeminghao/doc-linux/blob/master/2.x-current/mm/vpm/vm_operations_struct.md
+
+vm_pgoff
+----------------------------------------
+
+指定了文件映射的偏移量，该值用于只映射了文件部分内容时（如果映射了整个文件，则偏移量为0）。
+偏移量的单位不是字节，而是页(PAGE_SIZE).
+
+vm_file
+----------------------------------------
+
+vm_file指向了file实例，描述了一个被映射的文件。如果映射的对象不是文件则是NULL指针.
+
+vm_private_data
+----------------------------------------
+
+可用于存储私有数据，不由通用的内存管理例程操作。内核只确保在创建新区域时该成员初始化为
+NULL指针。当前，binder驱动会使用改选项.
