@@ -59,7 +59,9 @@ struct rb_root {
 获取包含rb_node结构体首地址
 ----------------------------------------
 
+```
 #define rb_entry(ptr, type, member) container_of(ptr, type, member)
+```
 
 为确保RB树的实现是通用的，内核只提供了操作树的通用标准函数，这些
 实现在lib/rbthree.c中
