@@ -789,6 +789,10 @@ setup_arg_pages函数用来在进程虚拟地址空间适当的位置创建栈.
     current->mm->start_stack = bprm->p;
 ```
 
+STACK_TOP值在arm体系结构定义如下所示:
+
+https://github.com/leeminghao/doc-linux/blob/master/2.x-current/arch/arm/mm/memory.md
+
 setup_arg_pages具体实现如下所示:
 
 https://github.com/leeminghao/doc-linux/tree/master/2.x-current/fs/exec/setup_arg_pages.md

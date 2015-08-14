@@ -118,3 +118,8 @@ out_unlock:
 }
 EXPORT_SYMBOL(setup_arg_pages);
 ```
+
+1.CONFIG_STACK_GROWSUP
+
+改内核配置项用来决定进程栈的增长方向是自下而上增长的，通常，栈的增长方向都是自上而下
+增长的，于是编译时执行的是else中的代码段.
