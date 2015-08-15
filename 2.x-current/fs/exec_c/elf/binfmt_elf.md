@@ -15,4 +15,4 @@ static struct linux_binfmt elf_format = {
 load_elf_binary
 ----------------------------------------
 
-* https://github.com/leeminghao/doc-linux/tree/master/2.x-current/fs/exec/elf/load_elf_binary.md
+https://github.com/leeminghao/doc-linux/tree/master/2.x-current/fs/exec_c/elf/load_elf_binary.md

@@ -4,7 +4,7 @@ elf
 布局和结构
 ----------------------------------------
 
-* https://github.com/leeminghao/doc-linux/tree/master/2.x-current/fs/exec/elf/elf.png
+https://github.com/leeminghao/doc-linux/tree/master/2.x-current/fs/exec_c/elf/elf.png
 
 ### 链接视图
 
@@ -59,14 +59,14 @@ typedef __s64    Elf64_Sxword;
 elf头部
 ----------------------------------------
 
-* https://github.com/leeminghao/doc-linux/tree/master/2.x-current/fs/exec/elf/elf_header.md
+https://github.com/leeminghao/doc-linux/tree/master/2.x-current/fs/exec_c/elf/elf_header.md
 
 程序头表
 ----------------------------------------
 
-* https://github.com/leeminghao/doc-linux/tree/master/2.x-current/fs/exec/elf/programe_header.md
+https://github.com/leeminghao/doc-linux/tree/master/2.x-current/fs/exec_c/elf/programe_header.md
 
 节头表
 ----------------------------------------
 
-* https://github.com/leeminghao/doc-linux/tree/master/2.x-current/fs/exec/elf/section_header.md
+https://github.com/leeminghao/doc-linux/tree/master/2.x-current/fs/exec_c/elf/section_header.md

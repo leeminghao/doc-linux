@@ -192,13 +192,13 @@ do_execveat_common主要工作如下所示:
 
 linux_binprm结构定义如下所示:
 
-* https://github.com/leeminghao/doc-linux/tree/master/2.x-current/fs/exec/binfmts.md
+https://github.com/leeminghao/doc-linux/tree/master/2.x-current/fs/exec_c/binfmts.md
 
 ### 2.prepare_bprm_creds
 
 prepare_bprm_creds用于准备可执行credential. 具体实现如下:
 
-* https://github.com/leeminghao/doc-linux/tree/master/2.x-current/fs/exec/prepare_bprm_creds.md
+https://github.com/leeminghao/doc-linux/tree/master/2.x-current/fs/exec_c/prepare_bprm_creds.md
 
 ### 3.sched_exec
 
@@ -219,21 +219,21 @@ extern void sched_exec(void);
 调用do_open_execat函数打开进程的可执行文件并返回struct file结构保存到bprm的file成员变量中.
 具体实现如下所示:
 
-* https://github.com/leeminghao/doc-linux/tree/master/2.x-current/fs/exec/do_open_execat.md
+https://github.com/leeminghao/doc-linux/tree/master/2.x-current/fs/exec_c/do_open_execat.md
 
 ### 5.bprm_mm_init
 
 bprm_mm_init函数调用mm_alloc来生成一个新的mm_struct实例来管理进程的地址空间.
 具体实现如下所示:
 
-* https://github.com/leeminghao/doc-linux/tree/master/2.x-current/fs/exec/bprm_mm_init.md
+https://github.com/leeminghao/doc-linux/tree/master/2.x-current/fs/exec_c/bprm_mm_init.md
 
 ### 6.prepare_binprm
 
 prepare_binprm用于提供一些父进程相关的值(特别数有效UID和GID).
 
-* https://github.com/leeminghao/doc-linux/tree/master/2.x-current/fs/exec/prepare_binprm.md
+https://github.com/leeminghao/doc-linux/tree/master/2.x-current/fs/exec_c/prepare_binprm.md
 
 ### 7.exec_binprm
 
-* https://github.com/leeminghao/doc-linux/tree/master/2.x-current/fs/exec/exec_binprm.md
+https://github.com/leeminghao/doc-linux/tree/master/2.x-current/fs/exec_c/exec_binprm.md

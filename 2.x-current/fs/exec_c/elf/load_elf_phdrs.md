@@ -3,7 +3,7 @@ load_elf_phdrs
 
 程序头定义如下所示：
 
-* https://github.com/leeminghao/doc-linux/tree/master/2.x-current/fs/exec/elf/program_header.md
+https://github.com/leeminghao/doc-linux/tree/master/2.x-current/fs/exec_c/elf/program_header.md
 
 Sources
 ----------------------------------------
