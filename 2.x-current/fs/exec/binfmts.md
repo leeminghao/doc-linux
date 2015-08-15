@@ -46,6 +46,47 @@ struct linux_binprm {
 };
 ```
 
+### buf
+
+空间存储来自程序文件前128字节内容，这些内容包括了二进制文件的类型。
+
+### vma vs vma_pages
+
+vma指向新进程虚拟地址空间的一个区域, 该区域用作新进程的栈空间.
+vma_pages通常是该区域的页数.
+
+### mm
+
+mm 指向新进程的虚拟地址空间.
+
+### p
+
+p为新程序标记内存的顶端边界，但是为栈在顶端边界预留NULL指针。
+当更多的信息添加进来时P的值将向下更新。
+
+### file
+
+file指向进程的可执行文件.
+
+### cred vs per_clear
+
+cred是一个单独分配的struct cred类型的变量，该变量存储新程序的权能，
+它们继承与调用execve()函数的进程，但是可以使用setuid/setgid更新
+权能，由于setuid/setgid一些对安全性有害的特性，一些兼容性特性也
+被禁止了。per_clear记录了current->personality中要被清除的比特。
+
+### argc vs envc
+
+argc和envc设置成参数个数和环境参数个数.
+
+### filename
+
+要执行的文件的名称.
+
+### interp
+
+要执行的文件的真实名称，通常和filename相同.
+
 linux_binfmt
 ----------------------------------------
 

@@ -46,19 +46,19 @@ EXPORT_SYMBOL(flush_old_exec);
 de_thread
 ----------------------------------------
 
-* https://github.com/leeminghao/doc-linux/tree/master/2.x-current/fs/exec/de_thread.md
+https://github.com/leeminghao/doc-linux/tree/master/2.x-current/fs/exec/de_thread.md
 
 set_mm_exe_file
 ----------------------------------------
 
-* https://github.com/leeminghao/doc-linux/tree/master/2.x-current/kernel/fork/set_mm_exe_file.md
+https://github.com/leeminghao/doc-linux/tree/master/2.x-current/kernel/fork/set_mm_exe_file.md
 
 acct_arg_size
 ----------------------------------------
 
-* https://github.com/leeminghao/doc-linux/tree/master/2.x-current/fs/exec/acct_arg_size.md
+https://github.com/leeminghao/doc-linux/tree/master/2.x-current/fs/exec/acct_arg_size.md
 
 exec_mmap
 -----------------------------------------
 
-* https://github.com/leeminghao/doc-linux/tree/master/2.x-current/fs/exec/exec_mmap.md
+https://github.com/leeminghao/doc-linux/tree/master/2.x-current/fs/exec/exec_mmap.md

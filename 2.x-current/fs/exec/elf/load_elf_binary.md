@@ -774,10 +774,11 @@ setup_new_exec函数具体实现如下所示:
 
 https://github.com/leeminghao/doc-linux/tree/master/2.x-current/fs/exec/setup_new_exec.md
 
-12.在适当位置创建栈
+12.重新调整栈
 ----------------------------------------
 
-setup_arg_pages函数用来在进程虚拟地址空间适当的位置创建栈.
+setup_arg_pages函数用来重新调整当前进程的栈区域位置，权限，大小.
+并将命令行参数的起始位置设置为栈的起始位置.
 
 ```
     ...
