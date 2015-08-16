@@ -98,5 +98,7 @@ void __set_task_comm(struct task_struct *tsk, const char *buf, bool exec)
     ...
 ```
 
-4.最后检查当前进程的credential和对当前进程files进行do_close_on_exec操作
+4.新进程信息检查
 ----------------------------------------
+
+最后检查当前进程的credential和对当前进程files进行do_close_on_exec操作
