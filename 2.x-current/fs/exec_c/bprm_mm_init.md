@@ -116,4 +116,4 @@ insert_vm_struct
 insert_vm_struct用于将新分配的区域插入到进程虚拟地址空间的管理数据结构mm_struct中，
 具体实现如下所示:
 
-https://github.com/leeminghao/doc-linux/blob/master/2.x-current/mm/vpm/insert_vm_struct.md
+https://github.com/leeminghao/doc-linux/blob/master/2.x-current/mm/mmap_c/insert_vm_struct.md

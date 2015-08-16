@@ -1,6 +1,72 @@
 load_elf_binary
 ========================================
 
+Example
+----------------------------------------
+
+针对本例，我们使用2.x-current/mm/vpm/src/a.out文件的加载过程来说明.
+
+该文件elf header信息和program header信息如下所示:
+
+### elf header
+
+```
+$ arm-none-linux-gnueabi-readelf -h a.out
+ELF Header:
+  Magic:   7f 45 4c 46 01 01 01 00 00 00 00 00 00 00 00 00
+  Class:                             ELF32
+  Data:                              2's complement, little endian
+  Version:                           1 (current)
+  OS/ABI:                            UNIX - System V
+  ABI Version:                       0
+  Type:                              EXEC (Executable file)
+  Machine:                           ARM
+  Version:                           0x1
+  Entry point address:               0x8440
+  Start of program headers:          52 (bytes into file)
+  Start of section headers:          2580 (bytes into file)
+  Flags:                             0x5000202, has entry point, Version5 EABI, soft-float ABI
+  Size of this header:               52 (bytes)
+  Size of program headers:           32 (bytes)
+  Number of program headers:         8
+  Size of section headers:           40 (bytes)
+  Number of section headers:         31
+  Section header string table index: 28
+```
+
+### program header
+
+```
+$ arm-none-linux-gnueabi-readelf -l a.out
+
+Elf file type is EXEC (Executable file)
+Entry point 0x8440
+There are 8 program headers, starting at offset 52
+
+Program Headers:
+  Type           Offset   VirtAddr   PhysAddr   FileSiz MemSiz  Flg Align
+  EXIDX          0x0006e8 0x000086e8 0x000086e8 0x00050 0x00050 R   0x4
+  PHDR           0x000034 0x00008034 0x00008034 0x00100 0x00100 R E 0x4
+  INTERP         0x000134 0x00008134 0x00008134 0x00013 0x00013 R   0x1
+      [Requesting program interpreter: /lib/ld-linux.so.3]
+  LOAD           0x000000 0x00008000 0x00008000 0x0073c 0x0073c R E 0x8000
+  LOAD           0x00073c 0x0001073c 0x0001073c 0x0012c 0x00130 RW  0x8000
+  DYNAMIC        0x000748 0x00010748 0x00010748 0x000f0 0x000f0 RW  0x4
+  NOTE           0x000148 0x00008148 0x00008148 0x00020 0x00020 R   0x4
+  GNU_STACK      0x000000 0x00000000 0x00000000 0x00000 0x00000 RW  0x10
+
+ Section to Segment mapping:
+  Segment Sections...
+   00     .ARM.exidx
+   01
+   02     .interp
+   03     .interp .note.ABI-tag .hash .dynsym .dynstr .gnu.version .gnu.version_r .rel.dyn .rel.plt .init .plt .text .fini .rodata .ARM.extab .ARM.exidx .eh_frame
+   04     .init_array .fini_array .jcr .dynamic .got .data .bss
+   05     .dynamic
+   06     .note.ABI-tag
+   07
+```
+
 path: fs/binfmt_elf.c
 
 load_elf_binary用来装载一个elf格式的二进制文件，其具体实现如下所示:
@@ -403,7 +469,9 @@ https://github.com/leeminghao/doc-linux/tree/master/2.x-current/fs/exec_c/setup_
             elf_prot |= PROT_WRITE;
         if (elf_ppnt->p_flags & PF_X)
             elf_prot |= PROT_EXEC;
-
+        /* MAP_PRIVATE创建一个与数据源分离的私有映射，对映射区域的
+         * 写入操作不影响文件中的数据.
+         */
         elf_flags = MAP_PRIVATE | MAP_DENYWRITE | MAP_EXECUTABLE;
 
         /* 3.找到一个PT_LOAD片以后，先要确定其装入地址。程序头
@@ -411,7 +479,10 @@ https://github.com/leeminghao/doc-linux/tree/master/2.x-current/fs/exec_c/setup_
          */
         vaddr = elf_ppnt->p_vaddr;
         /* 4.根据程序二进制头的type设置程序段的权限和装入地址. */
-        /* A.如果映像的类型为ET_EXEC那么装入地址就是固定的 */
+        /* A.如果映像的类型为ET_EXEC那么装入地址就是固定的
+         * MAP_FIXED - 指定除了给定的地址之外，不能将其它地址用于映射.
+         * 如果没有设置该标志，内核可以在受阻时随意改变目标地址.
+         */
         if (loc->elf_ex.e_type == ET_EXEC || load_addr_set) {
             elf_flags |= MAP_FIXED;
         /* B.而若类型为ET_DYN(即共享库)，那么即使装入地址固定也要
@@ -447,7 +518,7 @@ https://github.com/leeminghao/doc-linux/tree/master/2.x-current/fs/exec_c/setup_
 #endif
         }
 
-        /* 确定了装入地址以后，就通过elf_map()建立用户空间虚存区间与
+        /* 确定了装入地址以后，就通过elf_map()建立进程虚拟地址空间与
          * 目标映像文件中某个连续区间之间的映射。
          */
         error = elf_map(bprm->file, load_bias + vaddr, elf_ppnt,
