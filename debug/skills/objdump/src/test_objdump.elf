@@ -1,0 +1,214 @@
+ELF Header:
+  Magic:   7f 45 4c 46 01 01 01 00 00 00 00 00 00 00 00 00 
+  Class:                             ELF32
+  Data:                              2's complement, little endian
+  Version:                           1 (current)
+  OS/ABI:                            UNIX - System V
+  ABI Version:                       0
+  Type:                              DYN (Shared object file)
+  Machine:                           ARM
+  Version:                           0x1
+  Entry point address:               0x2b4
+  Start of program headers:          52 (bytes into file)
+  Start of section headers:          6452 (bytes into file)
+  Flags:                             0x5000000, Version5 EABI
+  Size of this header:               52 (bytes)
+  Size of program headers:           32 (bytes)
+  Number of program headers:         8
+  Size of section headers:           40 (bytes)
+  Number of section headers:         31
+  Section header string table index: 30
+
+Section Headers:
+  [Nr] Name              Type            Addr     Off    Size   ES Flg Lk Inf Al
+  [ 0]                   NULL            00000000 000000 000000 00      0   0  0
+  [ 1] .interp           PROGBITS        00000134 000134 000013 00   A  0   0  1
+  [ 2] .dynsym           DYNSYM          00000148 000148 000070 10   A  3   1  4
+  [ 3] .dynstr           STRTAB          000001b8 0001b8 000066 00   A  0   0  1
+  [ 4] .hash             HASH            00000220 000220 000030 04   A  2   0  4
+  [ 5] .rel.dyn          REL             00000250 000250 000020 08   A  2   0  4
+  [ 6] .rel.plt          REL             00000270 000270 000010 08   A  2   0  4
+  [ 7] .plt              PROGBITS        00000280 000280 00002c 00  AX  0   0  4
+  [ 8] .text             PROGBITS        000002ac 0002ac 0000f4 00  AX  0   0  4
+  [ 9] .note.android.ide PROGBITS        000003a0 0003a0 000018 00   A  0   0  4
+  [10] .ARM.exidx        ARM_EXIDX       000003b8 0003b8 000010 08  AL  8   0  4
+  [11] .preinit_array    PREINIT_ARRAY   00001ecc 000ecc 000008 00  WA  0   0  4
+  [12] .init_array       INIT_ARRAY      00001ed4 000ed4 000008 00  WA  0   0  4
+  [13] .fini_array       FINI_ARRAY      00001edc 000edc 000008 00  WA  0   0  4
+  [14] .dynamic          DYNAMIC         00001ee4 000ee4 0000f8 08  WA  3   0  4
+  [15] .got              PROGBITS        00001fdc 000fdc 000024 00  WA  0   0  4
+  [16] .bss              NOBITS          00002000 001000 000004 00  WA  0   0  4
+  [17] .comment          PROGBITS        00000000 001000 000010 01  MS  0   0  1
+  [18] .debug_info       PROGBITS        00000000 001010 0000ad 00      0   0  1
+  [19] .debug_abbrev     PROGBITS        00000000 0010bd 00006b 00      0   0  1
+  [20] .debug_loc        PROGBITS        00000000 001128 00001f 00      0   0  1
+  [21] .debug_aranges    PROGBITS        00000000 001147 000020 00      0   0  1
+  [22] .debug_ranges     PROGBITS        00000000 001167 000010 00      0   0  1
+  [23] .debug_line       PROGBITS        00000000 001177 000058 00      0   0  1
+  [24] .debug_str        PROGBITS        00000000 0011cf 00029a 01  MS  0   0  1
+  [25] .debug_frame      PROGBITS        00000000 00146c 000020 00      0   0  4
+  [26] .note.gnu.gold-ve NOTE            00000000 00148c 00001c 00      0   0  4
+  [27] .ARM.attributes   ARM_ATTRIBUTES  00000000 0014a8 00003a 00      0   0  1
+  [28] .symtab           SYMTAB          00000000 0014e4 000210 10     29  23  4
+  [29] .strtab           STRTAB          00000000 0016f4 0000fe 00      0   0  1
+  [30] .shstrtab         STRTAB          00000000 0017f2 000140 00      0   0  1
+Key to Flags:
+  W (write), A (alloc), X (execute), M (merge), S (strings)
+  I (info), L (link order), G (group), T (TLS), E (exclude), x (unknown)
+  O (extra OS processing required) o (OS specific), p (processor specific)
+
+There are no section groups in this file.
+
+Program Headers:
+  Type           Offset   VirtAddr   PhysAddr   FileSiz MemSiz  Flg Align
+  PHDR           0x000034 0x00000034 0x00000034 0x00100 0x00100 R   0x4
+  INTERP         0x000134 0x00000134 0x00000134 0x00013 0x00013 R   0x1
+      [Requesting program interpreter: /system/bin/linker]
+  LOAD           0x000000 0x00000000 0x00000000 0x003c8 0x003c8 R E 0x1000
+  LOAD           0x000ecc 0x00001ecc 0x00001ecc 0x00134 0x00138 RW  0x1000
+  DYNAMIC        0x000ee4 0x00001ee4 0x00001ee4 0x000f8 0x000f8 RW  0x4
+  GNU_STACK      0x000000 0x00000000 0x00000000 0x00000 0x00000 RW  0
+  EXIDX          0x0003b8 0x000003b8 0x000003b8 0x00010 0x00010 R   0x4
+  GNU_RELRO      0x000ecc 0x00001ecc 0x00001ecc 0x00134 0x00134 RW  0x4
+
+ Section to Segment mapping:
+  Segment Sections...
+   00     
+   01     .interp 
+   02     .interp .dynsym .dynstr .hash .rel.dyn .rel.plt .plt .text .note.android.ident .ARM.exidx 
+   03     .preinit_array .init_array .fini_array .dynamic .got .bss 
+   04     .dynamic 
+   05     
+   06     .ARM.exidx 
+   07     .preinit_array .init_array .fini_array .dynamic .got 
+
+Dynamic section at offset 0xee4 contains 26 entries:
+  Tag        Type                         Name/Value
+ 0x00000003 (PLTGOT)                     0x1fec
+ 0x00000002 (PLTRELSZ)                   16 (bytes)
+ 0x00000017 (JMPREL)                     0x270
+ 0x00000014 (PLTREL)                     REL
+ 0x00000011 (REL)                        0x250
+ 0x00000012 (RELSZ)                      32 (bytes)
+ 0x00000013 (RELENT)                     8 (bytes)
+ 0x6ffffffa (RELCOUNT)                   4
+ 0x00000015 (DEBUG)                      0x0
+ 0x00000006 (SYMTAB)                     0x148
+ 0x0000000b (SYMENT)                     16 (bytes)
+ 0x00000005 (STRTAB)                     0x1b8
+ 0x0000000a (STRSZ)                      102 (bytes)
+ 0x00000004 (HASH)                       0x220
+ 0x00000001 (NEEDED)                     Shared library: [libc.so]
+ 0x00000001 (NEEDED)                     Shared library: [libm.so]
+ 0x00000001 (NEEDED)                     Shared library: [libstdc++.so]
+ 0x00000020 (PREINIT_ARRAY)              0x1ecc
+ 0x00000021 (PREINIT_ARRAYSZ)            0x8
+ 0x00000019 (INIT_ARRAY)                 0x1ed4
+ 0x0000001b (INIT_ARRAYSZ)               8 (bytes)
+ 0x0000001a (FINI_ARRAY)                 0x1edc
+ 0x0000001c (FINI_ARRAYSZ)               8 (bytes)
+ 0x0000001e (FLAGS)                      BIND_NOW
+ 0x6ffffffb (FLAGS_1)                    Flags: NOW
+ 0x00000000 (NULL)                       0x0
+
+Relocation section '.rel.dyn' at offset 0x250 contains 4 entries:
+ Offset     Info    Type            Sym.Value  Sym. Name
+00001fdc  00000017 R_ARM_RELATIVE   
+00001fe0  00000017 R_ARM_RELATIVE   
+00001fe4  00000017 R_ARM_RELATIVE   
+00001fe8  00000017 R_ARM_RELATIVE   
+
+Relocation section '.rel.plt' at offset 0x270 contains 2 entries:
+ Offset     Info    Type            Sym.Value  Sym. Name
+00001ff8  00000116 R_ARM_JUMP_SLOT   00000000   __libc_init
+00001ffc  00000216 R_ARM_JUMP_SLOT   00000000   __cxa_atexit
+
+Unwind table index '.ARM.exidx' at offset 0x3b8 contains 2 entries:
+
+0x2ac <main>: 0x80b0b0b0
+  Compact model index: 0
+  0xb0      finish
+  0xb0      finish
+  0xb0      finish
+
+0x2b4 <_start>: 0x1 [cantunwind]
+
+
+Symbol table '.dynsym' contains 7 entries:
+   Num:    Value  Size Type    Bind   Vis      Ndx Name
+     0: 00000000     0 NOTYPE  LOCAL  DEFAULT  UND 
+     1: 00000000     0 FUNC    GLOBAL DEFAULT  UND __libc_init
+     2: 00000000     0 FUNC    GLOBAL DEFAULT  UND __cxa_atexit
+     3: 00000000     0 FUNC    GLOBAL DEFAULT  UND __aeabi_unwind_cpp_pr0
+     4: 00002000     0 NOTYPE  GLOBAL DEFAULT  ABS _edata
+     5: 00002000     0 NOTYPE  GLOBAL DEFAULT  ABS __bss_start
+     6: 00002004     0 NOTYPE  GLOBAL DEFAULT  ABS _end
+
+Symbol table '.symtab' contains 33 entries:
+   Num:    Value  Size Type    Bind   Vis      Ndx Name
+     0: 00000000     0 NOTYPE  LOCAL  DEFAULT  UND 
+     1: 00000000     0 FILE    LOCAL  DEFAULT  ABS crtbegin.c
+     2: 00001ecc     0 NOTYPE  LOCAL  DEFAULT   11 $d
+     3: 00001ed4     0 NOTYPE  LOCAL  DEFAULT   12 $d
+     4: 00001edc     0 NOTYPE  LOCAL  DEFAULT   13 $d
+     5: 000002b4     0 NOTYPE  LOCAL  DEFAULT    8 $a
+     6: 00000318     0 NOTYPE  LOCAL  DEFAULT    8 $d
+     7: 00002000     0 NOTYPE  LOCAL  DEFAULT   16 $d
+     8: 0000032c     0 NOTYPE  LOCAL  DEFAULT    8 $a
+     9: 00000398     0 NOTYPE  LOCAL  DEFAULT    8 $d
+    10: 00000000     0 FILE    LOCAL  DEFAULT  ABS crtbrand.c
+    11: 000003a0     0 NOTYPE  LOCAL  DEFAULT    9 $d
+    12: 000003a0    24 OBJECT  LOCAL  DEFAULT    9 abitag
+    13: 00000000     0 FILE    LOCAL  DEFAULT  ABS test.c
+    14: 000002ac     0 NOTYPE  LOCAL  DEFAULT    8 $t
+    15: 000003b8     0 NOTYPE  LOCAL  DEFAULT   10 $d
+    16: 00000010     0 NOTYPE  LOCAL  DEFAULT   25 $d
+    17: 000002b4   120 FUNC    LOCAL  HIDDEN     8 _start
+    18: 00002000     4 OBJECT  LOCAL  HIDDEN    16 __dso_handle
+    19: 0000032c    44 FUNC    LOCAL  HIDDEN     8 __atexit_handler_wrapper
+    20: 00000358    72 FUNC    LOCAL  HIDDEN     8 atexit
+    21: 00001ee4   248 OBJECT  LOCAL  HIDDEN    14 _DYNAMIC
+    22: 00001fec     0 OBJECT  LOCAL  HIDDEN    15 _GLOBAL_OFFSET_TABLE_
+    23: 00001ecc     4 OBJECT  GLOBAL DEFAULT   11 __PREINIT_ARRAY__
+    24: 00001ed4     4 OBJECT  GLOBAL DEFAULT   12 __INIT_ARRAY__
+    25: 00001edc     4 OBJECT  GLOBAL DEFAULT   13 __FINI_ARRAY__
+    26: 00000000     0 FUNC    GLOBAL DEFAULT  UND __libc_init
+    27: 000002ad     8 FUNC    GLOBAL DEFAULT    8 main
+    28: 00000000     0 FUNC    GLOBAL DEFAULT  UND __cxa_atexit
+    29: 00000000     0 FUNC    GLOBAL DEFAULT  UND __aeabi_unwind_cpp_pr0
+    30: 00002000     0 NOTYPE  GLOBAL DEFAULT  ABS _edata
+    31: 00002000     0 NOTYPE  GLOBAL DEFAULT  ABS __bss_start
+    32: 00002004     0 NOTYPE  GLOBAL DEFAULT  ABS _end
+
+Histogram for bucket list length (total of 3 buckets):
+ Length  Number     % of total  Coverage
+      0  0          (  0.0%)
+      1  1          ( 33.3%)     16.7%
+      2  1          ( 33.3%)     50.0%
+      3  1          ( 33.3%)    100.0%
+
+No version information found in this file.
+
+Notes at offset 0x0000148c with length 0x0000001c:
+  Owner                 Data size	Description
+  GNU                  0x00000009	NT_GNU_GOLD_VERSION (gold version)
+Attribute Section: aeabi
+File Attributes
+  Tag_CPU_name: "ARM v7"
+  Tag_CPU_arch: v7
+  Tag_CPU_arch_profile: Application
+  Tag_ARM_ISA_use: Yes
+  Tag_THUMB_ISA_use: Thumb-2
+  Tag_FP_arch: VFPv3
+  Tag_Advanced_SIMD_arch: NEONv1
+  Tag_ABI_PCS_GOT_use: GOT-indirect
+  Tag_ABI_PCS_wchar_t: 4
+  Tag_ABI_FP_denormal: Needed
+  Tag_ABI_FP_exceptions: Needed
+  Tag_ABI_FP_number_model: IEEE 754
+  Tag_ABI_align_needed: 8-byte
+  Tag_ABI_enum_size: int
+  Tag_ABI_HardFP_use: SP and DP
+  Tag_ABI_optimization_goals: Aggressive Debug
+  Tag_CPU_unaligned_access: v6
+  Tag_Virtualization_use: TrustZone
