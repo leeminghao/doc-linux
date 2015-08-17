@@ -96,7 +96,7 @@ https://github.com/leeminghao/doc-linux/blob/master/2.x-current/mm/mmap_c/find_v
      ...
      info.flags = VM_UNMAPPED_AREA_TOPDOWN;
      info.length = len;
-     /**/
+     /* FIRST_USER_ADDRESS通常设置为PAGE_SIZE. */
      info.low_limit = FIRST_USER_ADDRESS;
      info.high_limit = mm->mmap_base;
      info.align_mask = do_align ? (PAGE_MASK & (SHMLBA - 1)) : 0;
