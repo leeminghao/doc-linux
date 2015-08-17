@@ -61,6 +61,8 @@ unacct_error:
     ...
 ```
 
+may_expand_vm函数检查是否要对此虚拟区间进行扩充.
+
 2.find_vma_links
 ----------------------------------------
 
@@ -83,7 +85,7 @@ munmap_back:
 
 https://github.com/leeminghao/doc-linux/blob/master/2.x-current/mm/mmap_c/find_vma_links.md
 
-3.accountable_mapping
+3.检查资源限制和安全性等.
 ----------------------------------------
 
 ```
@@ -100,6 +102,17 @@ https://github.com/leeminghao/doc-linux/blob/master/2.x-current/mm/mmap_c/find_v
     ...
 ```
 
+### accountable_mapping
+
+统计，即内核维护了进程用于映射的页数目统计. 由于可以限制进程的资源用量,
+内核必须始终确保资源使用不超过允许值.对于每个进程可以创建的映射，还有一个
+最大数目的限制.
+
+### security_vm_enough_memory_mm
+
+进行广泛的安全性和合理性检查，以防止应用程序设置无效的参数或可能影响
+系统稳定性的参数.
+
 4.vma_merge
 ----------------------------------------
 
@@ -114,7 +127,12 @@ https://github.com/leeminghao/doc-linux/blob/master/2.x-current/mm/mmap_c/find_v
     ...
 ```
 
-5.
+在新区域被创建并加到进程的地址空间时，内核会检查它是否可以与一个或多个
+现存区域合并. 如下所示:
+
+https://github.com/leeminghao/doc-linux/blob/master/2.x-current/mm/mmap_c/vma_merge.md
+
+5.分配并初始化一个新的vm_area_struct实例
 ----------------------------------------
 
 ```
