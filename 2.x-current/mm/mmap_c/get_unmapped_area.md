@@ -47,9 +47,12 @@ arch_pick_mmap_layout来选择的，具体实现如下所示:
 
 https://github.com/leeminghao/doc-linux/tree/master/2.x-current/fs/exec_c/setup_new_exec.md
 
-对于经典的进程空间布局是使用arch_get_unmapped_area函数来寻找空闲
-映射区域的；对于新的进程空间布局是使用函数arch_get_unmapped_area_topdown
-函数来寻找空闲映射区域的.
+* 对于经典的进程空间布局是使用arch_get_unmapped_area函数来寻找空闲映射区域的:
+
+arch_get_unmapped_area
+----------------------------------------
+
+* 对于新的进程空间布局是使用函数arch_get_unmapped_area_topdown函数来寻找空闲映射区域的:
 
 arch_get_unmapped_area_topdown
 ----------------------------------------

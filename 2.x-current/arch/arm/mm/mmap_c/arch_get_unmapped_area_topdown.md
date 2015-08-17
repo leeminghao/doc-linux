@@ -17,28 +17,6 @@ arch_get_unmapped_area_topdown(struct file *filp, const unsigned long addr0,
 
      ...
 
-     info.flags = VM_UNMAPPED_AREA_TOPDOWN;
-     info.length = len;
-     info.low_limit = FIRST_USER_ADDRESS;
-     info.high_limit = mm->mmap_base;
-     info.align_mask = do_align ? (PAGE_MASK & (SHMLBA - 1)) : 0;
-     info.align_offset = pgoff << PAGE_SHIFT;
-     addr = vm_unmapped_area(&info);
-
-     /*
-      * A failed mmap() very likely causes application failure,
-      * so fall back to the bottom-up function here. This scenario
-      * can happen with large stack limits and large mmap()
-      * allocations.
-      */
-     if (addr & ~PAGE_MASK) {
-          VM_BUG_ON(addr != -ENOMEM);
-          info.flags = 0;
-          info.low_limit = mm->mmap_base;
-          info.high_limit = TASK_SIZE;
-          addr = vm_unmapped_area(&info);
-     }
-
      return addr;
 }
 ```
@@ -113,3 +91,57 @@ https://github.com/leeminghao/doc-linux/blob/master/2.x-current/mm/mmap_c/find_v
 
 如果进程没有设定固定地址和优先地址,那么内核必须遍历进程中可用区域，
 设法找到一个大小适当的空闲区域。
+
+```
+     ...
+     info.flags = VM_UNMAPPED_AREA_TOPDOWN;
+     info.length = len;
+     /**/
+     info.low_limit = FIRST_USER_ADDRESS;
+     info.high_limit = mm->mmap_base;
+     info.align_mask = do_align ? (PAGE_MASK & (SHMLBA - 1)) : 0;
+     info.align_offset = pgoff << PAGE_SHIFT;
+     addr = vm_unmapped_area(&info);
+
+     /*
+      * A failed mmap() very likely causes application failure,
+      * so fall back to the bottom-up function here. This scenario
+      * can happen with large stack limits and large mmap()
+      * allocations.
+      */
+     if (addr & ~PAGE_MASK) {
+          VM_BUG_ON(addr != -ENOMEM);
+          info.flags = 0;
+          info.low_limit = mm->mmap_base;
+          info.high_limit = TASK_SIZE;
+          addr = vm_unmapped_area(&info);
+     }
+     ...
+```
+
+### vm_unmapped_area
+
+path: include/linux/mm.h
+```
+/*
+ * Search for an unmapped address range.
+ *
+ * We are looking for a range that:
+ * - does not intersect with any VMA;
+ * - is contained within the [low_limit, high_limit) interval;
+ * - is at least the desired size.
+ * - satisfies (begin_addr & align_mask) == (align_offset & align_mask)
+ */
+static inline unsigned long
+vm_unmapped_area(struct vm_unmapped_area_info *info)
+{
+    if (!(info->flags & VM_UNMAPPED_AREA_TOPDOWN))
+        return unmapped_area(info);
+    else
+        return unmapped_area_topdown(info);
+}
+```
+
+unmapped_area_topdown的具体实现如下所示:
+
+https://github.com/leeminghao/doc-linux/blob/master/2.x-current/mm/mmap_c/unmapped_area_topdown.md

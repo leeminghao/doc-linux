@@ -54,6 +54,12 @@ static unsigned long elf_map(struct file *filep, unsigned long addr,
 }
 ```
 
+### 重新计算PT_LOAD段装入地址，段大小和偏移量.
+
+#### EXEC
+
+mm/vpm/src/elf/a.out这个elf格式文件的type是EXEC类型的.
+
 针对我们a.out这个可执行文件来说其PT_LOAD段加载的信息如下所示:
 
 ```
@@ -65,20 +71,67 @@ LOAD           0x00073c 0x0001073c 0x0001073c 0x0012c 0x00130 RW  0x8000
 
 经过elf_map重新计算后得到的值如下所示:
 
-### LOAD1
+##### LOAD1
 
 ```
-addr=8000
-size=1000
-off=0
+addr=0x8000
+size=0x1000
+off=0x0
 ```
 
-### LOAD2
+##### LOAD2
 
 ```
-addr=10000
-size=1000
-off=0
+addr=0x10000
+size=0x1000
+off=0x0
+```
+
+#### DYN
+
+mm/vpm/src/elf/elf这个elf格式可执行文件的type是DYN类型的.
+针对我们elf这个可执行文件来说其PT_LOAD段加载的信息如下所示:
+
+```
+$ arm-linux-androideabi-readelf -l elf
+
+Program Headers:
+  Type           Offset   VirtAddr   PhysAddr   FileSiz MemSiz  Flg Align
+  ...
+  INTERP         0x000134 0x00000134 0x00000134 0x00013 0x00013 R   0x1
+      [Requesting program interpreter: /system/bin/linker]
+  LOAD           0x000000 0x00000000 0x00000000 0x00494 0x00494 R E 0x1000
+  LOAD           0x000ec0 0x00001ec0 0x00001ec0 0x00140 0x00144 RW  0x1000
+  ...
+```
+
+经过elf_map重新计算后得到的值如下所示:
+
+##### LOAD1
+
+```
+addr=0x0
+size=0x1000
+off=0x0
+map_addr=0xb6fd1000
+```
+
+##### LOAD2
+
+```
+addr=0xb6fd2000
+size=0x1000
+off=0x0
+map_addr=0xb6fd2000
+```
+
+对应maps中信息如下所示:
+
+```
+...
+b6fd1000-b6fd2000 r-xp 00000000 b3:15 2178       /system/bin/a.out
+b6fd2000-b6fd3000 r--p 00000000 b3:15 2178       /system/bin/a.out
+...
 ```
 
 接下来调用vm_mmap函数来进行映射操作:
