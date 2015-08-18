@@ -647,7 +647,7 @@ https://github.com/leeminghao/doc-linux/blob/master/2.x-current/fs/exec_c/elf/el
 
 接下来调用set_brk来设置bss段和brk段信息,如下所示:
 
-15.set_brk
+15.set_brk设置brk段
 ----------------------------------------
 
 ```
@@ -667,8 +667,15 @@ https://github.com/leeminghao/doc-linux/blob/master/2.x-current/fs/exec_c/elf/el
     ...
 ```
 
+set_brk函数用来设置当前进程brk空间区域，具体实现如下所示:
+
+https://github.com/leeminghao/doc-linux/blob/master/2.x-current/fs/exec_c/elf/set_brk.md
+
 16.load_elf_interp
 ----------------------------------------
+
+elf_interpreter指向解释器(连接器)名称,如果有解释器，则调用load_elf_interp
+函数装载解释器文件.
 
 ```
     ...
@@ -710,7 +717,7 @@ https://github.com/leeminghao/doc-linux/blob/master/2.x-current/fs/exec_c/elf/el
     ...
 ```
 
-16.set_binfmt
+17.set_binfmt
 ----------------------------------------
 
 ```
@@ -733,7 +740,7 @@ static struct linux_binfmt elf_format = {
 ...
 ```
 
-17.
+18.create_elf_tables
 ----------------------------------------
 
 ```
@@ -752,7 +759,7 @@ static struct linux_binfmt elf_format = {
     ...
 ```
 
-18.
+19.设置进程code, data, stack段
 ----------------------------------------
 
 ```
@@ -785,7 +792,7 @@ static struct linux_binfmt elf_format = {
     ...
 ```
 
-19.
+20.start_thread
 ----------------------------------------
 
 ```
