@@ -197,6 +197,16 @@ https://github.com/leeminghao/doc-linux/blob/master/2.x-current/mm/mmap_c/vma_me
     ...
 ```
 
+如上代码段主要完成如下两个工作:
+
+* A.分配并初始化一个新的vm_area_struct实例,并插入到进程链表/树数据结构中.
+* B.用特定文件的函数file->f_op->mmap创建映射.大多数文件系统将generic_file_mmap用于
+  该目的。它所做的所有工作，就是将映射的vm_ops成员设置为generic_file_vm_ops.
+
+**注意**: 但是常用的ext4文件系统是将mmap函数设置为ext4_file_mmap，具体实现如下所示:
+
+https://github.com/leeminghao/doc-linux/blob/master/2.x-current/fs/ext4/file_c/ext4_file_mmap.md
+
 6.vma_link
 ----------------------------------------
 
@@ -206,8 +216,17 @@ https://github.com/leeminghao/doc-linux/blob/master/2.x-current/mm/mmap_c/vma_me
     ...
 ```
 
-7.
+vma_link函数将新区域合并到该进程现存的数据结构mm_struct中去.
+
+https://github.com/leeminghao/doc-linux/blob/master/2.x-current/mm/mmap_c/vma_link.md
+
+7.检查vm_flags并进行对应操作
 ----------------------------------------
+
+如果VM_LOCKED被设置，或者通过系统调用的标志参数显示传递进来，或者通过mlockall机制
+隐式设置，内核都会一次扫描映射中的各页，对每一页触发缺页异常以便读入其数据.当然，
+这意味着失去了延迟读取带来的性能提高，但内核可以确保在映射建立后所涉及的页总在物理
+内存中. 毕竟VM_LOCKED标志用来防止从内存换出页，因此这些页必须先读进来.
 
 ```
     ...
@@ -246,3 +265,5 @@ out:
     vma_set_page_prot(vma);
     ...
 ```
+
+接下来，返回新映射的其实地址.完成调用
