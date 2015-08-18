@@ -79,3 +79,8 @@ https://github.com/leeminghao/doc-linux/blob/master/2.x-current/mm/vpm/new_vpm_l
 这个实例保存了进程内存管理信息:
 
 https://github.com/leeminghao/doc-linux/blob/master/2.x-current/mm/vpm/mm_struct.md
+
+补充
+----------------------------------------
+
+https://github.com/leeminghao/doc-linux/blob/master/2.x-current/mm/vpm/vm_layout.md

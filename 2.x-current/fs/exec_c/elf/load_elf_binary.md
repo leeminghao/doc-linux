@@ -1,7 +1,54 @@
 load_elf_binary
 ========================================
 
+针对本例，我们使用如下elf文件进行分析，其中a.out是EXEC类型的，elf是DYN类型的.
+其区别如下:
+
+https://github.com/leeminghao/doc-linux/blob/master/2.x-current/mm/vpm/src/elf/EXEC_DYN.md
+
 path: fs/binfmt_elf.c
+```
+static int load_elf_binary(struct linux_binprm *bprm)
+{
+    struct file *interpreter = NULL; /* to shut gcc up */
+    unsigned long load_addr = 0, load_bias = 0;
+    int load_addr_set = 0;
+    char * elf_interpreter = NULL;
+    unsigned long error;
+    struct elf_phdr *elf_ppnt, *elf_phdata, *interp_elf_phdata = NULL;
+    unsigned long elf_bss, elf_brk;
+    int retval, i;
+    unsigned long elf_entry;
+    unsigned long interp_load_addr = 0;
+    unsigned long start_code, end_code, start_data, end_data;
+    unsigned long reloc_func_desc __maybe_unused = 0;
+    int executable_stack = EXSTACK_DEFAULT;
+    struct pt_regs *regs = current_pt_regs();
+    struct {
+        struct elfhdr elf_ex;
+        struct elfhdr interp_elf_ex;
+    } *loc;
+    struct arch_elf_state arch_state = INIT_ARCH_ELF_STATE;
+    ...
+out:
+    kfree(loc);
+out_ret:
+    return retval;
+
+    /* error cleanup */
+out_free_dentry:
+    kfree(interp_elf_phdata);
+    allow_write_access(interpreter);
+    if (interpreter)
+        fput(interpreter);
+out_free_interp:
+    kfree(elf_interpreter);
+out_free_ph:
+    kfree(elf_phdata);
+    goto out;
+}
+}
+```
 
 load_elf_binary用来装载一个elf格式的二进制文件，其具体实现如下所示:
 
@@ -79,7 +126,7 @@ load_elf_phdrs具体实现如下所示:
 
 https://github.com/leeminghao/doc-linux/tree/master/2.x-current/fs/exec_c/elf/load_elf_phdrs.md
 
-4.初始化局部变量
+4.初始化进程布局信息
 ----------------------------------------
 
 ```
@@ -102,7 +149,7 @@ https://github.com/leeminghao/doc-linux/tree/master/2.x-current/fs/exec_c/elf/lo
     end_data = 0;
 ```
 
-5. 初始化INTERP段
+5.初始化INTERP段
 ----------------------------------------
 
 ```
@@ -327,7 +374,7 @@ setup_new_exec函数具体实现如下所示:
 
 https://github.com/leeminghao/doc-linux/tree/master/2.x-current/fs/exec_c/setup_new_exec.md
 
-12.重新调整栈
+12.设置进程栈空间布局
 ----------------------------------------
 
 setup_arg_pages函数用来重新调整当前进程的栈区域位置，权限，大小.
@@ -351,7 +398,7 @@ setup_arg_pages具体实现如下所示:
 
 https://github.com/leeminghao/doc-linux/tree/master/2.x-current/fs/exec_c/setup_arg_pages.md
 
-13.将elf文件的PT_LOAD段映射到内存正确的位置.
+13.映射PT_LOAD段
 ----------------------------------------
 
 ```
@@ -453,7 +500,8 @@ https://github.com/leeminghao/doc-linux/tree/master/2.x-current/fs/exec_c/setup_
         }
 
         /* 确定了装入地址以后，就通过elf_map()建立进程虚拟地址空间与
-         * 目标映像文件中某个连续区间之间的映射。
+         * 目标映像文件中某个连续区间之间的映射。返回值是实际映射的
+         * 起始地址.
          */
         error = elf_map(bprm->file, load_bias + vaddr, elf_ppnt,
                 elf_prot, elf_flags, 0);
@@ -463,6 +511,11 @@ https://github.com/leeminghao/doc-linux/tree/master/2.x-current/fs/exec_c/setup_
             goto out_free_dentry;
         }
 
+        /* load_addr_set已经被设置成1, 那么装入地址load_bias就是固定的
+         * load_addr_set默认是0, 那么针对DYN类型的elf格式文件其load_addr
+         * 和load_bias的值一般是等同于error(即实际映射的起始地址).
+         * 从elf_map得知elf这个DYN类型文件该值为0xb6f21000
+         */
         if (!load_addr_set) {
             load_addr_set = 1;
             load_addr = (elf_ppnt->p_vaddr - elf_ppnt->p_offset);
@@ -473,6 +526,15 @@ https://github.com/leeminghao/doc-linux/tree/master/2.x-current/fs/exec_c/setup_
                 reloc_func_desc = load_bias;
             }
         }
+
+        /* 下面的一段代码用于计算代码区和数据区的开始位置:
+         * 由于代码区在进程空间的最前面，如果当前映射的这一段的开始位置
+         * 还位于当前的代码区之前，那么代码区的开始位置应该还要向前移，
+         * 至少移到这一段的位置上。
+         * 而如果当前映射的这一段的开始位置还位于当前的数据区之后，
+         * 那么数据区的开始位置还应该向后移，至少移到这一段的位置上。
+         * 这是因为数据区在可装载的段的最后，不应该有哪个段的位置比较数据区还靠后。
+         */
         k = elf_ppnt->p_vaddr;
         if (k < start_code)
             start_code = k;
@@ -491,15 +553,25 @@ https://github.com/leeminghao/doc-linux/tree/master/2.x-current/fs/exec_c/setup_
             retval = -EINVAL;
             goto out_free_dentry;
         }
-
+        /* 接下来的代码是用于计算几个区的结束位置: */
         k = elf_ppnt->p_vaddr + elf_ppnt->p_filesz;
 
+        /* elf_bss变量记录的是BSS区的开始位置。BSS区排在所有可加载段的后面，
+         * 即它的开始处也就是最后一个可加载段的结尾处。所以总是把当前加载段
+         * 的结尾与它相比，如果当前加载段的结尾比较靠后的话，则还需要把BSS区往后推。
+         */
         if (k > elf_bss)
             elf_bss = k;
         if ((elf_ppnt->p_flags & PF_X) && end_code < k)
             end_code = k;
         if (end_data < k)
             end_data = k;
+        /* elf_brk变量记录的是堆(heap)的上边界，现在进程还没有运行起来，没有从堆上面申请内存，
+         * 所以堆的大小是0，堆的上边界与下边界重合，而堆的位置还在BSS之后，即它的开始位置应该是
+         * BSS区的结构位置。一般情况下，一个程序头的p_memsz与p_filesz如果不一样大小的话，
+         * 其差值应是未初始化全局变量的大小，这段空间应归入BSS区。上面代码中两个k值的计算
+         * 正是考虑到这一点，所以第二次k值(BRK)的计算是把BSS区大小也计算在内的。
+         */
         k = elf_ppnt->p_vaddr + elf_ppnt->p_memsz;
         if (k > elf_brk)
             elf_brk = k;
@@ -507,14 +579,232 @@ https://github.com/leeminghao/doc-linux/tree/master/2.x-current/fs/exec_c/setup_
     ...
 ```
 
-### EXEC vs DYN区别
-
-https://github.com/leeminghao/doc-linux/blob/master/2.x-current/mm/vpm/src/elf/EXEC_DYN.md
-
-针对这两种类型的elf格式文件我们来说明下elf_map函数的作用:
-
 ### elf_map
 
 elf_map的具体实现如下所示：
 
 https://github.com/leeminghao/doc-linux/tree/master/2.x-current/fs/exec_c/elf/elf_map.md
+
+### 计算进程空间各段起始地址和结束地址
+
+针对名称elf(DYN)这个文件我们计算出的各段值如下所示:
+
+在加载完PT_LOAD1段时各值结果如下所示:
+
+```
+start_code=0x0
+end_code=0x494
+start_data=0x0
+end_data=0x494
+elf_bss=0x494
+elf_brk=0x494
+```
+
+在加载完PT_LOAD2段时各值结果如下所示:
+
+```
+start_code=0x0
+end_code=0x494
+start_data=0x1ec0
+end_data=0x2000
+elf_bss=0x2000
+elf_brk=0x2004
+```
+
+14.计算进程各段地址
+----------------------------------------
+
+进程虚拟内存空间布局如下所示:
+
+https://github.com/leeminghao/doc-linux/blob/master/2.x-current/mm/vpm/vm_layout.md
+
+```
+    ...
+    loc->elf_ex.e_entry += load_bias;
+    elf_bss += load_bias;
+    elf_brk += load_bias;
+    start_code += load_bias;
+    end_code += load_bias;
+    start_data += load_bias;
+    end_data += load_bias;
+    ...
+```
+
+通过如上计算得到的各段值如下所示:
+
+```
+start_code=0xb6f21000
+end_code=0xb6f21494
+start_data=0xb6f22ec0
+end_data=0xb6f23000
+elf_bss=0xb6f23000
+elf_brk=0xb6f23004
+```
+
+对应完整的maps如下所示
+
+https://github.com/leeminghao/doc-linux/blob/master/2.x-current/fs/exec_c/elf/elf.maps
+
+接下来调用set_brk来设置bss段和brk段信息,如下所示:
+
+15.set_brk
+----------------------------------------
+
+```
+    ...
+    /* Calling set_brk effectively mmaps the pages that we need
+     * for the bss and break sections.  We must do this before
+     * mapping in the interpreter, to make sure it doesn't wind
+     * up getting placed where the bss needs to go.
+     */
+    retval = set_brk(elf_bss, elf_brk);
+    if (retval)
+        goto out_free_dentry;
+    if (likely(elf_bss != elf_brk) && unlikely(padzero(elf_bss))) {
+        retval = -EFAULT; /* Nobody gets to see this, but.. */
+        goto out_free_dentry;
+    }
+    ...
+```
+
+16.load_elf_interp
+----------------------------------------
+
+```
+    ...
+    if (elf_interpreter) {
+        unsigned long interp_map_addr = 0;
+
+        elf_entry = load_elf_interp(&loc->interp_elf_ex,
+                        interpreter,
+                        &interp_map_addr,
+                        load_bias, interp_elf_phdata);
+        if (!IS_ERR((void *)elf_entry)) {
+            /*
+             * load_elf_interp() returns relocation
+             * adjustment
+             */
+            interp_load_addr = elf_entry;
+            elf_entry += loc->interp_elf_ex.e_entry;
+        }
+        if (BAD_ADDR(elf_entry)) {
+            retval = IS_ERR((void *)elf_entry) ?
+                    (int)elf_entry : -EINVAL;
+            goto out_free_dentry;
+        }
+        reloc_func_desc = interp_load_addr;
+
+        allow_write_access(interpreter);
+        fput(interpreter);
+        kfree(elf_interpreter);
+    } else {
+        elf_entry = loc->elf_ex.e_entry;
+        if (BAD_ADDR(elf_entry)) {
+            retval = -EINVAL;
+            goto out_free_dentry;
+        }
+    }
+
+    kfree(interp_elf_phdata);
+    kfree(elf_phdata);
+    ...
+```
+
+16.set_binfmt
+----------------------------------------
+
+```
+    ...
+    set_binfmt(&elf_format);
+    ...
+```
+
+elf_format定义如下所示:
+
+path: fs/binfmt_elf.c
+```
+static struct linux_binfmt elf_format = {
+    .module       = THIS_MODULE,
+    .load_binary  = load_elf_binary,
+    .load_shlib   = load_elf_library,
+    .core_dump    = elf_core_dump,
+    .min_coredump = ELF_EXEC_PAGESIZE,
+};
+...
+```
+
+17.
+----------------------------------------
+
+```
+    ...
+#ifdef ARCH_HAS_SETUP_ADDITIONAL_PAGES
+    retval = arch_setup_additional_pages(bprm, !!elf_interpreter);
+    if (retval < 0)
+        goto out;
+#endif /* ARCH_HAS_SETUP_ADDITIONAL_PAGES */
+
+    install_exec_creds(bprm);
+    retval = create_elf_tables(bprm, &loc->elf_ex,
+              load_addr, interp_load_addr);
+    if (retval < 0)
+        goto out;
+    ...
+```
+
+18.
+----------------------------------------
+
+```
+    ...
+    /* N.B. passed_fileno might not be initialized? */
+    current->mm->end_code = end_code;
+    current->mm->start_code = start_code;
+    current->mm->start_data = start_data;
+    current->mm->end_data = end_data;
+    current->mm->start_stack = bprm->p;
+
+#ifdef arch_randomize_brk
+    if ((current->flags & PF_RANDOMIZE) && (randomize_va_space > 1)) {
+        current->mm->brk = current->mm->start_brk =
+            arch_randomize_brk(current->mm);
+#ifdef CONFIG_COMPAT_BRK
+        current->brk_randomized = 1;
+#endif
+    }
+#endif
+
+    if (current->personality & MMAP_PAGE_ZERO) {
+        /* Why this, you ask???  Well SVr4 maps page 0 as read-only,
+           and some applications "depend" upon this behavior.
+           Since we do not have the power to recompile these, we
+           emulate the SVr4 behavior. Sigh. */
+        error = vm_mmap(NULL, 0, PAGE_SIZE, PROT_READ | PROT_EXEC,
+                MAP_FIXED | MAP_PRIVATE, 0);
+    }
+    ...
+```
+
+19.
+----------------------------------------
+
+```
+    ...
+#ifdef ELF_PLAT_INIT
+    /*
+     * The ABI may specify that certain registers be set up in special
+     * ways (on i386 %edx is the address of a DT_FINI function, for
+     * example.  In addition, it may also specify (eg, PowerPC64 ELF)
+     * that the e_entry field is the address of the function descriptor
+     * for the startup routine, rather than the address of the startup
+     * routine itself.  This macro performs whatever initialization to
+     * the regs structure is required as well as any relocations to the
+     * function descriptor entries when executing dynamically links apps.
+     */
+    ELF_PLAT_INIT(regs, reloc_func_desc);
+#endif
+
+    start_thread(regs, elf_entry, bprm->p);
+    retval = 0;
+    ...
+```
