@@ -633,12 +633,13 @@ https://github.com/leeminghao/doc-linux/blob/master/2.x-current/mm/vpm/vm_layout
 通过如上计算得到的各段值如下所示:
 
 ```
-start_code=0xb6f21000
-end_code=0xb6f21494
-start_data=0xb6f22ec0
-end_data=0xb6f23000
-elf_bss=0xb6f23000
-elf_brk=0xb6f23004
+entry=b6f84360
+start_code=b6f84000
+end_code=b6f84494
+start_data=b6f85ec0
+end_data=b6f86000
+elf_bss=b6f86000
+elf_brk=b6f86004
 ```
 
 对应完整的maps如下所示
@@ -671,17 +672,26 @@ set_brk函数用来设置当前进程brk空间区域，具体实现如下所示:
 
 https://github.com/leeminghao/doc-linux/blob/master/2.x-current/fs/exec_c/elf/set_brk.md
 
+经过set_brk设置之后，当前进程的brk段起始地址和结束地址如下所示:
+
+```
+start_brk=0xb6f87000
+end_brk=0xb6f87000
+```
+
 16.load_elf_interp
 ----------------------------------------
 
 elf_interpreter指向解释器(连接器)名称,如果有解释器，则调用load_elf_interp
-函数装载解释器文件.
+函数装载解释器文件.并把将来进入用户空间时的入口地址设置成load_elf_interp()的返回值，
+那显然是解释器的程序入口。而若不装入解释器，那么这个地址就是目标映像本身的程序入口。
 
 ```
     ...
     if (elf_interpreter) {
         unsigned long interp_map_addr = 0;
 
+        /* 返回解释器(linker)映射的首地址. */
         elf_entry = load_elf_interp(&loc->interp_elf_ex,
                         interpreter,
                         &interp_map_addr,
@@ -692,6 +702,7 @@ elf_interpreter指向解释器(连接器)名称,如果有解释器，则调用lo
              * adjustment
              */
             interp_load_addr = elf_entry;
+            /* 接下来将映射首地址再加上对应解释器的入口偏移量即可. */
             elf_entry += loc->interp_elf_ex.e_entry;
         }
         if (BAD_ADDR(elf_entry)) {
@@ -717,6 +728,12 @@ elf_interpreter指向解释器(连接器)名称,如果有解释器，则调用lo
     ...
 ```
 
+load_elf_interp具体实现如下所示:
+
+https://github.com/leeminghao/doc-linux/tree/master/2.x-current/fs/exec_c/elf/load_elf_interp.md
+
+针对本例来说，linker作为解释器，其映射首地址为b6f74000(elf_entry),也就是load_elf_interp的返回值.
+
 17.set_binfmt
 ----------------------------------------
 
@@ -740,7 +757,12 @@ static struct linux_binfmt elf_format = {
 ...
 ```
 
-18.create_elf_tables
+接下来调用set_binfmt函数将对应的elf格式文件的处理接口函数包存到描述当前进程空间的
+数据结构mm_struct实例的成员变量binfmt中去.具体实现如下所示:
+
+https://github.com/leeminghao/doc-linux/tree/master/2.x-current/fs/exec_c/set_binfmt.md
+
+18.install_exec_creds
 ----------------------------------------
 
 ```
@@ -752,6 +774,18 @@ static struct linux_binfmt elf_format = {
 #endif /* ARCH_HAS_SETUP_ADDITIONAL_PAGES */
 
     install_exec_creds(bprm);
+    ...
+```
+
+install_exec_creds为新的可执行二进制文件配置credentials.具体实现如下所示:
+
+https://github.com/leeminghao/doc-linux/tree/master/2.x-current/fs/exec_c/install_exec_creds.md
+
+19.create_elf_tables
+----------------------------------------
+
+```
+    ...
     retval = create_elf_tables(bprm, &loc->elf_ex,
               load_addr, interp_load_addr);
     if (retval < 0)
@@ -759,8 +793,15 @@ static struct linux_binfmt elf_format = {
     ...
 ```
 
-19.设置进程code, data, stack段
+调用create_elf_tables，它将argc、argv等，还有一些辅助向量(Auxiliary Vector)等信息复制到用户空间.
+具体实现如下所示:
+
+https://github.com/leeminghao/doc-linux/tree/master/2.x-current/fs/exec_c/elf/create_elf_tables.md
+
+20.设置进程code, data, stack段信息
 ----------------------------------------
+
+start_stack=beb36850
 
 ```
     ...
@@ -792,7 +833,7 @@ static struct linux_binfmt elf_format = {
     ...
 ```
 
-20.start_thread
+21.start_thread
 ----------------------------------------
 
 ```

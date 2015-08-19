@@ -113,24 +113,24 @@ Program Headers:
 addr=0x0
 size=0x1000
 off=0x0
-map_addr=0xb6f21000
+map_addr=0xb6f84000
 ```
 
 ##### LOAD2
 
 ```
-addr=0xb6f22000
+addr=0xb6f85000
 size=0x1000
 off=0x0
-map_addr=0xb6f22000
+map_addr=0xb6f85000
 ```
 
 对应maps中信息如下所示:
 
 ```
 ...
-b6f21000-b6f22000 r-xp 00000000 b3:15 2178       /system/bin/a.out
-b6f22000-b6f23000 r--p 00000000 b3:15 2178       /system/bin/a.out
+b6f84000-b6f85000 r-xp 00000000 b3:15 2178       /system/bin/a.out
+b6f85000-b6f86000 r--p 00000000 b3:15 2178       /system/bin/a.out
 ...
 ```
 
