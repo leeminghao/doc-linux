@@ -793,15 +793,17 @@ https://github.com/leeminghao/doc-linux/tree/master/2.x-current/fs/exec_c/instal
     ...
 ```
 
-调用create_elf_tables，它将argc、argv等，还有一些辅助向量(Auxiliary Vector)等信息复制到用户空间.
+调用create_elf_tables，它将argc、argv等，还有一些辅助向量(Auxiliary Vector)等信息复制到用户栈空间.
 具体实现如下所示:
 
 https://github.com/leeminghao/doc-linux/tree/master/2.x-current/fs/exec_c/elf/create_elf_tables.md
 
+针对本实例，设置完成后用户栈顶指针(bprm->p)指向的地址为0xbeb36850.
+
 20.设置进程code, data, stack段信息
 ----------------------------------------
 
-start_stack=beb36850
+接下来设置描述当前进程虚拟地址空间的mm_struct实例中各段的起始和结束地址.
 
 ```
     ...
@@ -835,6 +837,8 @@ start_stack=beb36850
 
 21.start_thread
 ----------------------------------------
+
+elf_entry当前指向了解释器(linker)的入口地址.接下来调用start_thread加载执行新进程程序.
 
 ```
     ...
