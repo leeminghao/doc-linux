@@ -33,6 +33,17 @@ create_elf_tables(struct linux_binprm *bprm, struct elfhdr *exec,
 
     p = arch_align_stack(p);
 
+    ...
+
+    return 0;
+}
+```
+
+1.u_platform
+----------------------------------------
+
+```
+    ...
     /*
      * If this architecture has a platform capability string, copy it
      * to userspace.  In some cases (Sparc), this info is impossible
@@ -47,7 +58,14 @@ create_elf_tables(struct linux_binprm *bprm, struct elfhdr *exec,
         if (__copy_to_user(u_platform, k_platform, len))
             return -EFAULT;
     }
+    ...
+```
 
+2.u_base_platform
+----------------------------------------
+
+```
+    ...
     /*
      * If this architecture has a "base" platform capability
      * string, copy it to userspace.
@@ -60,7 +78,14 @@ create_elf_tables(struct linux_binprm *bprm, struct elfhdr *exec,
         if (__copy_to_user(u_base_platform, k_base_platform, len))
             return -EFAULT;
     }
+    ...
+```
 
+3.u_rand_bytes
+----------------------------------------
+
+```
+    ...
     /*
      * Generate 16 random bytes for userspace PRNG seeding.
      */
@@ -69,7 +94,14 @@ create_elf_tables(struct linux_binprm *bprm, struct elfhdr *exec,
                STACK_ALLOC(p, sizeof(k_rand_bytes));
     if (__copy_to_user(u_rand_bytes, k_rand_bytes, sizeof(k_rand_bytes)))
         return -EFAULT;
+    ...
+```
 
+4.current->mm->saved_auxv
+----------------------------------------
+
+```
+    ...
     /* Create the ELF interpreter info */
     elf_info = (elf_addr_t *)current->mm->saved_auxv;
     /* update AT_VECTOR_SIZE_BASE if the number of NEW_AUX_ENT() changes */
@@ -125,7 +157,14 @@ create_elf_tables(struct linux_binprm *bprm, struct elfhdr *exec,
 
     /* And advance past the AT_NULL entry.  */
     ei_index += 2;
+    ...
+```
 
+5.sp
+----------------------------------------
+
+```
+    ...
     sp = STACK_ADD(p, ei_index);
 
     items = (argc + 1) + (envc + 1) + 1;
@@ -138,8 +177,14 @@ create_elf_tables(struct linux_binprm *bprm, struct elfhdr *exec,
 #else
     sp = (elf_addr_t __user *)bprm->p;
 #endif
+    ...
+```
 
+6.find_extend_vma
+----------------------------------------
 
+```
+    ...
     /*
      * Grow the stack manually; some architectures have a limit on how
      * far ahead a user-space access may be in order to grow the stack.
@@ -147,7 +192,14 @@ create_elf_tables(struct linux_binprm *bprm, struct elfhdr *exec,
     vma = find_extend_vma(current->mm, bprm->p);
     if (!vma)
         return -EFAULT;
+    ...
+```
 
+7.put_user
+----------------------------------------
+
+```
+    ...
     /* Now, let's put argc (and argv, envp if appropriate) on the stack */
     if (__put_user(argc, sp++))
         return -EFAULT;
@@ -185,6 +237,42 @@ create_elf_tables(struct linux_binprm *bprm, struct elfhdr *exec,
     sp = (elf_addr_t __user *)envp + 1;
     if (copy_to_user(sp, elf_info, ei_index * sizeof(elf_addr_t)))
         return -EFAULT;
-    return 0;
-}
+    ...
+```
+
+经过如上步骤，进程用户栈中的内容如下所示:
+
+```
+position            content                     size (bytes) + comment
+------------------------------------------------------------------------
+                    [ u_platform ]
+
+                    [ u_base_platform ]
+
+                    [ u_rand_bytes ]
+
+                    [ argc = number of args ]     4
+                    [ argv[0] (pointer) ]         4   (program name)
+                    [ argv[1] (pointer) ]         4
+                    [ argv[..] (pointer) ]        4 * x
+                    [ argv[n - 1] (pointer) ]     4
+                    [ argv[n] (pointer) ]         4   (= NULL)
+
+                    [ envp[0] (pointer) ]         4
+                    [ envp[1] (pointer) ]         4
+                    [ envp[..] (pointer) ]        4
+                    [ envp[term] (pointer) ]      4   (= NULL)
+
+                    [ auxv[0] (Elf32_auxv_t) ]    8
+                    [ auxv[1] (Elf32_auxv_t) ]    8
+                    [ auxv[..] (Elf32_auxv_t) ]   8
+                    [ auxv[term] (Elf32_auxv_t) ] 8   (= AT_NULL vector)
+
+                    [ padding ]                   0 - 16
+
+                    [ argument ASCIIZ strings ]   >= 0
+                    [ environment ASCIIZ str. ]   >= 0
+
+  (0xbffffffc)      [ end marker ]                4   (= NULL)
+  (0xc0000000)      < top of stack >              0   (virtual)
 ```
