@@ -860,3 +860,9 @@ elf_entry当前指向了解释器(linker)的入口地址.接下来调用start_th
     retval = 0;
     ...
 ```
+
+start_thread跟体系结构相关，具体实现如下所示:
+
+### arm
+
+https://github.com/leeminghao/doc-linux/tree/master/2.x-current/arch/arm/include/asm/processor_h/start_thread.md
