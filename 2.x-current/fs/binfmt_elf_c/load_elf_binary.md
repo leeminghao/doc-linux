@@ -1,4 +1,4 @@
-oad_elf_binary
+load_elf_binary
 ========================================
 
 针对本例，我们使用如下elf文件进行分析，其中exec_elf是EXEC类型的，dyn_elf是DYN类型的.
