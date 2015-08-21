@@ -1,7 +1,7 @@
 ```
-# cat /proc/6189/maps
-2a000000-2a001000 r-xp 00000000 b3:17 2156       /system/bin/elf
-2a001000-2a002000 r--p 00000000 b3:17 2156       /system/bin/elf
+# cat /proc/6163/maps
+2a000000-2a001000 r-xp 00000000 b3:17 2156       /system/bin/dyn_elf
+2a001000-2a002000 r--p 00000000 b3:17 2156       /system/bin/dyn_elf
 2a002000-2a003000 rw-p 00000000 00:00 0          [heap]
 b6c00000-b6e00000 rw-p 00000000 00:00 0
 b6edc000-b6edd000 r--p 00000000 00:00 0

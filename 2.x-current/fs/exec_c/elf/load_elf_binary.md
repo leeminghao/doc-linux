@@ -4,7 +4,7 @@ load_elf_binary
 针对本例，我们使用如下elf文件进行分析，其中a.out是EXEC类型的，elf是DYN类型的.
 其区别如下:
 
-https://github.com/leeminghao/doc-linux/blob/master/2.x-current/mm/vpm/src/elf/EXEC_DYN.md
+https://github.com/leeminghao/doc-linux/blob/master/2.x-current/mm/src/vm_layout/EXEC_DYN.md
 
 path: fs/binfmt_elf.c
 ```
@@ -357,7 +357,7 @@ https://github.com/leeminghao/doc-linux/tree/master/2.x-current/fs/exec_c/flush_
 
 randomize_va_space的描述如下所示:
 
-https://github.com/leeminghao/doc-linux/tree/master/2.x-current/mm/vpm/randomize_va_space.md
+https://github.com/leeminghao/doc-linux/tree/master/2.x-current/include/linux/mm_h/randomize_va_space.md
 
 11.设置进程虚拟地址空间的布局
 ----------------------------------------
@@ -616,7 +616,7 @@ elf_brk=0x2004
 
 进程虚拟内存空间布局如下所示:
 
-https://github.com/leeminghao/doc-linux/blob/master/2.x-current/mm/vpm/vm_layout.md
+https://github.com/leeminghao/doc-linux/blob/master/2.x-current/mm/task_vm_layout.md
 
 ```
     ...

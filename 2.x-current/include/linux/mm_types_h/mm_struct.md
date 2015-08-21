@@ -130,9 +130,11 @@ struct mm_struct {
 进程的虚拟地址空间被分成一个个的区域，用户进程在虚拟地址空间的一个区域使用vm_area_struct来表示，
 所有的区域使用两种数据结构来共同表示，一种是单链表，另外一种是红黑树. 具体表示如下所示：
 
-https://github.com/leeminghao/doc-linux/blob/master/2.x-current/mm/vpm/vm_area_struct.png
+https://github.com/leeminghao/doc-linux/blob/master/2.x-current/mm/res/vm_area_struct.png
 
 每个区域表示为vm_area_struct的一个实例，如下所示:
+
+https://github.com/leeminghao/doc-linux/blob/master/2.x-current/include/linux/mm_types_h/vm_area_struct.md
 
 mmap
 ----------------------------------------

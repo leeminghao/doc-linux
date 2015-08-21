@@ -108,7 +108,7 @@ https://github.com/leeminghao/doc-linux/blob/master/2.x-current/arch/arm/include
 进程虚拟地址空间布局:
 ----------------------------------------
 
-https://github.com/leeminghao/doc-linux/blob/master/2.x-current/mm/vpm/virtual_process_memory.md
+https://github.com/leeminghao/doc-linux/blob/master/2.x-current/mm/task_vm_layout.md
 
 insert_vm_struct
 ----------------------------------------

@@ -1,5 +1,8 @@
-Virtual Process Memory
+进程虚拟地址空间
 ========================================
+
+简介
+----------------------------------------
 
 用户进程的虚拟地址空间是Linux的一个重要抽象: 它向每个运行进程提供了同样的系统视图,
 这使得多个进程可以同时运行，而不会干扰到其它进程内存中的内存.
@@ -17,30 +20,6 @@ Virtual Process Memory
 
 https://github.com/leeminghao/doc-linux/blob/master/0.11/memory/MMU.md
 
-虚拟内存的组成模块
-----------------------------------------
-
-https://github.com/leeminghao/doc-linux/blob/master/2.x-current/mm/vpm/vpm.gif
-
-### 内存映射模块(mmap)
-
-负责把磁盘文件的逻辑地址映射到虚拟地址，以及把虚拟地址映射到物理地址。
-
-### 交换模块(swap)
-
-负责控制内存内容的换入和换出，它通过交换机制，使得在物理内存的页面（RAM页）中保留有效的页 ，
-即从主存中淘汰最近没被访问的页，保存近来访问过的页。
-
-### 核心内存管理模块(core)
-
-负责核心内存管理功能，即对页的分配、回收、释放及请页处理等，这些功能将被别的内核子系统
-（如文件系统）使用。
-
-### 结构特定的模块
-
-负责给各种硬件平台提供通用接口，这个模块通过执行命令来改变硬件MMU的虚拟地址映射，
-并在发生页错误时，提供了公用的方法来通知别的内核子系统。这个模块是实现虚拟内存的物理基础。
-
 布局
 ----------------------------------------
 
@@ -55,7 +34,7 @@ https://github.com/leeminghao/doc-linux/blob/master/2.x-current/mm/vpm/vpm.gif
 
 ### 经典的进程空间布局
 
-https://github.com/leeminghao/doc-linux/blob/master/2.x-current/mm/vpm/old_vpm_layout.png
+https://github.com/leeminghao/doc-linux/blob/master/2.x-current/mm/res/old_vpm_layout.png
 
 如果计算机提供了巨大的虚拟地址空间，那么使用上述的地址空间布局会工作得非常好。
 但在32位计算机上可能会出问题. 对于每个用户进程其虚拟地址空间从0到0xc0000000,有
@@ -65,12 +44,16 @@ https://github.com/leeminghao/doc-linux/blob/master/2.x-current/mm/vpm/old_vpm_l
 
 ### 新的进程空间布局
 
-https://github.com/leeminghao/doc-linux/blob/master/2.x-current/mm/vpm/new_vpm_layout.png
+https://github.com/leeminghao/doc-linux/blob/master/2.x-current/mm/res/new_vpm_layout.png
 
 其目的在于使用固定值限制栈的最大长度. 由于栈是有界的，因此安置内存映射的区域可以在栈
 末端的下方开始.与经典方法相反，改区域现在是自顶向下扩展。由于堆仍然位于虚拟地址空间
 中较低的区域并向上增长，因此mmap区域和堆区域可以相对扩展，直至耗尽虚拟地址空间中剩余
 的区域。为确保栈和mmap区域不发生冲突，在两者之间设置一个安全间隙.
+
+### 进程内存布局综述
+
+https://github.com/leeminghao/doc-linux/blob/master/2.x-current/mm/vm_layout_details.md
 
 数据结构
 ----------------------------------------
@@ -78,9 +61,4 @@ https://github.com/leeminghao/doc-linux/blob/master/2.x-current/mm/vpm/new_vpm_l
 系统中的每个进程都有一个struct mm_struct的实例，可以通过task_struct访问.
 这个实例保存了进程内存管理信息:
 
-https://github.com/leeminghao/doc-linux/blob/master/2.x-current/mm/vpm/mm_struct.md
-
-补充
-----------------------------------------
-
-https://github.com/leeminghao/doc-linux/blob/master/2.x-current/mm/vpm/vm_layout.md
+https://github.com/leeminghao/doc-linux/blob/master/2.x-current/include/linux/mm_types_h/mm_struct.md

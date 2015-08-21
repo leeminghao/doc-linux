@@ -1,8 +1,8 @@
 EXEC同DYN格式区别
 ========================================
 
-a.out是由arm-none-linux-gnueabi-gcc编译而成的EXEC类型的ELF格式文件;
-elf是由arm-linux-androideabi-gcc编译而成的DYN类型的ELF格式文件.
+exec_elf是由arm-none-linux-gnueabi-gcc编译而成的EXEC类型的ELF格式文件;
+dyn_elf是由arm-linux-androideabi-gcc编译而成的DYN类型的ELF格式文件.
 
 对于类型为EXEC的可执行程序映像而言，装入的起点就是映像自己LOAD段
 提供的地址vaddr。在这里查看program header同maps为0x8000.
@@ -20,10 +20,10 @@ vaddr为LOAD段指定的vaddr起始地址.
 elf header
 ----------------------------------------
 
-### a.out
+### exec_elf
 
 ```
-$ arm-none-linux-gnueabi-readelf -h a.out
+$ arm-none-linux-gnueabi-readelf -h exec_elf
 ELF Header:
   Magic:   7f 45 4c 46 01 01 01 00 00 00 00 00 00 00 00 00
   Class:                             ELF32
@@ -46,10 +46,10 @@ ELF Header:
   Section header string table index: 28
 ```
 
-### elf
+### dyn_elf
 
 ```
-$ arm-none-linux-gnueabi-readelf -h elf
+$ arm-none-linux-gnueabi-readelf -h dyn_elf
 ELF Header:
   Magic:   7f 45 4c 46 01 01 01 00 00 00 00 00 00 00 00 00
   Class:                             ELF32
@@ -75,10 +75,10 @@ ELF Header:
 programe header
 ----------------------------------------
 
-### a.out
+### exec_elf
 
 ```
-$ arm-none-linux-gnueabi-readelf -l a.out
+$ arm-none-linux-gnueabi-readelf -l exec_elf
 Elf file type is EXEC (Executable file)
 Entry point 0x8440
 There are 8 program headers, starting at offset 52
@@ -107,10 +107,10 @@ Program Headers:
    07
 ```
 
-### elf
+### dyn_elf
 
 ```
-$ arm-none-linux-gnueabi-readelf -l elf
+$ arm-none-linux-gnueabi-readelf -l dyn_elf
 
 Elf file type is DYN (Shared object file)
 Entry point 0x360
@@ -143,10 +143,10 @@ Program Headers:
 maps
 ----------------------------------------
 
-### a.out
+### exec_elf
 
-https://github.com/leeminghao/doc-linux/blob/master/2.x-current/mm/vpm/src/elf/a.out.maps
+https://github.com/leeminghao/doc-linux/blob/master/2.x-current/mm/src/vm_layout/exec_elf.maps
 
-### elf
+### dyn_elf
 
-https://github.com/leeminghao/doc-linux/blob/master/2.x-current/mm/vpm/src/elf/elf_6163.maps
+https://github.com/leeminghao/doc-linux/blob/master/2.x-current/mm/src/vm_layout/dyn_elf_6163.maps

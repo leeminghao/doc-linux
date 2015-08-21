@@ -58,7 +58,7 @@ static unsigned long elf_map(struct file *filep, unsigned long addr,
 
 #### EXEC
 
-mm/vpm/src/elf/a.out这个elf格式文件的type是EXEC类型的.
+mm/src/vm_layout/exec_elf这个elf格式文件的type是EXEC类型的.
 
 针对我们a.out这个可执行文件来说其PT_LOAD段加载的信息如下所示:
 
@@ -89,11 +89,11 @@ off=0x0
 
 #### DYN
 
-mm/vpm/src/elf/elf这个elf格式可执行文件的type是DYN类型的.
-针对我们elf这个可执行文件来说其PT_LOAD段加载的信息如下所示:
+mm/src/vm_layout/dyn_elf这个elf格式可执行文件的type是DYN类型的.
+针对我们dyn_elf这个可执行文件来说其PT_LOAD段加载的信息如下所示:
 
 ```
-$ arm-linux-androideabi-readelf -l elf
+$ arm-linux-androideabi-readelf -l dyn_elf
 
 Program Headers:
   Type           Offset   VirtAddr   PhysAddr   FileSiz MemSiz  Flg Align
@@ -129,8 +129,8 @@ map_addr=0xb6f85000
 
 ```
 ...
-b6f84000-b6f85000 r-xp 00000000 b3:15 2178       /system/bin/a.out
-b6f85000-b6f86000 r--p 00000000 b3:15 2178       /system/bin/a.out
+b6f84000-b6f85000 r-xp 00000000 b3:15 2178       /system/bin/dyn_elf
+b6f85000-b6f86000 r--p 00000000 b3:15 2178       /system/bin/dyn_elf
 ...
 ```
 

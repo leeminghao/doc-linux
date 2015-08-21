@@ -1,5 +1,5 @@
-00008000-00009000 r-xp 00000000 b3:02 165        /home/pi/test/a.out
-00010000-00011000 rw-p 00000000 b3:02 165        /home/pi/test/a.out
+00008000-00009000 r-xp 00000000 b3:02 165        /home/pi/test/exec_elf
+00010000-00011000 rw-p 00000000 b3:02 165        /home/pi/test/exec_elf
 b6e00000-b6f23000 r-xp 00000000 b3:02 1925       /lib/arm-linux-gnueabihf/libc-2.13.so
 b6f23000-b6f2a000 ---p 00123000 b3:02 1925       /lib/arm-linux-gnueabihf/libc-2.13.so
 b6f2a000-b6f2c000 r--p 00122000 b3:02 1925       /lib/arm-linux-gnueabihf/libc-2.13.so

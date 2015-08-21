@@ -46,8 +46,8 @@ b6f3c000-b6f49000 r-xp 00000000 b3:17 310        /system/bin/linker
 b6f49000-b6f4a000 r--p 0000c000 b3:17 310        /system/bin/linker
 b6f4a000-b6f4b000 rw-p 0000d000 b3:17 310        /system/bin/linker
 b6f4b000-b6f4c000 rw-p 00000000 00:00 0
-b6f4c000-b6f4d000 r-xp 00000000 b3:17 2156       /system/bin/elf
-b6f4d000-b6f4e000 r--p 00000000 b3:17 2156       /system/bin/elf
+b6f4c000-b6f4d000 r-xp 00000000 b3:17 2156       /system/bin/dyn_elf
+b6f4d000-b6f4e000 r--p 00000000 b3:17 2156       /system/bin/dyn_elf
 b6f4e000-b6f4f000 rw-p 00000000 00:00 0
 befa0000-befc1000 rw-p 00000000 00:00 0          [stack]
 ffff0000-ffff1000 r-xp 00000000 00:00 0          [vectors]
