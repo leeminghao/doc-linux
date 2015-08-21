@@ -64,7 +64,7 @@ https://github.com/leeminghao/doc-linux/blob/master/2.x-current/mm/vpm/old_vpm_l
 0x40000000（1GB）处, 而标准函数arch_get_unmapped_area(其名称虽然带着arch, 但该函数不一定
 是特定于体系结构的，内核也提供了一个标准实现)用于自下而上的创建新的映射.
 
-https://github.com/leeminghao/doc-linux/blob/master/2.x-current/arch/arm/mm/memory.md
+https://github.com/leeminghao/doc-linux/blob/master/2.x-current/arch/arm/include/asm/memory_h/memory.md
 
 ### mmap_is_legacy等于0表示使用新的布局
 

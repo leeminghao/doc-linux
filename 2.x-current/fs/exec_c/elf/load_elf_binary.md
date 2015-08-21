@@ -392,7 +392,7 @@ setup_arg_pages函数用来重新调整当前进程的栈区域位置，权限�
 
 STACK_TOP值在arm体系结构定义如下所示:
 
-https://github.com/leeminghao/doc-linux/blob/master/2.x-current/arch/arm/mm/memory.md
+https://github.com/leeminghao/doc-linux/blob/master/2.x-current/arch/arm/include/asm/memory_h/memory.md
 
 setup_arg_pages具体实现如下所示:
 

@@ -103,7 +103,7 @@ STACK_TOP_MAX
 
 STACK_TOP_MAX定义如下所示：
 
-https://github.com/leeminghao/doc-linux/blob/master/2.x-current/arch/arm/mm/memory.md
+https://github.com/leeminghao/doc-linux/blob/master/2.x-current/arch/arm/include/asm/memory_h/memory.md
 
 进程虚拟地址空间布局:
 ----------------------------------------
