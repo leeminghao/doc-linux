@@ -75,7 +75,7 @@ out:
 
 ### total_mapping_size实现如下所示:
 
-https://github.com/leeminghao/doc-linux/blob/master/2.x-current/fs/exec_c/elf/total_mapping_size.md
+https://github.com/leeminghao/doc-linux/blob/master/2.x-current/fs/binfmt_elf_c/total_mapping_size.md
 
 经过total_mapping_size计算出的size值大小如下:
 

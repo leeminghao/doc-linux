@@ -110,4 +110,4 @@ static LIST_HEAD(formats);
 
 常用ELF二进制文件是使用load_elf_binary来装载的, 具体实现如下所示:
 
-https://github.com/leeminghao/doc-linux/tree/master/2.x-current/fs/exec_c/elf/binfmt_elf.md
+https://github.com/leeminghao/doc-linux/tree/master/2.x-current/fs/binfmt_elf_c/binfmt_elf.md

@@ -1,7 +1,7 @@
-load_elf_binary
+oad_elf_binary
 ========================================
 
-针对本例，我们使用如下elf文件进行分析，其中a.out是EXEC类型的，elf是DYN类型的.
+针对本例，我们使用如下elf文件进行分析，其中exec_elf是EXEC类型的，dyn_elf是DYN类型的.
 其区别如下:
 
 https://github.com/leeminghao/doc-linux/blob/master/2.x-current/mm/src/vm_layout/EXEC_DYN.md
@@ -84,7 +84,7 @@ path: include/linux/elf.h
 
 elf头部具体定义如下所示:
 
-https://github.com/leeminghao/doc-linux/tree/master/2.x-current/fs/exec_c/elf/elf.md
+https://github.com/leeminghao/doc-linux/tree/master/2.x-current/fs/binfmt_elf_c/elf_format/elf_format.md
 
 2.校验二进制文件elf header
 ----------------------------------------
@@ -124,7 +124,7 @@ https://github.com/leeminghao/doc-linux/tree/master/2.x-current/fs/exec_c/elf/el
 
 load_elf_phdrs具体实现如下所示:
 
-https://github.com/leeminghao/doc-linux/tree/master/2.x-current/fs/exec_c/elf/load_elf_phdrs.md
+https://github.com/leeminghao/doc-linux/tree/master/2.x-current/fs/binfmt_elf_c/load_elf_phdrs.md
 
 4.初始化进程布局信息
 ----------------------------------------
@@ -583,7 +583,7 @@ https://github.com/leeminghao/doc-linux/tree/master/2.x-current/fs/exec_c/setup_
 
 elf_map的具体实现如下所示：
 
-https://github.com/leeminghao/doc-linux/tree/master/2.x-current/fs/exec_c/elf/elf_map.md
+https://github.com/leeminghao/doc-linux/tree/master/2.x-current/fs/binfmt_elf_c/elf_map.md
 
 ### 计算进程空间各段起始地址和结束地址
 
@@ -644,7 +644,7 @@ elf_brk=b6f86004
 
 对应完整的maps如下所示
 
-https://github.com/leeminghao/doc-linux/blob/master/2.x-current/fs/exec_c/elf/elf.maps
+https://github.com/leeminghao/doc-linux/blob/master/2.x-current/fs/binfmt_elf_c/elf.maps
 
 接下来调用set_brk来设置bss段和brk段信息,如下所示:
 
@@ -670,7 +670,7 @@ https://github.com/leeminghao/doc-linux/blob/master/2.x-current/fs/exec_c/elf/el
 
 set_brk函数用来设置当前进程brk空间区域，具体实现如下所示:
 
-https://github.com/leeminghao/doc-linux/blob/master/2.x-current/fs/exec_c/elf/set_brk.md
+https://github.com/leeminghao/doc-linux/blob/master/2.x-current/fs/binfmt_elf_c/set_brk.md
 
 经过set_brk设置之后，当前进程的brk段起始地址和结束地址如下所示:
 
@@ -730,7 +730,7 @@ elf_interpreter指向解释器(连接器)名称,如果有解释器，则调用lo
 
 load_elf_interp具体实现如下所示:
 
-https://github.com/leeminghao/doc-linux/tree/master/2.x-current/fs/exec_c/elf/load_elf_interp.md
+https://github.com/leeminghao/doc-linux/tree/master/2.x-current/fs/binfmt_elf_c/load_elf_interp.md
 
 针对本例来说，linker作为解释器，其映射首地址为b6f74000(elf_entry),也就是load_elf_interp的返回值.
 
@@ -796,7 +796,7 @@ https://github.com/leeminghao/doc-linux/tree/master/2.x-current/fs/exec_c/instal
 调用create_elf_tables，它将argc、argv等，还有一些辅助向量(Auxiliary Vector)等信息复制到用户栈空间.
 具体实现如下所示:
 
-https://github.com/leeminghao/doc-linux/tree/master/2.x-current/fs/exec_c/elf/create_elf_tables.md
+https://github.com/leeminghao/doc-linux/tree/master/2.x-current/fs/binfmt_elf_c/create_elf_tables.md
 
 针对本实例，设置完成后用户栈顶指针(bprm->p)指向的地址为0xbeb36850.
 
