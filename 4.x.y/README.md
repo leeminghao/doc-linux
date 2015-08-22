@@ -1,9 +1,7 @@
 Linux内核
 ========================================
 
-本文分析的Linux内核源码使用的是github上master分支源码.
-
-内核源码地址
+源码获取
 ----------------------------------------
 
 ### github
@@ -13,6 +11,22 @@ https://github.com/torvalds/linux
 ### org
 
 http://kernel.org/
+
+Linux内核编译
+----------------------------------------
+
+https://github.com/leeminghao/doc-linux/blob/master/4.x.y/kbuild/README.md
+
+Linux内核启动
+-----------------------------------------
+
+### bootloader
+
+https://github.com/leeminghao/doc-linux/blob/master/bootloader/README.md
+
+### kernel
+
+https://github.com/leeminghao/doc-linux/blob/master/4.x.y/boot/README.md
 
 Linux进程管理
 -----------------------------------------
