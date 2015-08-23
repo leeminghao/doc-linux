@@ -43,6 +43,15 @@ path: Makefile
 quiet_cmd_link-vmlinux = LINK    $@
 ```
 
+完整的生成命令如下所示:
+
+```
+arm-none-eabi-ld -EL -p --no-undefined -X --pic-veneer --build-id -o vmlinux -T ./arch/arm/kernel/vmlinux.lds arch/arm/kernel/head.o init/built-in.o --start-group usr/built-in.o arch/arm/vfp/built-in.o arch/arm/vdso/built-in.o arch/arm/kernel/built-in.o arch/arm/mm/built-in.o arch/arm/common/built-in.o arch/arm/probes/built-in.o arch/arm/net/built-in.o arch/arm/crypto/built-in.o arch/arm/firmware/built-in.o arch/arm/mach-vexpress/built-in.o arch/arm/plat-versatile/built-in.o kernel/built-in.o mm/built-in.o fs/built-in.o ipc/built-in.o security/built-in.o crypto/built-in.o block/built-in.o arch/arm/lib/lib.a lib/lib.a arch/arm/lib/built-in.o lib/built-in.o drivers/built-in.o sound/built-in.o firmware/built-in.o arch/arm/oprofile/built-in.o net/built-in.o --end-group .tmp_kallsyms2.o
+```
+
+注意到--start-group和--end-group参数，它们是为了解决静态库之间相互引用，
+所有的静态库应该放到它们之间。
+
 if_changed命令定义如下所示:
 
 https://github.com/leeminghao/doc-linux/blob/master/4.x.y/kbuild/cmd.md

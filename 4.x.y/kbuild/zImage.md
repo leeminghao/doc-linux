@@ -141,7 +141,7 @@ make -f ./scripts/Makefile.build obj=arch/arm/boot MACHINE= arch/arm/boot/zImage
 的参数，它们分别由变量$(boot)和$(MACHINE)决定。$@指参数zImage，
 它在Makefile语法中指代生成的目标。
 
-3.Makefile.build
+2.Makefile.build
 ----------------------------------------
 
 path: scripts/Makefile.build
@@ -170,8 +170,15 @@ $(obj)/zImage:	$(obj)/compressed/vmlinux FORCE
 ...
 ```
 
-变量obj的值即是arch/arm/boot.
-zImage此时又依赖于$(obj)/compressed/vmlinux.
+将$(obj)/compressed/vmlinux经过objcopy处理后便生成了最终的zImage
+
+#### 扩展命令
+
+```
+arm-none-eabi-objcopy -O binary -R .comment -S  arch/arm/boot/compressed/vmlinux arch/arm/boot/zImage
+```
+
+变量obj的值即是arch/arm/boot. zImage此时又依赖于$(obj)/compressed/vmlinux.
 
 ### $(obj)/compressed/vmlinux
 
@@ -183,14 +190,127 @@ $(obj)/compressed/vmlinux: $(obj)/Image FORCE
 ...
 ```
 
-扩展开的命令如下:
+#### 扩展命令
 
 ```
 make -f scripts/Makefile.build obj=arch/arm/boot/compressed arch/arm/boot/compressed/vmlinux
 ```
 
-变量obj的值即是arch/arm/boot.
-arch/arm/boot/compressed/vmlinux此时由依赖于$(obj)/Image.
+变量obj的值即是arch/arm/boot/compressed. scripts/Makefile.build会自动
+包含arch/arm/boot/compressed/Makefile，该文件指明了
+arch/arm/boot/compressed/vmlinux的生成规则:
+
+path: arch/arm/boot/compressed/Makefile
+```
+...
+HEAD	= head.o
+...
+$(obj)/vmlinux: $(obj)/vmlinux.lds $(obj)/$(HEAD) $(obj)/piggy.$(suffix_y).o \
+		$(addprefix $(obj)/, $(OBJS)) $(lib1funcs) $(ashldi3) \
+		$(bswapsdi2) FORCE
+	@$(check_for_multiple_zreladdr)
+	$(call if_changed,ld)
+	@$(check_for_bad_syms)
+...
+```
+
+在这里obj变量为arch/arm/boot/compressed.接下来调用if_changed扩展的ld
+命令，根据链接脚本arch/arm/boot/compressed/vmlinux.lds链接生成了
+arch/arm/boot/compressed/vmlinux文件.
+
+path: scripts/Makefile.lib
+```
+quiet_cmd_ld = LD      $@
+cmd_ld = $(LD) $(LDFLAGS) $(ldflags-y) $(LDFLAGS_$(@F)) \
+	       $(filter-out FORCE,$^) -o $@
+```
+
+#### 扩展命令
+
+```
+arm-none-eabi-ld -EL    --defsym _kernel_bss_size=152056 -p --no-undefined -X -T arch/arm/boot/compressed/vmlinux.lds arch/arm/boot/compressed/head.o arch/arm/boot/compressed/piggy.gzip.o arch/arm/boot/compressed/misc.o arch/arm/boot/compressed/decompress.o arch/arm/boot/compressed/string.o arch/arm/boot/compressed/hyp-stub.o arch/arm/boot/compressed/lib1funcs.o arch/arm/boot/compressed/ashldi3.o arch/arm/boot/compressed/bswapsdi2.o -o arch/arm/boot/compressed/vmlinux
+```
+
+vmlinux依赖于$(obj)/piggy.$(suffix_y).o, 其生成规则如下所示:
+
+path: arch/arm/boot/compressed/Makefile
+```
+suffix_$(CONFIG_KERNEL_GZIP) = gzip
+...
+$(obj)/piggy.$(suffix_y): $(obj)/../Image FORCE
+	$(call if_changed,$(suffix_y))
+
+$(obj)/piggy.$(suffix_y).o:  $(obj)/piggy.$(suffix_y) FORCE
+```
+
+这两个规则就是将生成的Image进行压缩成piggy.gzip. 然后生成piggy.gzip.o
+
+#### 扩展命令
+
+```
+  (cat arch/arm/boot/compressed/../Image | gzip -n -f -9 > arch/arm/boot/compressed/piggy.gzip) || (rm -f arch/arm/boot/compressed/piggy.gzip ; false)
+
+  arm-none-eabi-gcc -Wp,-MD,arch/arm/boot/compressed/.piggy.gzip.o.d  -nostdinc -isystem /home/liminghao/bin/bin/arm-none-eabi-4.7.3/bin/../lib/gcc/arm-none-eabi/4.7.3/include -I./arch/arm/include -Iarch/arm/include/generated/uapi -Iarch/arm/include/generated  -Iinclude -I./arch/arm/include/uapi -Iarch/arm/include/generated/uapi -I./include/uapi -Iinclude/generated/uapi -include ./include/linux/kconfig.h -D__KERNEL__ -mlittle-endian   -D__ASSEMBLY__ -mabi=aapcs-linux -mno-thumb-interwork -mfpu=vfp -funwind-tables -marm -D__LINUX_ARM_ARCH__=7 -march=armv7-a  -include asm/unified.h -msoft-float -Wa,-gdwarf-2 -DCC_HAVE_ASM_GOTO        -DZIMAGE     -c -o arch/arm/boot/compressed/piggy.gzip.o arch/arm/boot/compressed/piggy.gzip.S
+```
+
+不知是Russell King还是Linus Torvalds更喜欢小猪，反正piggy被引入到了
+ARM的引导代码中。据考piggy是从piggyback缩写而来的，中文意为“骑在肩上”，
+显然是指Linux的启动需要“骑在”piggy.gz的肩上了。
+
+* -f或--force: 强行压缩文件。不理会文件名称或硬连接是否存在以及
+  该文件是否为符号连接。
+* -1或--fast: 表示最快压缩方法（低压缩比）.
+* -9或--best表示最慢压缩方法（高压缩比）。
+
+使用最高压缩比将arch/arm/boot/compressed/../Image压缩为
+arch/arm/boot/compressed/piggy.gzip，小猪诞生了。
+
+命令行中没有提到任何piggy.gzip的信息，但是生成的.o文件的大小几乎和.gzip
+文件一致，而piggy.gzip.S则很小，问题出在哪呢？piggy.gzip.S的内容表明了
+一切：
+
+path: arch/arm/boot/compressed/piggy.gzip.S
+```
+	.section .piggydata,#alloc
+	.globl	input_data
+input_data:
+	.incbin	"arch/arm/boot/compressed/piggy.gzip"
+	.globl	input_data_end
+input_data_end:
+```
+
+定义了一个名为.piggydata的段，该段中的数据就是piggy.gzip。input_data
+符号要被链接器用到，所以要标记它是一个.globl全局符号。.incbin指令
+在被汇编的文件内包含一个文件，该文件按原样包含，没有进行汇编。
+input_data_end符号也要被外部引用。input_data被外部引用时的值为
+piggy.gzip文件在piggy.gzip.o的起始地址，input_data_end则是结束地址。
+这里给出证明:
+
+```
+$ arm-none-eabi-readelf -S binary/arch/arm/boot/compressed/piggy.gzip.o
+There are 9 section headers, starting at offset 0x345a34:
+
+Section Headers:
+  [Nr] Name              Type            Addr     Off    Size   ES Flg Lk Inf Al
+  [ 0]                   NULL            00000000 000000 000000 00      0   0  0
+  [ 1] .text             PROGBITS        00000000 000034 000000 00  AX  0   0  1
+  [ 2] .data             PROGBITS        00000000 000034 000000 00  WA  0   0  1
+  [ 3] .bss              NOBITS          00000000 000034 000000 00  WA  0   0  1
+  [ 4] .piggydata        PROGBITS        00000000 000034 345998 00   A  0   0  1
+  [ 5] .ARM.attributes   ARM_ATTRIBUTES  00000000 3459cc 00001f 00      0   0  1
+  [ 6] .shstrtab         STRTAB          00000000 3459eb 000047 00      0   0  1
+  [ 7] .symtab           SYMTAB          00000000 345b9c 000080 10      8   6  4
+  [ 8] .strtab           STRTAB          00000000 345c1c 00001b 00      0   0  1
+Key to Flags:
+  W (write), A (alloc), X (execute), M (merge), S (strings)
+  I (info), L (link order), G (group), T (TLS), E (exclude), x (unknown)
+  O (extra OS processing required) o (OS specific), p (processor specific)
+$ ll binary/arch/arm/boot/compressed/piggy.gzip
+-rw-rw-r-- 1 liminghao liminghao 3430808 Aug 23 22:21 binary/arch/arm/boot/compressed/piggy.gzip
+```
+
+注意到piggydata中的SIZE为0x345998，转换为十进制就是3430808。并且
+input_data的值为0x34，input_data_end的值为0x3459cc
 
 ### $(obj)/Image
 
@@ -201,6 +321,19 @@ $(obj)/Image: vmlinux FORCE
 	@$(kecho) '  Kernel: $@ is ready'
 ```
 
-变量obj的值即是arch/arm/boot.
+变量obj的值即是arch/arm/boot. arch/arm/boot/Image此时依赖根目录下生成
+的vmlinux文件. 接下来调用objcopy生成Image文件:
 
-arch/arm/boot/Image此时依赖当前工作目录的vmlinux文件.
+path: scripts/Makefile.lib
+```
+...
+quiet_cmd_objcopy = OBJCOPY $@
+cmd_objcopy = $(OBJCOPY) $(OBJCOPYFLAGS) $(OBJCOPYFLAGS_$(@F)) $< $@
+...
+```
+
+#### 扩展命令
+
+```
+arm-none-eabi-objcopy -O binary -R .comment -S  vmlinux arch/arm/boot/Image
+```

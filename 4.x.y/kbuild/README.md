@@ -14,13 +14,18 @@ $ make vexpress_defconfig
 $ make zImage
 ```
 
+zImage编译过程
+----------------------------------------
+
+https://github.com/leeminghao/doc-linux/blob/master/4.x.y/kbuild/zImage.md
+
 log
 ----------------------------------------
 
 ### make vexpress_defconfig
 
-https://github.com/leeminghao/doc-linux/blob/master/4.x.y/kbuild/vexpress_defconfig.log
+https://github.com/leeminghao/doc-linux/blob/master/4.x.y/kbuild/log/vexpress_defconfig.log
 
 ### make zImage
 
-https://github.com/leeminghao/doc-linux/blob/master/4.x.y/kbuild/zImage.log
+https://github.com/leeminghao/doc-linux/blob/master/4.x.y/kbuild/log/zImage.log
