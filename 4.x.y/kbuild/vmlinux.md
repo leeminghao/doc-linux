@@ -56,6 +56,79 @@ if_changed命令定义如下所示:
 
 https://github.com/leeminghao/doc-linux/blob/master/4.x.y/kbuild/cmd.md
 
+
+### vmlinux.lds
+
+**注意**: arch/arm/kernel/vmlinux.lds 是由arch/arm/kernel/vmlinux.lds.S生成的.
+生成规则如下所示:
+
+path: scripts/Makefile.build
+```
+# Linker scripts preprocessor (.lds.S -> .lds)
+# ---------------------------------------------------------------------------
+quiet_cmd_cpp_lds_S = LDS     $@
+      cmd_cpp_lds_S = $(CPP) $(cpp_flags) -P -C -U$(ARCH) \
+	                     -D__ASSEMBLY__ -DLINKER_SCRIPT -o $@ $<
+
+$(obj)/%.lds: $(src)/%.lds.S FORCE
+	$(call if_changed_dep,cpp_lds_S)
+```
+
+扩展后的命令如下所示:
+
+```
+  arm-none-eabi-gcc -E -Wp,-MD,arch/arm/kernel/.vmlinux.lds.d  -nostdinc -isystem /home/liminghao/bin/bin/arm-none-eabi-4.7.3/bin/../lib/gcc/arm-none-eabi/4.7.3/include -I./arch/arm/include -Iarch/arm/include/generated/uapi -Iarch/arm/include/generated  -Iinclude -I./arch/arm/include/uapi -Iarch/arm/include/generated/uapi -I./include/uapi -Iinclude/generated/uapi -include ./include/linux/kconfig.h -D__KERNEL__ -mlittle-endian     -DTEXT_OFFSET=0x00008000 -P -C -Uarm -D__ASSEMBLY__ -DLINKER_SCRIPT -o arch/arm/kernel/vmlinux.lds arch/arm/kernel/vmlinux.lds.S
+```
+
+注意到生成命令中的参数-E，它并不编译，而只是进行预处理。它的格式与源文件格式是一致的。
+
+vmlinux.lds.S定义了代码段的开始位置:
+
+path: arch/arm/kernel/vmlinux.lds.S
+```
+SECTIONS
+{
+...
+#ifdef CONFIG_XIP_KERNEL
+	. = XIP_VIRT_ADDR(CONFIG_XIP_PHYS_ADDR);
+#else
+	. = PAGE_OFFSET + TEXT_OFFSET;
+#endif
+...
+}
+```
+
+* TEXT_OFFSET
+
+-DTEXT_OFFSET=0x00008000指定了脚本生成时TEXT_OFFSET参数.
+
+path: arch/arm/Makefile
+```
+# Text offset. This list is sorted numerically by address in order to
+# provide a means to avoid/resolve conflicts in multi-arch kernels.
+textofs-y	:= 0x00008000
+...
+# The byte offset of the kernel image in RAM from the start of RAM.
+TEXT_OFFSET := $(textofs-y)
+...
+```
+
+* PAGE_OFFSET
+
+头文件memory.h对PAGE_OFFSET做了如下定义
+
+path: arch/arm/include/asm/memory.h
+```
+/* PAGE_OFFSET - the virtual address of the start of the kernel image */
+#define PAGE_OFFSET		UL(CONFIG_PAGE_OFFSET)
+```
+
+最终内核的代码段的开始地址如下:
+
+```
+. = 0xC0000000 + 0x00008000;
+```
+
 vmlinux的生成最初依赖于scripts/link-vmlinux.sh脚本和变量vmlinux-deps
 中定义的文件.vmlinux-deps的生成规则如下所示:
 
