@@ -5,7 +5,7 @@ zImage的生成过程可以由下图概括:
 
 https://github.com/leeminghao/doc-linux/blob/master/4.x.y/kbuild/res/zImage.gif
 
-1.zImage
+zImage
 ----------------------------------------
 
 生成zImage文件的Makefile位于arch/arm下，它通过
@@ -141,9 +141,6 @@ make -f ./scripts/Makefile.build obj=arch/arm/boot MACHINE= arch/arm/boot/zImage
 的参数，它们分别由变量$(boot)和$(MACHINE)决定。$@指参数zImage，
 它在Makefile语法中指代生成的目标。
 
-2.Makefile.build
-----------------------------------------
-
 path: scripts/Makefile.build
 ```
 ...
@@ -159,7 +156,7 @@ include $(kbuild-file)
 kbuild-file既是src指定路径下的Makefile文件，此时就是
 arch/arm/boot/Makefile，它包含了构建arch/arm/boot/zImage的规则。
 
-### zImage
+### 生成规则
 
 path: arch/arm/boot/Makefile
 ```
@@ -172,7 +169,7 @@ $(obj)/zImage:	$(obj)/compressed/vmlinux FORCE
 
 将$(obj)/compressed/vmlinux经过objcopy处理后便生成了最终的zImage
 
-#### 扩展命令
+### 扩展命令
 
 ```
 arm-none-eabi-objcopy -O binary -R .comment -S  arch/arm/boot/compressed/vmlinux arch/arm/boot/zImage
@@ -180,7 +177,10 @@ arm-none-eabi-objcopy -O binary -R .comment -S  arch/arm/boot/compressed/vmlinux
 
 变量obj的值即是arch/arm/boot. zImage此时又依赖于$(obj)/compressed/vmlinux.
 
-### $(obj)/compressed/vmlinux
+arch/arm/boot/compressed/vmlinux
+----------------------------------------
+
+### 初步生成规则
 
 path: arch/arm/boot/Makefile
 ```
@@ -190,15 +190,46 @@ $(obj)/compressed/vmlinux: $(obj)/Image FORCE
 ...
 ```
 
+生成依赖的arch/arm/boot/Image
+
+### arch/arm/boot/Image
+
+#### 生成规则
+
+path: arch/arm/boot/Makefile
+```
+$(obj)/Image: vmlinux FORCE
+	$(call if_changed,objcopy)
+	@$(kecho) '  Kernel: $@ is ready'
+```
+
+变量obj的值即是arch/arm/boot. arch/arm/boot/Image此时依赖根目录下生成的vmlinux文件.
+接下来调用objcopy生成Image文件:
+
+path: scripts/Makefile.lib
+```
+...
+quiet_cmd_objcopy = OBJCOPY $@
+cmd_objcopy = $(OBJCOPY) $(OBJCOPYFLAGS) $(OBJCOPYFLAGS_$(@F)) $< $@
+...
+```
+
 #### 扩展命令
+
+```
+arm-none-eabi-objcopy -O binary -R .comment -S  vmlinux arch/arm/boot/Image
+```
+
+### 生成vmlinux的命令行
 
 ```
 make -f scripts/Makefile.build obj=arch/arm/boot/compressed arch/arm/boot/compressed/vmlinux
 ```
 
-变量obj的值即是arch/arm/boot/compressed. scripts/Makefile.build会自动
-包含arch/arm/boot/compressed/Makefile，该文件指明了
-arch/arm/boot/compressed/vmlinux的生成规则:
+变量obj的值即是arch/arm/boot/compressed. scripts/Makefile.build会自动包含
+arch/arm/boot/compressed/Makefile，该文件指明了arch/arm/boot/compressed/vmlinux的生成规则:
+
+### 最终生成规则
 
 path: arch/arm/boot/compressed/Makefile
 ```
@@ -214,9 +245,8 @@ $(obj)/vmlinux: $(obj)/vmlinux.lds $(obj)/$(HEAD) $(obj)/piggy.$(suffix_y).o \
 ...
 ```
 
-在这里obj变量为arch/arm/boot/compressed.接下来调用if_changed扩展的ld
-命令，根据链接脚本arch/arm/boot/compressed/vmlinux.lds链接生成了
-arch/arm/boot/compressed/vmlinux文件.
+在这里obj变量为arch/arm/boot/compressed.接下来调用if_changed扩展的ld命令，根据链接脚本
+arch/arm/boot/compressed/vmlinux.lds链接生成了arch/arm/boot/compressed/vmlinux文件.
 
 path: scripts/Makefile.lib
 ```
@@ -225,13 +255,20 @@ cmd_ld = $(LD) $(LDFLAGS) $(ldflags-y) $(LDFLAGS_$(@F)) \
 	       $(filter-out FORCE,$^) -o $@
 ```
 
-#### 扩展命令
+### 扩展命令
 
 ```
 arm-none-eabi-ld -EL    --defsym _kernel_bss_size=152056 -p --no-undefined -X -T arch/arm/boot/compressed/vmlinux.lds arch/arm/boot/compressed/head.o arch/arm/boot/compressed/piggy.gzip.o arch/arm/boot/compressed/misc.o arch/arm/boot/compressed/decompress.o arch/arm/boot/compressed/string.o arch/arm/boot/compressed/hyp-stub.o arch/arm/boot/compressed/lib1funcs.o arch/arm/boot/compressed/ashldi3.o arch/arm/boot/compressed/bswapsdi2.o -o arch/arm/boot/compressed/vmlinux
 ```
 
+从完整的编译命令可以看出
+
 vmlinux依赖于$(obj)/piggy.$(suffix_y).o, 其生成规则如下所示:
+
+arch/arm/boot/compressed/piggy.$(suffix_y).o
+----------------------------------------
+
+### 生成规则
 
 path: arch/arm/boot/compressed/Makefile
 ```
@@ -245,7 +282,7 @@ $(obj)/piggy.$(suffix_y).o:  $(obj)/piggy.$(suffix_y) FORCE
 
 这两个规则就是将生成的Image进行压缩成piggy.gzip. 然后生成piggy.gzip.o
 
-#### 扩展命令
+### 扩展命令
 
 ```
   (cat arch/arm/boot/compressed/../Image | gzip -n -f -9 > arch/arm/boot/compressed/piggy.gzip) || (rm -f arch/arm/boot/compressed/piggy.gzip ; false)
@@ -253,21 +290,18 @@ $(obj)/piggy.$(suffix_y).o:  $(obj)/piggy.$(suffix_y) FORCE
   arm-none-eabi-gcc -Wp,-MD,arch/arm/boot/compressed/.piggy.gzip.o.d  -nostdinc -isystem /home/liminghao/bin/bin/arm-none-eabi-4.7.3/bin/../lib/gcc/arm-none-eabi/4.7.3/include -I./arch/arm/include -Iarch/arm/include/generated/uapi -Iarch/arm/include/generated  -Iinclude -I./arch/arm/include/uapi -Iarch/arm/include/generated/uapi -I./include/uapi -Iinclude/generated/uapi -include ./include/linux/kconfig.h -D__KERNEL__ -mlittle-endian   -D__ASSEMBLY__ -mabi=aapcs-linux -mno-thumb-interwork -mfpu=vfp -funwind-tables -marm -D__LINUX_ARM_ARCH__=7 -march=armv7-a  -include asm/unified.h -msoft-float -Wa,-gdwarf-2 -DCC_HAVE_ASM_GOTO        -DZIMAGE     -c -o arch/arm/boot/compressed/piggy.gzip.o arch/arm/boot/compressed/piggy.gzip.S
 ```
 
-不知是Russell King还是Linus Torvalds更喜欢小猪，反正piggy被引入到了
-ARM的引导代码中。据考piggy是从piggyback缩写而来的，中文意为“骑在肩上”，
-显然是指Linux的启动需要“骑在”piggy.gz的肩上了。
+不知是Russell King还是Linus Torvalds更喜欢小猪，反正piggy被引入到了ARM的引导代码中。据考piggy是
+从piggyback缩写而来的，中文意为“骑在肩上”，显然是指Linux的启动需要“骑在”piggy.gz的肩上了。
 
-* -f或--force: 强行压缩文件。不理会文件名称或硬连接是否存在以及
-  该文件是否为符号连接。
+* -f或--force: 强行压缩文件。不理会文件名称或硬连接是否存在以及该文件是否为符号连接。
 * -1或--fast: 表示最快压缩方法（低压缩比）.
 * -9或--best表示最慢压缩方法（高压缩比）。
 
-使用最高压缩比将arch/arm/boot/compressed/../Image压缩为
-arch/arm/boot/compressed/piggy.gzip，小猪诞生了。
+使用最高压缩比将arch/arm/boot/compressed/../Image压缩为arch/arm/boot/compressed/piggy.gzip，
+小猪诞生了。
 
-命令行中没有提到任何piggy.gzip的信息，但是生成的.o文件的大小几乎和.gzip
-文件一致，而piggy.gzip.S则很小，问题出在哪呢？piggy.gzip.S的内容表明了
-一切：
+命令行中没有提到任何piggy.gzip的信息，但是生成的.o文件的大小几乎和.gzip文件一致，
+而piggy.gzip.S则很小，问题出在哪呢？piggy.gzip.S的内容表明了一切：
 
 path: arch/arm/boot/compressed/piggy.gzip.S
 ```
@@ -279,12 +313,10 @@ input_data:
 input_data_end:
 ```
 
-定义了一个名为.piggydata的段，该段中的数据就是piggy.gzip。input_data
-符号要被链接器用到，所以要标记它是一个.globl全局符号。.incbin指令
-在被汇编的文件内包含一个文件，该文件按原样包含，没有进行汇编。
-input_data_end符号也要被外部引用。input_data被外部引用时的值为
-piggy.gzip文件在piggy.gzip.o的起始地址，input_data_end则是结束地址。
-这里给出证明:
+定义了一个名为.piggydata的段，该段中的数据就是piggy.gzip。input_data符号要被链接器用到，
+所以要标记它是一个.globl全局符号。.incbin指令在被汇编的文件内包含一个文件，该文件按原样
+包含，没有进行汇编。input_data_end符号也要被外部引用。input_data被外部引用时的值为piggy.gzip
+文件在piggy.gzip.o的起始地址，input_data_end则是结束地址。这里给出证明:
 
 ```
 $ arm-none-eabi-readelf -S binary/arch/arm/boot/compressed/piggy.gzip.o
@@ -311,29 +343,3 @@ $ ll binary/arch/arm/boot/compressed/piggy.gzip
 
 注意到piggydata中的SIZE为0x345998，转换为十进制就是3430808。并且
 input_data的值为0x34，input_data_end的值为0x3459cc
-
-### $(obj)/Image
-
-path: arch/arm/boot/Makefile
-```
-$(obj)/Image: vmlinux FORCE
-	$(call if_changed,objcopy)
-	@$(kecho) '  Kernel: $@ is ready'
-```
-
-变量obj的值即是arch/arm/boot. arch/arm/boot/Image此时依赖根目录下生成
-的vmlinux文件. 接下来调用objcopy生成Image文件:
-
-path: scripts/Makefile.lib
-```
-...
-quiet_cmd_objcopy = OBJCOPY $@
-cmd_objcopy = $(OBJCOPY) $(OBJCOPYFLAGS) $(OBJCOPYFLAGS_$(@F)) $< $@
-...
-```
-
-#### 扩展命令
-
-```
-arm-none-eabi-objcopy -O binary -R .comment -S  vmlinux arch/arm/boot/Image
-```

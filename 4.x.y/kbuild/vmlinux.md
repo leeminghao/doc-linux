@@ -56,7 +56,6 @@ if_changed命令定义如下所示:
 
 https://github.com/leeminghao/doc-linux/blob/master/4.x.y/kbuild/cmd.md
 
-
 ### vmlinux.lds
 
 **注意**: arch/arm/kernel/vmlinux.lds 是由arch/arm/kernel/vmlinux.lds.S生成的.
