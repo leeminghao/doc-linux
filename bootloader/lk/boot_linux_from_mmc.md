@@ -90,11 +90,12 @@ int boot_linux_from_mmc(void)
      * 那么hdr结构中的各地址值如下所示:
      * kernel_addr=80208000
      * ramdisk_addr=82200000
-     * tag_addr=80200100
+     * tags_addr=80200100
      * 转换成对应的虚拟地址如下:
      * kernel_addr=80208000
      * ramdisk_addr=82200000
-     * tag_addr=80200100*/
+     * tags_addr=80200100
+     */
     hdr->kernel_addr = VA((addr_t)(hdr->kernel_addr));
     hdr->ramdisk_addr = VA((addr_t)(hdr->ramdisk_addr));
     hdr->tags_addr = VA((addr_t)(hdr->tags_addr));

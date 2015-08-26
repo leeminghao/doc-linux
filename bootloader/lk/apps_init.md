@@ -45,3 +45,5 @@ void aboot_init(const struct app_descriptor *app)
 
 boot_linux_from_mmc
 ----------------------------------------
+
+https://github.com/leeminghao/doc-linux/tree/master/bootloader/lk/boot_linux_from_mmc.md

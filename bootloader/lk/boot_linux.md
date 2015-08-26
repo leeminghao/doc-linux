@@ -53,8 +53,20 @@ void boot_linux(void *kernel, unsigned *tags,
 }
 ```
 
-根据打印的log得到最终kernel和ramdisk的地址如下所示:
+各个模块的初始地址如下所示:
 
-```
-booting linux @ 0x80208000, ramdisk @ 0x82200000 (1578334)
-```
+* kernel_addr - 0x80208000
+* tags_addr - 0x80200100
+* ramdisk_addr -  0x82200000
+
+generate_atags
+----------------------------------------
+
+改函数将boot_img_hdr头部保存的信息提取出来封装成tag作为参数传递给kernel.
+
+https://github.com/leeminghao/doc-linux/tree/master/bootloader/lk/generate_atags.md
+
+entry
+----------------------------------------
+
+内核入口函数entry, 改函数地址就是kernel加载的地址.接下来跳转到内核去执行.
