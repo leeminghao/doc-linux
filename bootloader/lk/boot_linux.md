@@ -69,4 +69,6 @@ https://github.com/leeminghao/doc-linux/tree/master/bootloader/lk/generate_atags
 entry
 ----------------------------------------
 
-内核入口函数entry, 改函数地址就是kernel加载的地址.接下来跳转到内核去执行.
+内核入口函数entry, 该函数地址就是kernel加载的地址.接下来跳转到内核去执行内核代码.
+
+https://github.com/leeminghao/doc-linux/blob/master/4.x.y/boot/README.md
