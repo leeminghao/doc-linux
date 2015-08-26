@@ -261,7 +261,107 @@ cmd_ld = $(LD) $(LDFLAGS) $(ldflags-y) $(LDFLAGS_$(@F)) \
 arm-none-eabi-ld -EL    --defsym _kernel_bss_size=152056 -p --no-undefined -X -T arch/arm/boot/compressed/vmlinux.lds arch/arm/boot/compressed/head.o arch/arm/boot/compressed/piggy.gzip.o arch/arm/boot/compressed/misc.o arch/arm/boot/compressed/decompress.o arch/arm/boot/compressed/string.o arch/arm/boot/compressed/hyp-stub.o arch/arm/boot/compressed/lib1funcs.o arch/arm/boot/compressed/ashldi3.o arch/arm/boot/compressed/bswapsdi2.o -o arch/arm/boot/compressed/vmlinux
 ```
 
-从完整的编译命令可以看出
+### vmlinux.lds
+
+arch/arm/kernel/compressed/vmlinux.lds是由arch/arm/kernel/compressed/vmlinux.lds.S生成的,
+
+#### 生成规则
+
+path: scripts/Makefile.build
+```
+# Linker scripts preprocessor (.lds.S -> .lds)
+# ---------------------------------------------------------------------------
+quiet_cmd_cpp_lds_S = LDS     $@
+      cmd_cpp_lds_S = $(CPP) $(cpp_flags) -P -C -U$(ARCH) \
+	                     -D__ASSEMBLY__ -DLINKER_SCRIPT -o $@ $<
+
+$(obj)/%.lds: $(src)/%.lds.S FORCE
+	$(call if_changed_dep,cpp_lds_S)
+```
+
+#### 扩展命令
+
+```
+  arm-none-eabi-gcc -E -Wp,-MD,arch/arm/boot/compressed/.vmlinux.lds.d  -nostdinc -isystem /home/liminghao/bin/bin/arm-none-eabi-4.7.3/bin/../lib/gcc/arm-none-eabi/4.7.3/include -I./arch/arm/include -Iarch/arm/include/generated/uapi -Iarch/arm/include/generated  -Iinclude -I./arch/arm/include/uapi -Iarch/arm/include/generated/uapi -I./include/uapi -Iinclude/generated/uapi -include ./include/linux/kconfig.h -D__KERNEL__ -mlittle-endian     -DTEXT_START="0" -DBSS_START="ALIGN(8)" -P -C -Uarm -D__ASSEMBLY__ -DLINKER_SCRIPT -o arch/arm/boot/compressed/vmlinux.lds arch/arm/boot/compressed/vmlinux.lds.S
+```
+
+生成命令中的参数-E，它并不编译，而只是进行预处理。它的格式与源文件格式是一致的。
+
+#### vmlinux.lds.S
+
+```
+# ENTRY连接脚本命令来设置入口点.参数是一个符号名,在这里是符号名_start;
+ENTRY(_start)
+...
+SECTIONS
+{
+  ...
+  # "."赋值, 这是一个定位计数器. 如果没有以其它的方式指定输出节的地址,
+  # 那地址值就会被设为定位计数器的现有值TEXT_START.
+  . = TEXT_START;
+  _text = .;
+
+  # 定义一个输出节.text, 冒号是语法需要,现在可以被忽略. 节名后面的花括号中,
+  # 你列出所有应当被放入到这个输出节中的输入节的名字. '*'是一个通配符,匹配任何文件名.
+  # 当输出节.text定义的时候, 定位计数器的值是TEXT_START,连接器会把输出文件中的.text节的
+  # 地址设为TEXT_START
+  .text : {
+    _start = .;
+    # 总是将.head中的.start段安排在0地址处
+    *(.start)
+    # *(.text)意思是所有的输入文件中的".text"输入节.
+    *(.text)
+    *(.text.*)
+    *(.fixup)
+    *(.gnu.warning)
+    *(.glue_7t)
+    *(.glue_7)
+  }
+  .rodata : {
+    *(.rodata)
+    *(.rodata.*)
+  }
+  .piggydata : {
+    *(.piggydata)
+  }
+
+  . = ALIGN(4);
+  _etext = .;
+
+  .got.plt		: { *(.got.plt) }
+  _got_start = .;
+  .got			: { *(.got) }
+  _got_end = .;
+
+  /* ensure the zImage file size is always a multiple of 64 bits */
+  /* (without a dummy byte, ld just ignores the empty section) */
+  .pad			: { BYTE(0); . = ALIGN(8); }
+  _edata = .;
+  ...
+}
+```
+
+TEXT_START的定义如下如下所示, 在这里该值为0x0:
+
+path: arch/arm/boot/compressed/Makefile
+```
+...
+#
+# We now have a PIC decompressor implementation.  Decompressors running
+# from RAM should not define ZTEXTADDR.  Decompressors running directly
+# from ROM or Flash must define ZTEXTADDR (preferably via the config)
+# FIXME: Previous assignment to ztextaddr-y is lost here. See SHARK
+ifeq ($(CONFIG_ZBOOT_ROM),y)
+ZTEXTADDR	:= $(CONFIG_ZBOOT_ROM_TEXT)
+ZBSSADDR	:= $(CONFIG_ZBOOT_ROM_BSS)
+else
+ZTEXTADDR	:= 0
+ZBSSADDR	:= ALIGN(8)
+endif
+
+CPPFLAGS_vmlinux.lds := -DTEXT_START="$(ZTEXTADDR)" -DBSS_START="$(ZBSSADDR)"
+...
+```
 
 vmlinux依赖于$(obj)/piggy.$(suffix_y).o, 其生成规则如下所示:
 

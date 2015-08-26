@@ -4,10 +4,12 @@ vmlinux
 vmlinux是主目录Makefile的最终目标，其他镜像文件的依赖。
 其编译过程如下所示:
 
-vmlinux生成规则
+vmlinux
 ----------------------------------------
 
 vmlinux目标的生成规则在顶层Makefile中定义如下所示:
+
+### 生成规则
 
 path: Makefile
 ```
@@ -43,7 +45,7 @@ path: Makefile
 quiet_cmd_link-vmlinux = LINK    $@
 ```
 
-完整的生成命令如下所示:
+### 扩展命令
 
 ```
 arm-none-eabi-ld -EL -p --no-undefined -X --pic-veneer --build-id -o vmlinux -T ./arch/arm/kernel/vmlinux.lds arch/arm/kernel/head.o init/built-in.o --start-group usr/built-in.o arch/arm/vfp/built-in.o arch/arm/vdso/built-in.o arch/arm/kernel/built-in.o arch/arm/mm/built-in.o arch/arm/common/built-in.o arch/arm/probes/built-in.o arch/arm/net/built-in.o arch/arm/crypto/built-in.o arch/arm/firmware/built-in.o arch/arm/mach-vexpress/built-in.o arch/arm/plat-versatile/built-in.o kernel/built-in.o mm/built-in.o fs/built-in.o ipc/built-in.o security/built-in.o crypto/built-in.o block/built-in.o arch/arm/lib/lib.a lib/lib.a arch/arm/lib/built-in.o lib/built-in.o drivers/built-in.o sound/built-in.o firmware/built-in.o arch/arm/oprofile/built-in.o net/built-in.o --end-group .tmp_kallsyms2.o
@@ -58,8 +60,9 @@ https://github.com/leeminghao/doc-linux/blob/master/4.x.y/kbuild/cmd.md
 
 ### vmlinux.lds
 
-**注意**: arch/arm/kernel/vmlinux.lds 是由arch/arm/kernel/vmlinux.lds.S生成的.
-生成规则如下所示:
+arch/arm/kernel/vmlinux.lds 是由arch/arm/kernel/vmlinux.lds.S生成的.生成规则如下所示:
+
+#### 生成规则
 
 path: scripts/Makefile.build
 ```
@@ -73,7 +76,7 @@ $(obj)/%.lds: $(src)/%.lds.S FORCE
 	$(call if_changed_dep,cpp_lds_S)
 ```
 
-扩展后的命令如下所示:
+#### 扩展命令
 
 ```
   arm-none-eabi-gcc -E -Wp,-MD,arch/arm/kernel/.vmlinux.lds.d  -nostdinc -isystem /home/liminghao/bin/bin/arm-none-eabi-4.7.3/bin/../lib/gcc/arm-none-eabi/4.7.3/include -I./arch/arm/include -Iarch/arm/include/generated/uapi -Iarch/arm/include/generated  -Iinclude -I./arch/arm/include/uapi -Iarch/arm/include/generated/uapi -I./include/uapi -Iinclude/generated/uapi -include ./include/linux/kconfig.h -D__KERNEL__ -mlittle-endian     -DTEXT_OFFSET=0x00008000 -P -C -Uarm -D__ASSEMBLY__ -DLINKER_SCRIPT -o arch/arm/kernel/vmlinux.lds arch/arm/kernel/vmlinux.lds.S
@@ -128,11 +131,13 @@ path: arch/arm/include/asm/memory.h
 . = 0xC0000000 + 0x00008000;
 ```
 
-vmlinux的生成最初依赖于scripts/link-vmlinux.sh脚本和变量vmlinux-deps
-中定义的文件.vmlinux-deps的生成规则如下所示:
+vmlinux的生成最初依赖于scripts/link-vmlinux.sh脚本和变量vmlinux-deps中定义的文件.
+vmlinux-deps的生成规则如下所示:
 
-vmlinux-deps生成规则
+vmlinux-deps
 ----------------------------------------
+
+### 生成规则
 
 path: Makefile
 ```
@@ -144,9 +149,15 @@ export KBUILD_LDS          := arch/$(SRCARCH)/kernel/vmlinux.lds
 ...
 vmlinux-deps := $(KBUILD_LDS) $(KBUILD_VMLINUX_INIT) $(KBUILD_VMLINUX_MAIN)
 ...
+# The actual objects are generated when descending,
+# make sure no implicit rule kicks in
+$(sort $(vmlinux-deps)): $(vmlinux-dirs) ;
 ```
 
-### head-y
+找到各个子目录中的.o目标文件并赋值给vmlinux-deps变量之后，vmlinux-deps的构建规则如上所示,
+这里是一个空命令的规则, 空命令行可以防止make在执行时试图为重建这个目标去查找隐含命令。
+
+#### head-y
 
 path: arch/arm/Makefile
 ```
@@ -156,7 +167,7 @@ head-y		:= arch/arm/kernel/head$(MMUEXT).o
 ...
 ```
 
-### init-y
+#### init-y
 
 path: Makefile
 ```
@@ -171,7 +182,7 @@ init-y		:= $(patsubst %/, %/built-in.o, $(init-y))
 上述语句的目的就是找到init目录中所有被编译成built-in.o的目标文件，其余
 core-y, libs-y, drivers-y, net-y变量的解析类似.
 
-### core-y
+#### core-y
 
 path: Makefile
 ```
@@ -184,7 +195,7 @@ core-y		:= $(patsubst %/, %/built-in.o, $(core-y))
 ...
 ```
 
-### libs-y
+#### libs-y
 
 path: Makefile
 ```
@@ -197,7 +208,7 @@ libs-y		:= $(libs-y1) $(libs-y2)
 ...
 ```
 
-### drivers-y
+#### drivers-y
 
 path: Makefile
 ```
@@ -208,7 +219,7 @@ drivers-y	:= $(patsubst %/, %/built-in.o, $(drivers-y))
 ...
 ```
 
-### net-y
+#### net-y
 
 path: Makefile
 ```
@@ -219,21 +230,12 @@ net-y		:= $(patsubst %/, %/built-in.o, $(net-y))
 ...
 ```
 
-找到各个子目录中的.o目标文件并赋值给vmlinux-deps变量之后，vmlinux-deps
-的构建规则如下所示:
+vmlinux-deps依赖于vmlinux-dirs，这个变量生成规则如下所示:
 
-path: Makefile
-```
-# The actual objects are generated when descending,
-# make sure no implicit rule kicks in
-$(sort $(vmlinux-deps)): $(vmlinux-dirs) ;
-```
-
-这里是一个空命令的规则, 空命令行可以防止make在执行时试图为重建这个
-目标去查找隐含命令。其依赖为vmlinux-dirs，这个变量生成规则如下所示:
-
-vmlinux-dirs生成规则
+vmlinux-dirs
 ----------------------------------------
+
+### 生成规则
 
 path: Makefile
 ```
@@ -242,7 +244,7 @@ vmlinux-dirs	:= $(patsubst %/,%,$(filter %/, $(init-y) $(init-m) \
 		     $(net-y) $(net-m) $(libs-y) $(libs-m)))
 ```
 
-这个变量指定了一系列要进入的下层目录,其规则第一如下所示:
+这个变量指定了一系列要进入的下层目录,其规则定义如下所示:
 
 path: Makefile
 ```
@@ -270,7 +272,7 @@ build := -f $(srctree)/scripts/Makefile.build obj
 ...
 ```
 
-vmlinux-dir的生成规则的完整命令如下所示:
+### vmlinux-dir的完整生成命令
 
 ```
 $(Q)$(MAKE) -f $(srctree)/scripts/Makefile.build obj=$(vmlinux-dirs)
@@ -313,8 +315,10 @@ endif
 变量obj就是vmlinux-dirs变量指定的目录,在我们的例子中是init。所以这里
 会构建$(vmlinux-dirs)/built-in.o目标，这个目标的规则及命令的定义如下:
 
-builtin-target生成规则
+builtin-target
 ----------------------------------------
+
+### 生成规则
 
 path: scripts/Makefile.build
 ```
@@ -336,13 +340,14 @@ targets += $(builtin-target)
 endif # builtin-target
 ```
 
-builtin-target目标文件通过if_changed变量扩展为cmd_link_o_target
-用于将所有的obj-y变量指定的文件链接为对应的builtin.o文件.
-builtin-target目标依赖于obj-y变量指定的文件.obj-y文件的生成规则
+builtin-target目标文件通过if_changed变量扩展为cmd_link_o_target用于将所有的obj-y变量指定的
+文件链接为对应的builtin.o文件.builtin-target目标依赖于obj-y变量指定的文件.obj-y文件的生成规则
 如下所示:
 
-*.o文件生成规则
+*.o文件
 ----------------------------------------
+
+### 生成规则
 
 path: scripts/Makefile.build
 ```
@@ -359,7 +364,6 @@ include $(kbuild-file)
 如上规则包含了vmlinux-dirs变量指定目录中的Makefile文件，在这些Makefile
 文件中会指定obj-y变量，它指定的都是一些*.o目标文件. 这些*.o文件的生成
 规则如下所示:
-
 
 path: scripts/Makefile.build
 ```
@@ -417,8 +421,6 @@ ELF Header:
   Section header string table index: 29
 ```
 
-vmlinux是标准的Linux下的elf可执行文件。它与其他的可执行文件格式
-没有任何本质区别, 普通应用程序有for GNU/Linux 2.6.14的提示，所以
-想在Linux上直接运行vmlinux是不行的，因为它需要运行在特权模式，
-ELF加载器无法加载它。使用arm-linux-readelf可以清晰的看到它的代码段
-起始地址位于内核空间0xc0008000.
+vmlinux是标准的Linux下的elf可执行文件。它与其他的可执行文件格式没有任何本质区别, 普通应用程序有
+for GNU/Linux 2.6.14的提示，所以想在Linux上直接运行vmlinux是不行的，因为它需要运行在特权模式，
+ELF加载器无法加载它。使用arm-linux-readelf可以清晰的看到它的代码段起始地址位于内核空间0xc0008000.
