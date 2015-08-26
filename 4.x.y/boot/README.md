@@ -11,5 +11,12 @@ zImage编译过程
 
 https://github.com/leeminghao/doc-linux/blob/master/4.x.y/kbuild/zImage.md
 
+zImage的执行
+----------------------------------------
+
 在bootloader将kernel信息加载到内存，然后变跳转到内核执行. 根据分析zImage的编译过程
 我们得知，内核第一条指令的地址是arch/arm/boot/compressed/head.S第一条指令的地址.
+
+### ARM
+
+https://github.com/leeminghao/doc-linux/blob/master/4.x.y/arch/arm/boot/compressed/head_S.md

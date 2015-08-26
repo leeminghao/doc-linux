@@ -45,6 +45,7 @@ void boot_linux(void *kernel, unsigned *tags,
      */
     dsb();
 #if ARM_WITH_MMU
+    // lk使用了MMU和Cache来支持多线程，所以在跳到内核之前要先disable mmu和cache
     arch_disable_mmu();
 #endif
 

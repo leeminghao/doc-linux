@@ -336,8 +336,29 @@ SECTIONS
   /* ensure the zImage file size is always a multiple of 64 bits */
   /* (without a dummy byte, ld just ignores the empty section) */
   .pad			: { BYTE(0); . = ALIGN(8); }
+  # _edata实际上就是zImage文件的大小。它包含内核镜像所需的所有代码段和数据段以及压缩后
+  # 的vmlinux内核文件.piggydata数据段。
   _edata = .;
-  ...
+
+  _magic_sig = ZIMAGE_MAGIC(0x016f2818);
+  _magic_start = ZIMAGE_MAGIC(_start);
+  _magic_end = ZIMAGE_MAGIC(_edata);
+
+  . = BSS_START;
+  __bss_start = .;
+  .bss			: { *(.bss) }
+  _end = .;
+
+  . = ALIGN(8);		/* the stack must be 64-bit aligned */
+  .stack		: { *(.stack) }
+
+  .stab 0		: { *(.stab) }
+  .stabstr 0		: { *(.stabstr) }
+  .stab.excl 0		: { *(.stab.excl) }
+  .stab.exclstr 0	: { *(.stab.exclstr) }
+  .stab.index 0		: { *(.stab.index) }
+  .stab.indexstr 0	: { *(.stab.indexstr) }
+  .comment 0		: { *(.comment) }
 }
 ```
 
