@@ -82,6 +82,7 @@ https://github.com/leeminghao/doc-linux/blob/master/4.x.y/boot/README.md
 
 程序执行到此时我们得到大致如下的内存分布图:
 
+```
 |-----------------------------| 0xffffffff (4G)
 |
 |
@@ -127,3 +128,4 @@ https://github.com/leeminghao/doc-linux/blob/master/4.x.y/boot/README.md
 |
 |
 |-----------------------------| 0x00000000
+```
