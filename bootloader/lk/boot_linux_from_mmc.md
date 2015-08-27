@@ -86,6 +86,8 @@ int boot_linux_from_mmc(void)
 
     /* Get virtual addresses since the hdr saves physical addresses. */
     /* 5.将hdr结构中保存的kernel, ramdisk, tag的物理地址转换成对应的虚拟地址.
+     * 这是因为我们在arch_early_init函数中打开的mmu,所以先要将物理地址映射为虚拟地址才能
+     * 完成正常的加载工作.
      * 假设我们在生成boot.img时设置--base 0x80200000和--ramdisk_offset 0x02000000
      * 那么hdr结构中的各地址值如下所示:
      * kernel_addr=80208000

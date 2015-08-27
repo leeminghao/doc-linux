@@ -12,7 +12,10 @@ void boot_linux(void *kernel, unsigned *tags,
     int ret = 0;
 #endif
 
-    /* 1.将传递进来的kernel, ramdisk,和tag地址转换成物理地址 */
+    /* 1.将传递进来的kernel, ramdisk,和tag地址转换成物理地址
+     * 这是因为在进入内核代码执行之前要关闭mmu, 所以要将虚拟地址
+     * 转换成物理地址才能进行后续的正常工作.
+     */
     void (*entry)(unsigned, unsigned, unsigned*) = (entry_func_ptr*)(PA((addr_t)kernel));
     uint32_t tags_phys = PA((addr_t)tags);
 
@@ -45,11 +48,11 @@ void boot_linux(void *kernel, unsigned *tags,
      */
     dsb();
 #if ARM_WITH_MMU
-    // lk使用了MMU和Cache来支持多线程，所以在跳到内核之前要先disable mmu和cache
+    // 2.lk使用了MMU和Cache来支持多线程，所以在跳到内核之前要先disable mmu和cache
     arch_disable_mmu();
 #endif
 
-    /* 直接跳转到内核执行. */
+    /* 3.直接跳转到内核执行. */
     entry(0, machtype, (unsigned*)tags_phys);
 }
 ```
@@ -73,3 +76,6 @@ entry
 内核入口函数entry, 该函数地址就是kernel加载的地址.接下来跳转到内核去执行内核代码.
 
 https://github.com/leeminghao/doc-linux/blob/master/4.x.y/boot/README.md
+
+内存分布
+----------------------------------------

@@ -108,6 +108,11 @@ void kmain(void)
 }
 ```
 
+arch_early_init
+----------------------------------------
+
+https://github.com/leeminghao/doc-linux/tree/master/bootloader/lk/arch_early_init.md
+
 bootstrap2
 ----------------------------------------
 
