@@ -18,7 +18,11 @@ arm会通过引脚的电平来判断。
 
 ### S3C2440
 
-https://github.com/leeminghao/doc-linux/blob/master/arch/arm/s3c2440/Memory.md
+https://github.com/leeminghao/doc-linux/blob/master/arch/arm/s3c2440/README.md
+
+### MSM8960
+
+https://github.com/leeminghao/doc-linux/blob/master/arch/arm/msm8960/README.md
 
 作用
 ----------------------------------------

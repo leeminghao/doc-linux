@@ -6,4 +6,9 @@ S3C2440
 
 S3C2440的存储系统设计如下所示:
 
-https://github.com/leeminghao/doc-linux/blob/master/arch/arm/s3c2440/Memory.md
+https://github.com/leeminghao/doc-linux/blob/master/arch/arm/s3c2440/memory.md
+
+系统启动方式
+----------------------------------------
+
+https://github.com/leeminghao/doc-linux/blob/master/arch/arm/s3c2440/boot.md
