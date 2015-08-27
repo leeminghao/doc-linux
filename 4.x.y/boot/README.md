@@ -25,7 +25,7 @@ zImage的执行
 **注意**: 不能直接反汇编zImage,因为zImage是使用objcopy将vmlinux(elf格式)生成原始二进制文件zImage.
 反汇编后代码如下所示:
 
-path: vmlinux.S
+path: kbuild/binary/arch/arm/boot/compressed/vmlinux.S
 ```
 ...
 00000000 <start>:
@@ -58,6 +58,10 @@ path: vmlinux.S
       54:	ef123456 	svc	0x00123456
 ...
 ```
+
+完整的反汇编文件如下所示:
+
+https://github.com/leeminghao/doc-linux/blob/master/4.x.y/kbuild/binary/arch/arm/boot/compressed/vmlinux.S
 
 上述反汇编出来的0地址处部分代码,即为对应head.S文件start标志处开始的代码，如下所示:
 

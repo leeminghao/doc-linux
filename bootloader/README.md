@@ -26,7 +26,7 @@ https://github.com/leeminghao/doc-linux/blob/master/arch/arm/s3c2440/Memory.md
 在bootloader完成对系统的初始化任务之后，它会将非易失性存储器(通常是Flash或EMMC等)中的Linux内核
 拷贝到RAM中去，然后跳转到内核的第一条指令处继续执行，从而启动Linux内核。
 
-bootloader一上电就拿到了cpu 的使用权，它当然得干一些初始化的工作啊，比如关闭看门狗、设置cpu的
+bootloader一上电就拿到了cpu的使用权，它当然得干一些初始化的工作啊，比如关闭看门狗、设置cpu的
 运行模式、设置堆栈等等比较急迫的事情。当然还要对主板的一些其他硬件进行简单的初始化，比如外部
 DDR内存、网卡、显示屏、nand flash等等的初始化工作，最后还要负责把Linux内核加载到内存中。
 
