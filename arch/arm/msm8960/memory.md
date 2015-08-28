@@ -3,7 +3,7 @@ MSM8960 Memory Map
 
 MSM 8960存储器映射如下图所示:
 
-https://github.com/leeminghao/doc-linux/blob/master/arch/arm/msm8960/res/memory_map.md
+https://github.com/leeminghao/doc-linux/blob/master/arch/arm/msm8960/res/memory_map.png
 
 32位地址总共4GB的地址空间.
 
