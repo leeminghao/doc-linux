@@ -1,14 +1,16 @@
 S3C2440
 ========================================
 
-存储系统
+Memory map
 ----------------------------------------
 
-S3C2440的存储系统设计如下所示:
+S3C2440的存储系统映射如下所示:
 
 https://github.com/leeminghao/doc-linux/blob/master/arch/arm/s3c2440/memory.md
 
-系统启动方式
+Boot
 ----------------------------------------
+
+S3C2440系统启动方式如下所示:
 
 https://github.com/leeminghao/doc-linux/blob/master/arch/arm/s3c2440/boot.md

@@ -1,19 +1,47 @@
 MSM8960 boot
 ========================================
 
-MSM8960的启动过程和各个模块的加载地址如下图所示:
+MSM8960上电开机启动执行过程如下所示:
 
-https://github.com/leeminghao/doc-linux/blob/master/arch/arm/msm8960/res/boot.jpg
+### 执行流程图
 
-PBL
+https://github.com/leeminghao/doc-linux/blob/master/arch/arm/msm8960/res/secure_boot_code_flow.png
+
+### 执行调用栈图
+
+https://github.com/leeminghao/doc-linux/blob/master/arch/arm/msm8960/res/secure_boot_call_stack.png
+
+### 执行功能图
+
+https://github.com/leeminghao/doc-linux/blob/master/arch/arm/msm8960/res/secure_boot_call_stack_functions.png
+
+根据上述三个按照时间，空间和功能划分的执行流程图，我们详细介绍下各模块的执行位置，作用等.
+
+ARM是上电之后是从0地址开始执行代码的.
+
+PBL(RPM PBL)
 ----------------------------------------
 
-ARM是上电之后从0地址开始执行代码, PBL是存在MSM8960的IROM(芯片内部ROM)上的代码,
-这个启动代码也称为SBL0。从上图可知这段IROM被映射到0地址,通电后，PBL被执行。其功能如下所示:
+PBL是存在MSM8960内部的IROM(也称为为RPM ROM)上的代码, 从MSM8960内存系统映射图:
 
-* PBL测试是通电启动还是重启;
-* PBL提高RPM时钟到60MHz;
-* PBL将SBL1从Flash device下载到IMEM(芯片内部存储器)
+https://github.com/leeminghao/doc-linux/blob/master/arch/arm/msm8960/res/memory_map.md
+
+我们知道IROM被映射到0x00000000 ~ 0x02000000这个32MB地址空间, 系统上电后，IROM中预置的PBL程序
+加载执行被执行.
+
+### 加载位置
+
+* IROM
+
+### 执行位置
+
+* IROM
+
+### 功能
+
+* 检测外部存储器(EMMC);
+* 加载并认证SBL1模块;
+* 低电量检测.
 
 SBL1
 ----------------------------------------
@@ -40,19 +68,11 @@ SBL3
 ----------------------------------------
 
 * 提高系统时钟
-* 下载APPSBL, 认证APPSBL
+* 下载APPSBL(lk), 认证APPSBL
 * 等待RPM发送INTR信号
 * 收到INTR信号，程序跳到APPSBL头
-* 当收到INTR时，Krait会跳到APPSBL头, 下载HLOS，跳到HLOS
-* HLOS下载modem image, 调用PIL服务进入TZ
-* 认证image, 复位modem
-* 下载LPA Hexagon image，调用PIL服务进入TZ
-* 认证image, 复位LPA Hexagon
-* 下载SPS ARM7 image，调用PIL服务进入TZ
-* 认证image, 复位SPS ARM7
-* 下载RIVA image，调用PIL服务进入TZ
-* 认证image, 复位RIVA
-* HLOS APPSBL加载和校验HLOS内核lk.
+* 当收到INTR时，Krait会跳到APPSBL头.
+* APPSBL下载HLOS，跳到HLOS
 
 lk
 ----------------------------------------
