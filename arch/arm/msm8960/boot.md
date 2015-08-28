@@ -8,17 +8,18 @@ https://github.com/leeminghao/doc-linux/blob/master/arch/arm/msm8960/res/boot.jp
 PBL
 ----------------------------------------
 
-ARM是上电之后从0地址开始执行代码, BL是存在MSM8960的IROM(芯片内部ROM)上,这个启动代码也称为SBL0。
-这段IROM被映射到0地址,通电后，PBL被执行。其功能如下所示:
+ARM是上电之后从0地址开始执行代码, PBL是存在MSM8960的IROM(芯片内部ROM)上的代码,
+这个启动代码也称为SBL0。从上图可知这段IROM被映射到0地址,通电后，PBL被执行。其功能如下所示:
 
 * PBL测试是通电启动还是重启;
 * PBL提高RPM时钟到60MHz;
-* PBL将SBL1从Flash device下载到IMEM
+* PBL将SBL1从Flash device下载到IMEM(芯片内部存储器)
 
 SBL1
 ----------------------------------------
 
-SBL1下载SBL2，用加密算法认证SBL2, SBL1将Krait复位, Krait在复位后，会跳到SBL2头.
+SBL1是被加载到地址0x2A000000处开始执行, SBL1下载SBL2到IMEM上，用加密算法认证SBL2,
+SBL1将Krait复位, Krait在复位后，会跳到SBL2头.
 
 SBL2
 ----------------------------------------
@@ -39,7 +40,7 @@ SBL3
 ----------------------------------------
 
 * 提高系统时钟
-* 下载APPSBL；认证APPSBL
+* 下载APPSBL, 认证APPSBL
 * 等待RPM发送INTR信号
 * 收到INTR信号，程序跳到APPSBL头
 * 当收到INTR时，Krait会跳到APPSBL头, 下载HLOS，跳到HLOS
