@@ -73,4 +73,4 @@ Memory Layout
 
 在完成HLOS的加载之后，各模块的的内存布局如下所示:
 
-ohttps://github.com/leeminghao/doc-linux/blob/master/arch/arm/msm8960/memory_layout.md
+https://github.com/leeminghao/doc-linux/blob/master/arch/arm/msm8960/memory_layout.md
