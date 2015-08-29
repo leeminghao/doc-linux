@@ -181,4 +181,4 @@ unified_boot:
 boot_linux
 ----------------------------------------
 
-https://github.com/leeminghao/doc-linux/tree/master/bootloader/lk/boot_linux.md
+https://github.com/leeminghao/doc-linux/tree/master/bootloader/lk/apps/aboot/aboot_c/boot_linux.md

@@ -28,7 +28,23 @@ SBL2是被SBL1从eMMC上加载到MIMEM/GMEM(0x2E000000 ~ 0x30000000)中执行的
 * 配置外部DDR存储器;
 * 加载和认证SBL3;
 
+### TZ
+
+https://github.com/leeminghao/doc-linux/blob/master/arch/arm/msm8960/tz/README.md
+
+### RPM firmware
+
+https://github.com/leeminghao/doc-linux/blob/master/arch/arm/msm8960/rpm/README.md
+
+### 过程
+
+https://github.com/leeminghao/doc-linux/blob/master/arch/arm/msm8960/res/sbl2_A.png
+
+https://github.com/leeminghao/doc-linux/blob/master/arch/arm/msm8960/res/sbl2_B.png
+
 完成上述功能之后跳转到SBL3中去执行.
+
+### SBL3
 
 https://github.com/leeminghao/doc-linux/blob/master/arch/arm/msm8960/sbl3/README.md
 
@@ -78,7 +94,7 @@ Program Headers:
    00     SBL2_VEC_TBL SBL2_IND_VEC_TBL SBL2_PTR_AREA1 SBL2_CODE SBL2_RAM_RW SBL2_RAM_ZI SBL2_ERR_DATA
 ```
 
-Disassemble
+Disassembler
 ----------------------------------------
 
 https://github.com/leeminghao/doc-linux/blob/master/arch/arm/msm8960/sbl2/build/AAAAANAZ/SBL2_AAAAANAZA.S

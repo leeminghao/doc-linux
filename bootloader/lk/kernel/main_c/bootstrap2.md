@@ -40,4 +40,4 @@ static int bootstrap2(void *arg)
 apps_init
 ----------------------------------------
 
-https://github.com/leeminghao/doc-linux/tree/master/bootloader/lk/apps_init.md
+https://github.com/leeminghao/doc-linux/tree/master/bootloader/lk/apps/app_c/apps_init.md

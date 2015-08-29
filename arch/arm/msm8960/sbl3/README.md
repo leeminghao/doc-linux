@@ -31,7 +31,13 @@ SBL3是被SBL2从eMMC上加载到DDR(0x40000000 ~ 0xFFFFFFFF)中执行的.
 * 检查下载模式/大容量存储模式;
 * 加载并认证HLOS APPSBL(lk);
 
-完成上述功能之后跳转到HLOS APPSBL中去执行:
+### 过程
+
+https://github.com/leeminghao/doc-linux/blob/master/arch/arm/msm8960/res/sbl3.png
+
+完成上述功能之后跳转到APPSBL中去执行:
+
+### APPSBL
 
 https://github.com/leeminghao/doc-linux/blob/master/bootloader/lk/README.md
 
@@ -81,7 +87,7 @@ Program Headers:
    00     SBL3_CODE SBL3_RAM_RW SBL3_RAM_ZI SBL3_RAMDUMP_DATA SBL3_ERR_DATA
 ```
 
-Disassemble
+Disassembler
 ----------------------------------------
 
 https://github.com/leeminghao/doc-linux/blob/master/arch/arm/msm8960/sbl3/build/AAAAANAZ/SBL3_AAAAANAZA.S
