@@ -1,12 +1,12 @@
 boot_linux_from_mmc
 ========================================
 
-通常lk加载的linux内核是一种通过特殊处理的文件格式boot.img，这个文件通常是
+通常lk加载的linux内核是一种通过特殊处理的文件格式bootimg，这个文件通常是
 kernel(内核), ramdisk.img(根文件系统)和dt.img(设备树)的集合.
 
-boot.img这种文件头定义参考如下:
+有关bootimg文件描述如下所示:
 
-https://github.com/leeminghao/doc-linux/tree/master/bootloader/lk/boot_img_hdr.md
+https://github.com/leeminghao/doc-linux/tree/master/bootloader/images/bootimg/README.md
 
 path: lk/app/aboot/aboot.c
 ```
