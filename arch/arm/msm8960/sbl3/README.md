@@ -39,7 +39,7 @@ https://github.com/leeminghao/doc-linux/blob/master/arch/arm/msm8960/res/sbl3.pn
 
 ### APPSBL
 
-https://github.com/leeminghao/doc-linux/blob/master/bootloader/lk/README.md
+https://github.com/leeminghao/doc-linux/blob/master/arch/arm/msm8960/appsbl/README.md
 
 ELF Header
 ----------------------------------------
