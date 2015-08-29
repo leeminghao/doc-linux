@@ -29,9 +29,9 @@ SBL1是被RPM PBL从eMMC上加载到SYSTEM IMEM(0x2A000000 ~ 0x2C000000)
 
 ### 过程
 
-完成上述功能之后, 复位后跳转到SBL2中执行.
-
 https://github.com/leeminghao/doc-linux/blob/master/arch/arm/msm8960/res/sbl1.png
+
+完成上述功能之后, 复位后跳转到SBL2中执行.
 
 ### SBL2
 
