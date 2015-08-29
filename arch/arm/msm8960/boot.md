@@ -1,7 +1,7 @@
 MSM8960 boot
 ========================================
 
-MSM8960上电开机启动执行过程如下所示:
+MSM8960上电开机启动流程如下所示：
 
 ### Code Flow
 
@@ -21,6 +21,8 @@ PBL(RPM PBL)
 ----------------------------------------
 
 当系统上电后，RPM CODE ROM(0x00000000 ~ 0x00018000)中预置的PBL程序被加载并执行.
+
+https://github.com/leeminghao/doc-linux/blob/master/arch/arm/msm8960/pbl/README.md
 
 SBL1
 ----------------------------------------
@@ -62,6 +64,13 @@ https://github.com/leeminghao/doc-linux/blob/master/arch/arm/msm8960/appsbl/READ
 HLOS
 ----------------------------------------
 
-HLOSL是被APPSBL从eMMC上加载到DDR(0x40000000 ~ 0xFFFFFFFF)中执行的.
+HLOS是被APPSBL从eMMC上加载到DDR(0x40000000 ~ 0xFFFFFFFF)中执行的.
 
 https://github.com/leeminghao/doc-linux/blob/master/arch/arm/msm8960/hlos/README.md
+
+Memory Layout
+----------------------------------------
+
+在完成HLOS的加载之后，各模块的的内存布局如下所示:
+
+ohttps://github.com/leeminghao/doc-linux/blob/master/arch/arm/msm8960/memory_layout.md

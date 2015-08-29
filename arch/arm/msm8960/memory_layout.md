@@ -1,17 +1,7 @@
-Memory Map
+Memory Layout
 ========================================
 
-MSM8960存储系统映射如下所示:
-
-https://github.com/leeminghao/doc-linux/blob/master/arch/arm/msm8960/memory.md
-
-在这个存储系统中，我们实验平台只有2GB DDR内存，其被映射到了
-0x80000000 ~ 0xFFFFFF00这个地址段. 由secure boot将lk加载到DDR内存,
-过程如下所示:
-
-https://github.com/leeminghao/doc-linux/blob/master/arch/arm/msm8960/boot.md
-
-lk又将linux内核和ramdisk加载到了DDR内存指定位置.我们得到如下的存储空间布局:
+在我们的实验系统中，加载完HLOS之后，MSM8960各个模块内存布局如下:
 
 存储空间布局
 ----------------------------------------

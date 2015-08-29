@@ -19,6 +19,10 @@ HLOS(Linux kernel)是由APPSBL(lk)加载到DDR
 * 载体: DDR
 * 起始地址: 0x80208000
 
+### 过程
+
+https://github.com/leeminghao/doc-linux/blob/master/arch/arm/msm8960/res/appsbl_hlos.png
+
 ELF Header
 ----------------------------------------
 
@@ -64,3 +68,13 @@ Program Headers:
   Segment Sections...
    00     .text .rodata .piggydata .got.plt .got .pad .bss .stack
 ```
+
+Disassembler
+----------------------------------------
+
+https://github.com/leeminghao/doc-linux/blob/master/4.x.y/kbuild/binary/arch/arm/boot/compressed/vmlinux.S
+
+Code Flow
+----------------------------------------
+
+https://github.com/leeminghao/doc-linux/blob/master/4.x.y/README.md

@@ -13,7 +13,6 @@ https://github.com/leeminghao/doc-linux/blob/master/arch/arm/msm8960/README.md
 * CPU - MSM8960
 * SDRAM - 2GB, 映射地址为(0x8000000 ~ 0xffffff00)
 
-
 目录结构
 ----------------------------------------
 

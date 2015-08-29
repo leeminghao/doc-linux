@@ -19,6 +19,10 @@ APPSBL是被SBL3从eMMC上加载到DDR(0x40000000 ~ 0xFFFFFFFF)中执行的.
 * 载体: DDR
 * 起始地址: 0x88f00000
 
+### 过程
+
+https://github.com/leeminghao/doc-linux/blob/master/arch/arm/msm8960/res/appsbl_hlos.png
+
 ELF Header
 ----------------------------------------
 
