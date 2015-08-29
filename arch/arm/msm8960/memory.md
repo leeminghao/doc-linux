@@ -24,3 +24,7 @@ https://github.com/leeminghao/doc-linux/blob/master/arch/arm/msm8960/res/memory_
 ### 0x2A000000 ~ 0x2C000000
 
 总共32MB空间分配给CPU内置IMEM使用.
+
+### 0x2E000000 ~ 0x30000000
+
+总共32MB空间分配给MIMEM/GMEM使用.

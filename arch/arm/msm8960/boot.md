@@ -22,59 +22,65 @@ ARM是上电之后是从0地址开始执行代码的.
 PBL(RPM PBL)
 ----------------------------------------
 
-PBL是存在MSM8960内部的IROM(也称为为RPM ROM)上的代码, 从MSM8960内存系统映射图:
+PBL是存在MSM8960内部的IROM(也称为RPM ROM)上的代码, 从MSM8960内存系统映射:
 
-https://github.com/leeminghao/doc-linux/blob/master/arch/arm/msm8960/res/memory_map.md
+https://github.com/leeminghao/doc-linux/blob/master/arch/arm/msm8960/memory.md
 
-我们知道IROM被映射到0x00000000 ~ 0x02000000这个32MB地址空间, 系统上电后，IROM中预置的PBL程序
-加载执行被执行.
+我们知道IROM被映射到0x00000000 ~ 0x02000000这个32MB地址空间,
+当系统上电后，IROM中预置的PBL程序被加载并执行.
 
-### 加载位置
+### 架构
 
-* IROM
+* ARM7
 
-### 执行位置
+### 加载
 
-* IROM
+* 载体: IROM
+
+### 执行
+
+* 载体: IROM (0x00000000 ~ 0x02000000, 32MB)
+* 起始地址: 0x00000000
 
 ### 功能
 
 * 检测外部存储器(EMMC);
-* 加载并认证SBL1模块;
+* 加载并认证SBL1;
 * 低电量检测.
+
+完成上述功能之后跳转到SBL1中去执行.
 
 SBL1
 ----------------------------------------
 
-SBL1是被加载到地址0x2A000000处开始执行, SBL1下载SBL2到IMEM上，用加密算法认证SBL2,
-SBL1将Krait复位, Krait在复位后，会跳到SBL2头.
+SBL1是被RPM PBL从eMMC上加载到SYSTEM IMEM(0x2A000000 ~ 0x2C000000)
+中执行的代码. 其详细信息如下所示:
+
+https://github.com/leeminghao/doc-linux/blob/master/arch/arm/msm8960/sbl1/README.md
+
+SBL1复位Krait后跳转到SBL2中执行.
 
 SBL2
 ----------------------------------------
 
-Krait在复位后，会跳到SBL2头:
+SBL2是被SBL1从eMMC上加载到MIMEM/GMEM(0x2E000000 ~ 0x30000000)中执行.
 
-* SBL2提高Krait的时钟
-* SBL2下载TZ到IMEM上
-* SBL2用加密算法认证TZ
-* 执行TZ(设置安全环境，参数，等等)
-* 下载RPM固件到RAM上
-* SBL2设置DDR
-* SBL2下载SBL3到DDR上，用加密算法认证SBL3
-* 发送Scorpion信号(Ready)
-* 跳到SBL3头
+**GMEM**: 是GPU的一块缓存.
+
+其详细信息如下所示:
+
+https://github.com/leeminghao/doc-linux/blob/master/arch/arm/msm8960/sbl2/README.md
+
+SBL2在完成指定功能后跳转到SBL3中去执行.
 
 SBL3
 ----------------------------------------
 
-* 提高系统时钟
-* 下载APPSBL(lk), 认证APPSBL
-* 等待RPM发送INTR信号
-* 收到INTR信号，程序跳到APPSBL头
-* 当收到INTR时，Krait会跳到APPSBL头.
-* APPSBL下载HLOS，跳到HLOS
+SBL3是被SBL2从eMMC上加载到DDR(0x40000000 ~ 0xFFFFFFFF)中执行的.
+其详细信息如下所示:
 
-lk
-----------------------------------------
+https://github.com/leeminghao/doc-linux/blob/master/arch/arm/msm8960/sbl3/README.md
+
+完成上述功能之后跳转到HLOS APPSBL中去执行:
 
 https://github.com/leeminghao/doc-linux/blob/master/bootloader/lk/README.md
