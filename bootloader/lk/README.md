@@ -30,11 +30,3 @@ Code Flow
 ----------------------------------------
 
 https://github.com/leeminghao/doc-linux/tree/master/bootloader/lk/lk_code_flow.md
-
-Memory map
-----------------------------------------
-
-在经过secure boot加载完Appsbl(lk), 又由lk将HLOS(Linux kernel)加载
-到DDR内存之后，我们得到如下存储空间布局:
-
-https://github.com/leeminghao/doc-linux/tree/master/bootloader/lk/memory_map.md
