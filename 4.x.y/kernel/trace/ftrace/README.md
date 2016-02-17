@@ -21,4 +21,4 @@ CONFIG_SCHED_TRACER
 official
 ----------------------------------------
 
-https://github.com/leeminghao/doc-linux/tree/master/torvalds_linux/Documentation/trace/ftrace.txt
+https://github.com/torvalds/linux/tree/bdec41963890f8ed9ad89f8b418959ab3cdc2aa3/Documentation/trace/ftrace.txt
