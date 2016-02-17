@@ -24,3 +24,8 @@ TRACE
     比如有多少个work被插入workqueue，多少个已经被执行等。开发人员
     可以以此来决定具体的 workqueue 实现，比如是使用single threaded workqueue 还是per cpu workqueue.
 * Event tracer: 跟踪系统事件，比如 timer，系统调用，中断等。
+
+ftrace
+----------------------------------------
+
+https://github.com/leeminghao/doc-linux/tree/master/4.x.y/kernel/trace/ftrace/README.md
