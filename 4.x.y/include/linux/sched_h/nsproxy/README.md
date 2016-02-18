@@ -122,7 +122,10 @@ execvp(argv[2], &argv[2]);      /* 执行程序 */
 
 假设编译后的程序名称为setns。
 
+```
 # ./setns ~/uts /bin/bash   # ~/uts 是绑定的/proc/27514/ns/uts
+```
+
 至此，你就可以在新的命名空间中执行shell命令了，在下文中会多次使用这种方式来演示隔离的效果。
 
 4. 通过unshare()在原先进程上进行namespace隔离
@@ -151,6 +154,7 @@ https://github.com/leeminghao/doc-linux/blob/master/4.x.y/include/linux/sched_h/
 汇集指向特定于子系统的命名空间包装器的指针：
 
 path: include/linux/nsproxy.h
+
 ```
 /*
  * A structure to contain pointers to all per-process
@@ -214,6 +218,7 @@ struct task_struct {
     struct nsproxy *nsproxy;
     ...
 };
+```
 
 因为使用了指针，多个进程可以共享一组子命名空间。这样，修改给定的命名空间，对所有属于该
 命名空间的进程都是可见的。请注意，对命名空间的支持必须在编译时启用，而且必须逐一指定
@@ -243,6 +248,7 @@ struct nsproxy init_nsproxy = {
 ### UTS命名空间
 
 path: include/linux/utsname.h
+
 ```
 struct uts_namespace {
 	struct kref kref;
@@ -251,10 +257,12 @@ struct uts_namespace {
 	struct ns_common ns;
 };
 ```
+
 kref是一个嵌入的引用计数器，可用于跟踪内核中有多少地方使用了struct uts_namespace的实例
 uts_namespace所提供的属性信息本身包含在struct new_utsname中：
 
 path: include/uapi/linux/utsname.h
+
 ```
 struct new_utsname {
 	char sysname[__NEW_UTS_LEN + 1];
@@ -268,6 +276,7 @@ struct new_utsname {
 
 各个字符串分别存储了系统的名称（Linux...）、内核发布版本、机器名，等等。使用uname工具可以取得
 这些属性的当前值，也可以在/proc/sys/kernel/中看到：
+
 ```
 root@cancro:/ # cat /proc/sys/kernel/ostype
 Linux
@@ -278,6 +287,7 @@ root@cancro:/ # cat /proc/sys/kernel/osrelease
 初始设置保存在init_uts_ns中：
 
 path: init/version.c
+
 ```
 struct uts_namespace init_uts_ns = {
 	.kref = {
@@ -312,7 +322,8 @@ struct uts_namespace init_uts_ns = {
 用户命名空间在数据结构管理方面类似于UTS：在要求创建新的用户命名空间时，则生成当前用户命名空间的
 一份副本，并关联到当前进程的nsproxy实例。但用户命名空间自身的表示要稍微复杂一些：
 
-path: include
+path: include/linux/user_namespace.h
+
 ```
 struct user_namespace {
 	struct uid_gid_map	uid_map;
