@@ -1,6 +1,10 @@
 task_struct
 ========================================
 
+Linux内核涉及进程和程序的所有算法都围绕一个名为task_struct的数据结构建立，
+该结构定义在include/sched.h中。这是系统中主要的一个结构。task_struct包含很多成员，
+将进程与各个内核子系统联系起来，下文会逐一讨论。
+
 path: include/linux/sched.h
 ```
 struct task_struct {
@@ -434,4 +438,86 @@ struct task_struct {
     unsigned long    task_state_change;
 #endif
 };
+```
+
+该结构的内容可以分解为各个部分，每个部分表示进程的一个特定方面。
+
+* 状态和执行信息，如待决信号、使用的二进制格式（和其他系统二进制格式的任何仿真信息）、
+  进程ID号（pid）、到父进程及其他有关进程的指针、优先级和程序执行有关的时间信息（例如CPU时间）。
+* 有关已经分配的虚拟内存的信息。
+* 进程身份凭据，如用户ID、组ID以及权限等。可使用系统调用查询（或修改）这些数据。
+* 使用的文件包含程序代码的二进制文件，以及进程所处理的所有文件的文件系统信息，这些都必须保存下来。
+* 线程信息记录该进程特定于CPU的运行时间数据（该结构的其余字段与所使用的硬件无关）。
+* 在与其他应用程序协作时所需的进程间通信有关的信息。
+* 该进程所用的信号处理程序，用于响应到来的信号。
+
+对进程管理的实现特别重要的一些成员
+----------------------------------------
+
+### state
+
+指定了进程的当前状态，可使用下列值(这些是预处理器常数，定义在<sched.h>中).
+
+* TASK_RUNNING意味着进程处于可运行状态。这并不意味着已经实际分配了CPU。
+  进程可能会一直等到调度器选中它。该状态确保进程可以立即运行，而无需等待外部事件。
+
+* TASK_INTERRUPTIBLE是针对等待某事件或其他资源的睡眠进程设置的。在内核发送信号给
+  该进程表明事件已经发生时，进程状态变为TASK_RUNNING，它只要调度器选中该进程即可恢复执行。
+
+* TASK_UNINTERRUPTIBLE用于因内核指示而停用的睡眠进程。它们不能由外部信号唤醒，只能由内核亲自唤醒。
+
+* TASK_STOPPED表示进程特意停止运行，例如，由调试器暂停。
+
+* TASK_TRACED本来不是进程状态，用于从停止的进程中，将当前被调试的那些（使用ptrace机制）与常规的进程区分开来。
+
+### exit_state
+
+* EXIT_ZOMBIE如上所述的僵尸状态。
+
+* EXIT_DEAD状态则是指wait系统调用已经发出，而进程完全从系统移除之前的状态。只有多个线程对同一个进程发出wait调用时，该状态才有意义。
+
+### struct rlimit
+
+Linux提供资源限制(resource limit，rlimit)机制，对进程使用系统资源施加某些限制。
+该机制利用了task_struct中的signal_struct中的rlim数组，数组类型为struct rlimit
+
+path: include/uapi/linux/resource.h
+```
+struct rlimit {
+	__kernel_ulong_t	rlim_cur;
+	__kernel_ulong_t	rlim_max;
+};
+```
+
+* rlim_cur是进程当前的资源限制，也称之为软限制（softlimit）。
+* rlim_max是该限制的最大容许值，因此也称之为硬限制（hard limit）。
+
+系统调用setrlimit来增减当前限制，但不能超出rlim_max指定的值。getrlimits用于检查当前限制。
+rlim数组中的位置标识了受限制资源的类型，这也是内核需要定义预处理器常数，将资源与位置
+关联起来的原因。下表列出了可能的常数及其含义。关于如何最佳地运用各种限制，系统程序
+设计方面的教科书提供了详细的说明，而setrlimit(2)的手册页详细描述了所有的限制。
+
+https://github.com/leeminghao/doc-linux/blob/master/4.x.y/include/linux/sched_h/res/rlimit.png
+
+内核在proc文件系统中对每个进程都包含了对应的一个文件，这样就可以查看当前的rlimit值：
+
+```
+root@cancro:/proc/1 # cat limits
+Limit                     Soft Limit           Hard Limit           Units
+Max cpu time              unlimited            unlimited            seconds
+Max file size             unlimited            unlimited            bytes
+Max data size             unlimited            unlimited            bytes
+Max stack size            8388608              unlimited            bytes
+Max core file size        0                    unlimited            bytes
+Max resident set          unlimited            unlimited            bytes
+Max processes             11668                11668                processes
+Max open files            1024                 4096                 files
+Max locked memory         67108864             67108864             bytes
+Max address space         unlimited            unlimited            bytes
+Max file locks            unlimited            unlimited            locks
+Max pending signals       11668                11668                signals
+Max msgqueue size         819200               819200               bytes
+Max nice priority         40                   40
+Max realtime priority     0                    0
+Max realtime timeout      unlimited            unlimited            us
 ```
