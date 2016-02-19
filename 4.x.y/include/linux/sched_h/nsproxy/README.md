@@ -50,7 +50,7 @@ chroot系统调用。该方法可以将进程限制到文件系统的某一部�
 
 https://github.com/leeminghao/doc-linux/blob/master/4.x.y/include/linux/sched_h/nsproxy/res/six.png
 
-调用namespace的API
+APIS
 ----------------------------------------
 
 namespace的API包括:
@@ -64,7 +64,7 @@ namespace的API包括:
 通过|（位或）操作来实现。你可能已经在上面的表格中注意到，这六个参数分别是CLONE_NEWIPC、
 CLONE_NEWNS、CLONE_NEWNET、CLONE_NEWPID、CLONE_NEWUSER和CLONE_NEWUTS。
 
-1. 通过clone()创建新进程的同时创建namespace
+### clone
 
 使用clone()来创建一个独立namespace的进程是最常见做法，它的调用方式如下。
 
@@ -81,7 +81,7 @@ clone()实际上是传统UNIX系统调用fork()的一种更通用的实现方式
 * 参数flags表示使用哪些CLONE_*标志位
 * 参数args则可用于传入用户参数
 
-2. 查看/proc/[pid]/ns文件
+### /proc/[pid]/ns
 
 用户就可以在/proc/[pid]/ns文件下看到指向不同namespace号的文件，效果如下所示:
 
@@ -95,8 +95,7 @@ lrwxrwxrwx root     root              2016-02-18 15:44 net -> net:[4026533493]
 /proc/[pid]/ns的另外一个作用是，一旦文件被打开，只要打开的文件描述符（fd）存在，那么就算PID所属
 的所有进程都已经结束，创建的namespace就会一直存在。
 
-
-3. 通过setns()加入一个已经存在的namespace
+### setns
 
 在进程都结束的情况下，也可以通过挂载的形式把namespace保留下来，保留namespace的目的自然是为以后
 有进程加入做准备。通过setns()系统调用，你的进程从原先的namespace加入我们准备好的新namespace，
@@ -128,10 +127,10 @@ execvp(argv[2], &argv[2]);      /* 执行程序 */
 
 至此，你就可以在新的命名空间中执行shell命令了，在下文中会多次使用这种方式来演示隔离的效果。
 
-4. 通过unshare()在原先进程上进行namespace隔离
+### unshare
 
-最后要提的系统调用是unshare()，它跟clone()很像，不同的是，unshare()运行在原先的进程上，
-不需要启动一个新进程，使用方法如下。
+通过unshare()在原先进程上进行namespace隔离, 最后要提的系统调用是unshare()，它跟clone()很像，不同的是，
+unshare()运行在原先的进程上，不需要启动一个新进程，使用方法如下。
 
 ```
 int unshare(int flags);
