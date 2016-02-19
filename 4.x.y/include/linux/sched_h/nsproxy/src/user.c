@@ -46,9 +46,20 @@ static int child_main(void* args)
 int main(int argc, char *argv[])
 {
     printf("starting ...\n");
-    int child_pid = clone(child_main, child_stack + STACK_SIZE,
+    /*int child_pid = clone(child_main, child_stack + STACK_SIZE,
                           CLONE_NEWUSER | SIGCHLD,
-                          NULL);
+                          NULL);*/
+    int child_pid = fork();
+    if (child_pid == 0) {
+        unshare(CLONE_NEWUSER);
+        printf("in child\n");
+        set_uid_map(getpid(), 0, 1000, 1);
+        set_gid_map(getpid(), 0, 1000, 1);
+        printf("eUID=%u, eGID=%u\n", getuid(), getgid());
+        execv(child_args[0], child_args);
+        printf("child failed\n");
+    }
+
     waitpid(child_pid, NULL, 0);
     printf("exited\n");
     return 0;
