@@ -198,6 +198,8 @@ struct nsproxy {
 每个命名空间都有一个对应的标志：
 path: include/uapi/linux/sched.h
 ```
+#define CLONE_NEWNS	0x00020000	/* New mount namespace group */
+...
 /* 0x02000000 was previously the unused CLONE_STOPPED (Start in stopped state)
    and is now available for re-use. */
 #define CLONE_NEWUTS		0x04000000	/* New utsname namespace */
@@ -247,100 +249,9 @@ struct nsproxy init_nsproxy = {
 
 ### UTS命名空间
 
-path: include/linux/utsname.h
+https://github.com/leeminghao/doc-linux/blob/master/4.x.y/include/linux/sched_h/nsproxy/UTS_namespace.md
 
-```
-struct uts_namespace {
-	struct kref kref;
-	struct new_utsname name;
-	struct user_namespace *user_ns;
-	struct ns_common ns;
-};
-```
 
-kref是一个嵌入的引用计数器，可用于跟踪内核中有多少地方使用了struct uts_namespace的实例
-uts_namespace所提供的属性信息本身包含在struct new_utsname中：
+### MNT namespace
 
-path: include/uapi/linux/utsname.h
-
-```
-struct new_utsname {
-	char sysname[__NEW_UTS_LEN + 1];
-	char nodename[__NEW_UTS_LEN + 1];
-	char release[__NEW_UTS_LEN + 1];
-	char version[__NEW_UTS_LEN + 1];
-	char machine[__NEW_UTS_LEN + 1];
-	char domainname[__NEW_UTS_LEN + 1];
-};
-```
-
-各个字符串分别存储了系统的名称（Linux...）、内核发布版本、机器名，等等。使用uname工具可以取得
-这些属性的当前值，也可以在/proc/sys/kernel/中看到：
-
-```
-root@cancro:/ # cat /proc/sys/kernel/ostype
-Linux
-root@cancro:/ # cat /proc/sys/kernel/osrelease
-3.4.0-g0c665cd-00547-g2e99435-dirty
-```
-
-初始设置保存在init_uts_ns中：
-
-path: init/version.c
-
-```
-struct uts_namespace init_uts_ns = {
-	.kref = {
-		.refcount	= ATOMIC_INIT(2),
-	},
-	.name = {
-		.sysname	= UTS_SYSNAME,
-		.nodename	= UTS_NODENAME,
-		.release	= UTS_RELEASE,
-		.version	= UTS_VERSION,
-		.machine	= UTS_MACHINE,
-		.domainname	= UTS_DOMAINNAME,
-	},
-	.user_ns = &init_user_ns,
-	.ns.inum = PROC_UTS_INIT_INO,
-#ifdef CONFIG_UTS_NS
-	.ns.ops = &utsns_operations,
-#endif
-};
-```
-
-相关的预处理器常数在内核中各处定义。例如，UTS_RELEASE在<utsrelease.h>中定义，该文件是编时通过
-顶层Makefile动态生成的。请注意，UTS结构的某些部分不能修改。例如，把sysname换成Linux以外的
-其他值是没有意义的，但改变机器名是可以的。内核如何创建一个新的UTS命名空间呢？这属于copy_ut-sname
-函数的职责。在某个进程调用fork并通过CLONE_NEWUTS标志指定创建新的UTS命名空间时，则调用该函数。
-在这种情况下，会生成先前的uts_namespace实例的一份副本，当前进程的nsproxy实例内部的指针会指向
-新的副本。如此而已!由于在读取或设置UTS属性值时，内核会保证总是操作特定于当前进程的uts_namespace
-实例，在当前进程修改UTS属性不会反映到父进程，而父进程的修改也不会传播到子进程。
-
-### 用户命名空间
-
-用户命名空间在数据结构管理方面类似于UTS：在要求创建新的用户命名空间时，则生成当前用户命名空间的
-一份副本，并关联到当前进程的nsproxy实例。但用户命名空间自身的表示要稍微复杂一些：
-
-path: include/linux/user_namespace.h
-
-```
-struct user_namespace {
-	struct uid_gid_map	uid_map;
-	struct uid_gid_map	gid_map;
-	struct uid_gid_map	projid_map;
-	atomic_t		count;
-	struct user_namespace	*parent;
-	int			level;
-	kuid_t			owner;
-	kgid_t			group;
-	struct ns_common	ns;
-	unsigned long		flags;
-
-	/* Register of per-UID persistent keyrings for this namespace */
-#ifdef CONFIG_PERSISTENT_KEYRINGS
-	struct key		*persistent_keyring_register;
-	struct rw_semaphore	persistent_keyring_register_sem;
-#endif
-};
-```
+https://github.com/leeminghao/doc-linux/blob/master/4.x.y/include/linux/sched_h/nsproxy/MNT_namespace.md
