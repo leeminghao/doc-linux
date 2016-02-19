@@ -246,11 +246,26 @@ struct nsproxy init_nsproxy = {
 };
 ```
 
-### UTS命名空间
+### UTS namespace
 
 https://github.com/leeminghao/doc-linux/blob/master/4.x.y/include/linux/sched_h/nsproxy/UTS_namespace.md
 
+### IPC namespace
+
+https://github.com/leeminghao/doc-linux/blob/master/4.x.y/include/linux/sched_h/nsproxy/IPC_namespace.md
 
 ### MNT namespace
 
 https://github.com/leeminghao/doc-linux/blob/master/4.x.y/include/linux/sched_h/nsproxy/MNT_namespace.md
+
+### PID namespace
+
+https://github.com/leeminghao/doc-linux/blob/master/4.x.y/include/linux/sched_h/nsproxy/PID_namespace.md
+
+### USER namespace
+
+https://github.com/leeminghao/doc-linux/blob/master/4.x.y/include/linux/sched_h/nsproxy/USER_namespace.md
+
+### NET namespace
+
+https://github.com/leeminghao/doc-linux/blob/master/4.x.y/include/linux/sched_h/nsproxy/NET_namespace.md
