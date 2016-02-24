@@ -12,6 +12,11 @@ https://github.com/torvalds/linux
 
 http://kernel.org/
 
+Linux内核调试环境
+----------------------------------------
+
+https://github.com/leeminghao/doc-linux/blob/master/4.x.y/debug/README.md
+
 Linux内核编译
 ----------------------------------------
 
