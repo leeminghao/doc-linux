@@ -1,6 +1,72 @@
 boot_linux_from_mmc
 ========================================
 
+名词
+----------------------------------------
+
+在lk引导boot.img来加载内核之前，我们先来了解几个有关kernel的名词.
+
+https://github.com/torvalds/linux/blob/bdec41963890f8ed9ad89f8b418959ab3cdc2aa3/Documentation/arm/Porting
+
+* ZTEXTADDR:
+
+  boot.img运行时候zImage的起始地址，即kernel解压代码的地址。这里没有虚拟地址的概念，因为没有开启
+  MMU，所以这个地址是物理内存的地址。解压代码不一定需要载入RAM才能运行，在FLASH或者其他可寻址的
+  媒体上都可以运行。
+
+* ZBSSADDR:
+
+  解压代码的BSS段的地址，这里也是物理地址。
+
+* ZRELADDR:
+
+  这个是kernel解压以后存放的内存物理地址，解压代码执行完成以后会跳到这个地址执行kernel的启动，
+  这个地址和后面kernel运行时候的虚拟地址满足：__virt_to_phys(TEXTADDR) = ZRELADDR。
+
+* INITRD_PHYS:
+
+  Initial Ram Disk存放在内存中的物理地址，这里就是我们的ramdisk.img。
+
+* INITRD_VIRT:
+
+  Initial Ram Disk运行时候虚拟地址。
+
+* PARAMS_PHYS:
+
+   内核启动的初始化参数在内存上的物理地址。
+
+
+下面这些值分别和前面那几个名词相对应，比如KERNEL就是ZTEXTADDR，RAMDISK_ADDR就是INITRD_PHYS,
+而TAGS_ADDR就是PARAMS_PHYS。bootloader会从boot.img的分区中将kernel和ramdisk分别读入RAM上面
+定义的地址中，然后就会跳到ZTEXTADDR开始执行.
+
+path: bootable/bootloader/lk/target/msm8960/rules.mk
+```
+BASE_ADDR        := 0x80200000
+
+TAGS_ADDR        := BASE_ADDR+0x00000100
+KERNEL_ADDR      := BASE_ADDR+0x00008000
+RAMDISK_ADDR     := BASE_ADDR+0x01000000
+```
+
+kernel的生成过程:
+----------------------------------------
+
+https://github.com/leeminghao/doc-linux/blob/master/4.x.y/kbuild/zImage.md
+
+整个过程大致如下:
+
+vmlinux经过objcopy后生成一个未经压缩的raw binary(Image 4M左右)，这里的vmlinux是我们编译链接以后
+生成的vmlinx，大概60多M。这里稍微说一下这个objcopy，在启动的时候ELF格式是没法执行的，ELF格式的
+解析是在kernel启动以后有了操作系统之后才能进行的。因为虽然我们编出的img虽然被编成ELF格式，
+但要想启动起来必须将其转化成原始的二进制格式Image, 得到Image以后，再将这个Image跟解压代码合成一个
+vmlinux, 这个vmlinux就是将Image压缩以后根据vmlinux.lds与解压代码head.o和misc.o链接以后生成的一个
+elf，而且用readelf或者objdump可以很明显地看到解压代码是PIC的，所有的虚拟地址都是相对的，没有
+绝对地址。得到压缩以后的vmlinx以后再将这个vmlinx经过objcopy以后就得到我们的zImage了.
+
+加载过程
+----------------------------------------
+
 通常lk加载的linux内核是一种通过特殊处理的文件格式bootimg，这个文件通常是
 kernel(内核), ramdisk.img(根文件系统)和dt.img(设备树)的集合.
 

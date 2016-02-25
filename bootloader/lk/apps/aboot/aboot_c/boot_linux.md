@@ -75,4 +75,6 @@ entry
 
 内核入口函数entry, 该函数地址就是kernel加载的地址.接下来跳转到内核去执行内核代码.
 
+bootloader会传递2个参数过来，分别是r1=architecture ID, r2=atags pointer.
+
 https://github.com/leeminghao/doc-linux/blob/master/4.x.y/boot/README.md
