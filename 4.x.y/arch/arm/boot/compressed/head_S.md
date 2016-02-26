@@ -22,49 +22,195 @@ https://github.com/leeminghao/doc-linux/blob/master/arch/arm/msm8960/memory_layo
 在bootloader加载kernel映像zImage执行的过程我们知道,第一条指定即指向了head.S中start标志
 开始代码，如下所示:
 
-1.首先保存r1和r2的值，然后进入超级用户模式，并关闭中断。
+path: arch/arm/boot/compressed/head.S
+
+过程
+----------------------------------------
+
+head.S会做些什么工作?
+
+* 对于各种Arm CPU的DEBUG输出设定，通过定义宏来统一操作.
+
+* 设置kernel开始和结束地址，保存architecture ID 和 atags 地址.
+
+* 如果在ARM2以上的CPU中，用的是普通用户模式，则升到超级用户模式，然后关中断.
+
+* 分析LC0结构delta offset，判断是否需要重载内核地址(r0存入偏移量，判断r0是否为零).
+
+* 需要重载内核地址，将r0的偏移量加到BSS region和GOT table中的每一项。对于位置无关的代码，
+  程序是通过GOT表访问全局数据目标的，也就是说GOT表中记录的是全局数据目标的绝对地址，所以
+  其中的每一项也需要重载。
+
+* 清空bss堆栈空间，建立C程序运行需要的缓存
+
+* 这时r2是缓存的结束地址，r4是kernel的最后执行地址，r5是kernel境象文件的开始地址
+
+* 用文件misc.c的函数decompress_kernel()，解压内核于缓存结束的地方(r2地址之后)。
+
+为了更清楚的了解解压的动态过程。我们用图表的方式描述下代码的搬运解压过程。然后再针对中间的
+一些关键过程阐述。zImage在内存中的初始地址为0x80208000(这个地址由bootloader决定，位置不固定)
+lk会将zImage镜像copy到sdram的0x80208000位置处。此时为初始状态，这里称为状态1。
+
+1.初始状态
+
+```
+｜.text   ｜  0x80208000开始，包含piggydata段（即压缩的内核段）
+｜.got    ｜
+｜.data   ｜
+｜.bss    ｜
+｜.stack  ｜   4K大小
+```
+
+2.head.S调用misc.c中的decompress_kernel刚解压完内核后,内存中的各段位置如下，状态2
+
+```
+.text              ｜ 0x80208000开始，包含piggydata段（即压缩的内核段）
+. got              ｜
+. data             ｜
+.bss               ｜
+.stack             ｜4K大小
+解压函数所需缓冲区 ｜64K大小
+解压后的内核代码   ｜小于4M
+```
+
+3.当如果head.S中有代码搬运工作时，即出现overwrite时，内存中的各段位置如下，此时会将head.S
+中的部分代码重定位，状态3
+
+```
+.text                        ｜0x80208000开始，包含piggydata段（即压缩的内核段）
+. got                        ｜
+. data                       ｜
+.bss                         ｜
+.stack                       ｜ 4K大小
+解压函数所需缓冲区           ｜ 64K大小
+解压后的内核代码             ｜ 小于4M
+head.S中的部分重定位代码代码 ｜ reloc_start至reloc_end
+```
+
+4.跳转到重定位后的reloc_start处，由reloc_start至reloc_end的代码复制解压后的内核代码到
+0x80208000处，并调用call_kernel跳转到0x80208000处执行。
+
+解压后的内核  ｜  0x80208000开始
+
+注意:
+
+* bootloader将IMG载入RAM以后，并跳到zImage的地址开始解压的时候，这里就涉及到另外一个重要的参数，
+  那就是ZRELADDR，就是解压后的kernel应该放在哪。这个参数一般都是arch/arm/mach-xxx下面的
+  Makefile.boot来提供的；
+
+path: arch/arm/msm-8960/Makefile.boot
+
+```
+# MSM8960
+   zreladdr-$(CONFIG_ARCH_MSM8960)	:= 0x80208000
+```
+
+* 另外现在解压的代码head.S和misc.c一般都会以PIC的方式来编译，这样载入RAM在任何地方都可以运行，
+  这里涉及到两次冲定位的过程，基本上这个重定位的过程在ARM上都是差不多一样的。
+
+问题:
+----------------------------------------
+
+### 问题1
+
+zImage是如何知道自己最后的运行地址是0x80208000的?
+
+path: arch/arm/mach-msm/Makefile.boot
+```
+# MSM8960
+   zreladdr-$(CONFIG_ARCH_MSM8960)	:= 0x80208000 这个就是zImage的运行地址了
+```
+
+path: arch/arm/boot/Makefile
+```
+# Note: the following conditions must always be true:
+#   ZRELADDR == virt_to_phys(PAGE_OFFSET + TEXT_OFFSET)
+#   PARAMS_PHYS must be within 4MB of ZRELADDR
+#   INITRD_PHYS must be in RAM
+ZRELADDR    := $(zreladdr-y)
+```
+
+path: arch/arm/boot/compressed/Makefile
+
+```
+# Supply ZRELADDR to the decompressor via a linker symbol.
+ifneq ($(CONFIG_AUTO_ZRELADDR),y)
+LDFLAGS_vmlinux += --defsym zreladdr=$(ZRELADDR)
+endif
+```
+内核就是用这种方式让代码知道最终运行的位置的
+
+我们可以提取出来看一下:
+
+path: arch/arm/boot/compressed/vmlinux
+```
+$ objdump -t vmlinux | grep -i zreladdr
+80208000 g       *ABS*    00000000 zreladdr
+```
+
+### 问题2
+
+调用decompress_kernel函数时，其4个参数是什么值及物理含义？
 
 path: arch/arm/boot/compressed/head.S
 ```
 /*
- * sort out different calling conventions
+ * The C runtime environment should now be setup sufficiently.
+ * Set up some pointers, and start decompressing.
+ *   r4  = kernel execution address
+ *   r7  = architecture ID
+ *   r8  = atags pointer
  */
-		.align
-		.arm				@ Always enter in ARM state
-start:
-		.type	start,#function
-		.rept	7
-		mov	r0, r0
-		.endr
-   ARM(		mov	r0, r0		)
-   ARM(		b	1f		)
- THUMB(		adr	r12, BSYM(1f)	)
- THUMB(		bx	r12		)
+		mov	r0, r4
+		mov	r1, sp			@ malloc space above stack
+		add	r2, sp, #0x10000	@ 64k max
+		mov	r3, r7
+		bl	decompress_kernel
+		bl	cache_clean_flush
+		bl	cache_off
+...
+```
 
-		.word	0x016f2818		@ Magic numbers to help the loader
-		.word	start			@ absolute load/run zImage address
-		.word	_edata			@ zImage end address
- THUMB(		.thumb			)
-1:		mov	r7, r1			@ save architecture ID
-		mov	r8, r2			@ save atags pointer
+path: arch/arm/boot/compressed/misc.c
+```
+void
+decompress_kernel(unsigned long output_start, unsigned long free_mem_ptr_p,
+		unsigned long free_mem_ptr_end_p,
+		int arch_id)
+{
+	int ret;
 
-#ifndef __ARM_ARCH_2__
-		/*
-		 * Booting from Angel - need to enter SVC mode and disable
-		 * FIQs/IRQs (numeric definitions from angel arm.h source).
-		 * We only do this if we were in user mode on entry.
-		 */
-		mrs	r2, cpsr		@ get current mode
-		tst	r2, #3			@ not user?
-		bne	not_angel
-		mov	r0, #0x17		@ angel_SWIreason_EnterSVC
- ARM(		swi	0x123456	)	@ angel_SWI_ARM
- THUMB(		svc	0xab		)	@ angel_SWI_THUMB
-not_angel:
-		mrs	r2, cpsr		@ turn off interrupts to
-		orr	r2, r2, #0xc0		@ prevent angel from running
-		msr	cpsr_c, r2
-#else
-		teqp	pc, #0x0c000003		@ turn off interrupts
-#endif
+	output_data		= (unsigned char *)output_start;
+	free_mem_ptr		= free_mem_ptr_p;
+	free_mem_end_ptr	= free_mem_ptr_end_p;
+	__machine_arch_type	= arch_id;
+
+	arch_decomp_setup();
+
+	putstr("Uncompressing Linux...");
+	ret = do_decompress(input_data, input_data_end - input_data,
+			    output_data, error);
+	if (ret)
+		error("decompressor returned an error");
+	else
+		putstr(" done, booting the kernel.\n");
+}
+```
+
+* output_start：指解压后内核输出的起始位置，此时它的值参考上面的图表，紧接在解压缓冲区后；
+* free_mem_ptr_p：解压函数需要的内存缓冲开始地址；
+* free_mem_ptr_end_p：解压函数需要的内存缓冲结束地址，共64K；
+* arch_id ：architecture ID.
+
+
+当完成所有解压任务之后，又将跳转会head.S文件中，执行call_kernel，将启动真正的Image
+
+path: arch/arm/boot/compressed/head.S
+```
+		bl	cache_off
+		mov	r0, #0			@ must be zero
+		mov	r1, r7			@ restore architecture number
+		mov	r2, r8			@ restore atags pointer
+ ARM(		mov	pc, r4	)		@ call kernel
+ THUMB(		bx	r4	)		@ entry point is always ARM
 ```
