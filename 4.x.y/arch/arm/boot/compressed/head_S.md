@@ -1,5 +1,44 @@
-head.S
+head.S 内核解压
 ========================================
+
+在bootloader加载完内核之后，即将跳转到内核代码执行时，必须关闭MMU和cache。这时候都是使用物理地址.
+
+https://github.com/leeminghao/doc-linux/blob/master/bootloader/lk/apps/aboot/aboot_c/boot_linux.md
+
+相关地址值
+----------------------------------------
+
+https://github.com/torvalds/linux/blob/bdec41963890f8ed9ad89f8b418959ab3cdc2aa3/Documentation/arm/Porting
+
+* ZTEXTADDR:
+
+  运行时候zImage的起始地址，即kernel解压代码的地址。这里没有虚拟地址的概念，因为没有开启
+  MMU，所以这个地址是物理内存的地址。解压代码不一定需要载入RAM才能运行，在FLASH或者其他可寻址的
+  媒体上都可以运行。
+
+* ZBSSADDR:
+
+  解压代码的BSS段的地址，这里也是物理地址。
+
+* ZRELADDR:
+
+  这个是kernel解压以后存放的内存物理地址，解压代码执行完成以后会跳到这个地址执行kernel的启动，
+  这个地址和后面kernel运行时候的虚拟地址满足：__virt_to_phys(TEXTADDR) = ZRELADDR。
+
+* INITRD_PHYS:
+
+  Initial Ram Disk存放在内存中的物理地址，这里就是我们的ramdisk.img。
+
+* INITRD_VIRT:
+
+  Initial Ram Disk运行时候虚拟地址。
+
+* PARAMS_PHYS:
+
+   内核启动的初始化参数在内存上的物理地址。
+
+过程
+----------------------------------------
 
 在zImage的生成过程中,是把arch/arm/boot/compressed/head.S和解压代码misc.c，decompress.c加在
 压缩内核(piggy.gzip.o)的最前面最终生成vmlinux然后使用objcopy生成的原始二进制文件zImage的，
@@ -202,8 +241,8 @@ decompress_kernel(unsigned long output_start, unsigned long free_mem_ptr_p,
 * free_mem_ptr_end_p：解压函数需要的内存缓冲结束地址，共64K；
 * arch_id ：architecture ID.
 
-
 当完成所有解压任务之后，又将跳转会head.S文件中，执行call_kernel，将启动真正的Image
+此时r4寄存器中的地址是0x80208000.也就是内核代码真正的执行地址.
 
 path: arch/arm/boot/compressed/head.S
 ```
@@ -214,3 +253,5 @@ path: arch/arm/boot/compressed/head.S
  ARM(		mov	pc, r4	)		@ call kernel
  THUMB(		bx	r4	)		@ entry point is always ARM
 ```
+
+https://github.com/leeminghao/doc-linux/blob/master/4.x.y/arch/arm/kernel/head_S.md
