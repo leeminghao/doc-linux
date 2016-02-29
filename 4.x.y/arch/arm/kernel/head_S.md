@@ -51,6 +51,10 @@ SECTIONS
 内核的入口是stext, 这里的ENTRY(stext) 表示程序的入口是在符号stext.
 而符号stext是在arch/arm/kernel/head.S中定义的.
 
+有关linker script的详细解释如下:
+
+https://github.com/leeminghao/doc-linux/blob/master/4.x.y/arch/arm/kernel/vmlinux.lds.S.md
+
 ```
 /*
  * Kernel startup entry point.
