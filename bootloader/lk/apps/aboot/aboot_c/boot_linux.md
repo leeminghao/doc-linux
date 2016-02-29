@@ -68,7 +68,7 @@ generate_atags
 
 改函数将boot_img_hdr头部保存的信息提取出来封装成tag作为参数传递给kernel.
 
-https://github.com/leeminghao/doc-linux/tree/master/bootloader/lk/generate_atags.md
+https://github.com/leeminghao/doc-linux/tree/master/bootloader/lk/apps/aboot/aboot_c/generate_atags.md
 
 entry
 ----------------------------------------
