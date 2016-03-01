@@ -164,6 +164,8 @@ ENTRY(stext)
 	beq	__error_p			@ yes, error 'p'
 ```
 
+https://github.com/leeminghao/doc-linux/blob/master/4.x.y/arch/arm/kernel/head-common.S/__lookup_processor_type.md
+
 4.计算内存RAM的起始物理地址phys_offset保存到r8寄存器.
 
 * CONFIG_XIP_KERNEL
