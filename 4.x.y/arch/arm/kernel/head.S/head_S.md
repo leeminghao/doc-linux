@@ -181,8 +181,8 @@ https://github.com/leeminghao/doc-linux/blob/master/4.x.y/arch/arm/kernel/head-c
 
 ```
 #ifndef CONFIG_XIP_KERNEL
-	adr	r3, 2f /* r3寄存器中保存标号2处的地址值 */
-	ldmia	r3, {r4, r8} /* [r3] --> r4, [r3 + 4] --> r8 */
+	adr	r3, 2f /* r3寄存器中保存标号2处的物理地址值 */
+	ldmia	r3, {r4, r8} /* r4保存标号2处的虚拟地址值，r8保存PAGE_OFFSET值 */
         /* 计算RAM物理地址和虚拟地址的偏移值 --> r4 */
 	sub	r4, r3, r4			@ (PHYS_OFFSET - PAGE_OFFSET)
 	add	r8, r8, r4			@ PHYS_OFFSET
@@ -207,11 +207,15 @@ https://github.com/leeminghao/doc-linux/blob/master/4.x.y/arch/arm/kernel/head-c
 	bl	__vet_atags
 ```
 
+https://github.com/leeminghao/doc-linux/blob/master/4.x.y/arch/arm/kernel/head-common.S/__vet_atags.md
+
 6.创建初始化页表
 
 ```
 	bl	__create_page_tables
 ```
+
+https://github.com/leeminghao/doc-linux/blob/master/4.x.y/arch/arm/kernel/head.S/__create_page_tables.md
 
 7.建立初始化页表以后，会首先将__mmap_switched这个symbol的链接地址放在sp里面，
   然后会跳到__proc_info_list里面的INITFUNC执行.这个偏移是定义在arch/arm/kernel/asm-offset.c里面，

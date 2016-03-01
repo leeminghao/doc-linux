@@ -141,3 +141,15 @@ __v7_ca15mp_proc_info:
 	.size	__v7_ca15mp_proc_info, . - __v7_ca15mp_proc_info
         ...
 ```
+
+从System.map中我们可以看到如下信息:
+
+```
+c090008c T __proc_info_begin
+c090008c t __v7_ca5mp_proc_info
+c09000c0 t __v7_ca9mp_proc_info
+c09000f4 t __v7_ca7mp_proc_info
+c0900128 t __v7_ca15mp_proc_info
+c090015c t __v7_proc_info
+c0900190 T __proc_info_end
+```
