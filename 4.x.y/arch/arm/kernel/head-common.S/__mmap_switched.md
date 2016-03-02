@@ -60,7 +60,7 @@ __mmap_switched_data:
     .size    __mmap_switched_data, . - __mmap_switched_data
 ```
 
-sp = init_thread_union + THREAD_START_SP，设置栈指针，为接下来的C函数运行做准备。
+sp = init_thread_union + THREAD_START_SP(8K-8)，设置栈指针，为接下来的C函数运行做准备。
 对于arm-linux来说，start_kernel之前全部都是汇编代码。init_thread_union代表的是
 内核第一个进程，pid = 0，该进程是内核人为造出来的，而不是fork出来的.
 
