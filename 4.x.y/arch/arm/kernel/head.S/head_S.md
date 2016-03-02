@@ -260,3 +260,7 @@ ENDPROC(stext)
 ```
 
 https://github.com/leeminghao/doc-linux/blob/master/4.x.y/arch/arm/kernel/head.S/__enable_mmu.md
+
+在打开MMU后就要跳转到__mmap_switched函数中去执行:
+
+https://github.com/leeminghao/doc-linux/blob/master/4.x.y/arch/arm/kernel/head-common.S/__mmap_switched.md

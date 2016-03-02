@@ -114,3 +114,5 @@ ENDPROC(__turn_mmu_on)
 ```
 
 接下来将执行__mmap_switched函数:
+
+https://github.com/leeminghao/doc-linux/blob/master/4.x.y/arch/arm/kernel/head-common.S/__mmap_switched.md
