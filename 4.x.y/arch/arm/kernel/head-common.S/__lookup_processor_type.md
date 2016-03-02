@@ -124,6 +124,7 @@ struct proc_info_list {
 ```
 
 具体实现根据你使用的cpu的架构在arch/arm/mm/里面找到具体的实现,我们这里的aries是proc-v7.S.
+这段汇编看出,指定.proc.info.init段中存储的是一些结构体,定义了V7指令集特定处理器的属性和处理函数.
 
 path: arch/arm/mm/proc-v7.S
 ```

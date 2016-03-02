@@ -229,14 +229,25 @@ https://github.com/leeminghao/doc-linux/blob/master/4.x.y/arch/arm/kernel/head.S
 	 * above.  On return, the CPU will be ready for the MMU to be
 	 * turned on, and r0 will hold the CPU control register value.
 	 */
+        /* r13中存下__mmap_switched地址，需要注意的是该地址是VMA(虚拟地址) */
 	ldr	r13, =__mmap_switched		@ address to jump to after
 						@ mmu has been enabled
+
 	adr	lr, BSYM(1f)			@ return (PIC) address
+
+        /* 对于ARM指令(不是THUMB指令)，跳转到对应芯片结构的__cpu_flush执行 */
 	mov	r8, r4				@ set TTBR1 to swapper_pg_dir
  ARM(	add	pc, r10, #PROCINFO_INITFUNC	)
  THUMB(	add	r12, r10, #PROCINFO_INITFUNC	)
  THUMB(	mov	pc, r12				)
 ```
+
+proc-v7.S中分析过，__v7_proc_info中使用__v7_proc宏定义定义了其中的一些成员变量，
+其中__cpu_flush=__v7_setup.__v7_setup在proc-v7.S中定义如下：
+
+https://github.com/leeminghao/doc-linux/blob/master/4.x.y/arch/arm/mm/proc-v7.S/__v7_setup.md
+
+__v7_setup执行完毕，回到stext，接下来跳转到__enable_mmu.
 
 8.打开MMU
 
@@ -247,3 +258,5 @@ https://github.com/leeminghao/doc-linux/blob/master/4.x.y/arch/arm/kernel/head.S
 1:	b	__enable_mmu
 ENDPROC(stext)
 ```
+
+https://github.com/leeminghao/doc-linux/blob/master/4.x.y/arch/arm/kernel/head.S/__enable_mmu.md
