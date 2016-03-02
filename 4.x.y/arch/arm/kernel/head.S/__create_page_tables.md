@@ -197,30 +197,32 @@ create_page_table完成了3种地址映射的页表空间填写：
 
 https://github.com/leeminghao/doc-linux/blob/master/4.x.y/arch/arm/kernel/head.S/res/map.jpg
 
-（1）为什么turn_mmu_on要做平映射？
-turn_mmu_on我会在下一篇博文中分析，主要是完成开启MMU的操作。
-那为什么将turn_mmu_on处做一个平映射？
-可以想象，执行开启MMU指令之前，CPU取指是在0x80008000附近turn_mmu_on中。
+问题
+----------------------------------------
+
+* 1.为什么turn_mmu_on要做平映射？
+
+turn_mmu_on，主要是完成开启MMU的操作。那为什么将turn_mmu_on处做一个平映射？
+可以想象，执行开启MMU指令之前，CPU取指是在0x80208000附近turn_mmu_on中。
 如果只是做kernel image的线性映射，执行开启MMU指令后，CPU所看到的地址就全变啦。
-turn_mmu_on对于CPU来说在0xc0008000附近，0x80008000附近对于CPU来说已经不可预知了。
-但是CPU不知道这些，它只管按照地址一条条取指令，执行指令。
-所以不做turn_mmu_on的平映射（virt addr = phy addr），turn_mmu_on在开启MMU后的运行是完全不可知。
-完成turn_mmu_on的平映射，我们可以在turn_mmu_on末尾MMU已经开启稳定后，修改PC到0xc0008000附近，就可以解决从0x8xxxxxxx到0xcxxxxxxx的跳转。
+turn_mmu_on对于CPU来说在0xc0008000附近，0x80208000附近对于CPU来说已经不可预知了。
+但是CPU不知道这些，它只管按照地址一条条取指令，执行指令。所以不做turn_mmu_on的平映射
+(virt addr = phy addr)，turn_mmu_on在开启MMU后的运行是完全不可知。完成turn_mmu_on的平映射，
+我们可以在turn_mmu_on末尾MMU已经开启稳定后，修改PC到0xc0008000附近，就可以解决从
+0x8xxxxxxx到0xcxxxxxxx的跳转。
 
-（2）kernel image加载地址为什么会在0x****8000？
-分析了kernel image线性映射部分，这个就好理解了，
-kernel编译链接时的入口地址在0xc0008000(PAGE_OFFSET + TEXT_OFFSET)，但其物理地址不等于其链接的虚拟地址，image的线性映射实现其运行地址等于链接地址。
-kernel的每一页表映射1M，所以入口处在（0x80000000-->0xc0000000）映射页表中完成映射。物理地址和虚拟地址的1M内偏移必须一致呀。
-kernel定义的TEXT_OFFSET = 0x8000.所以加载的物理地址必须为0x****8000.
-这样，开启MMU后，访问0xc0008000附近指令，MMU根据TLB才能正确映射找到0x****8000附近的指令。
+* 2.kernel image加载地址为什么会在0x****8000？
 
-（3）atags跟kernel入口是在同一1M空间内，bootparams的线性映射操作是否多余？
+分析了kernel image线性映射部分，这个就好理解了，kernel编译链接时的入口地址在0xc0008000
+(PAGE_OFFSET + TEXT_OFFSET)，但其物理地址不等于其链接的虚拟地址，image的线性映射实现其
+运行地址等于链接地址。kernel的每一页表映射1M，所以入口处在(0x80200000-->0xc0000000)
+映射页表中完成映射。物理地址和虚拟地址的1M内偏移必须一致呀。kernel定义的
+TEXT_OFFSET = 0x8000.所以加载的物理地址必须为0x****8000.这样，开启MMU后，
+访问0xc0008000附近指令，MMU根据TLB才能正确映射找到0x****8000附近的指令。
+
+* 3.atags跟kernel入口是在同一1M空间内，bootparams的线性映射操作是否多余？
+
 根据第二个问题的分析，kernel image可以加载到任何sdram地址空间的0x****8000即可。
-atags地址是有bootloader中指定，然后告诉kernel。
-那就有这样一种情况，加入sdram起始地址为0x80000000，atags起始地址为0x80000100。
-但kernel image我加载到0x81008000，可以看出，这时atags跟kernel image就在不同一1M空间啦
-atags单独的线性映射操作还是很有必要的。
-
-这是我想到的关于create_page_table的3个疑问，大家如果有别的疑问，欢迎留言讨论，共同学习。
-
-今天就分析到这，页表准备就绪，只待开启MMU！
+atags地址是有bootloader中指定，然后告诉kernel。那就有这样一种情况，加入sdram
+起始地址为0x80200000，atags起始地址为0x80200100。但kernel image我加载到0x81008000，
+可以看出，这时atags跟kernel image就在不同一1M空间啦atags单独的线性映射操作还是很有必要的。
