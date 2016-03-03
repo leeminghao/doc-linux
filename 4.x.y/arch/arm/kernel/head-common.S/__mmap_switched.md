@@ -1,7 +1,6 @@
 __mmap_switched
 ========================================
 
-
 path: arch/arm/kernel/head-common.S
 ```
 /*
