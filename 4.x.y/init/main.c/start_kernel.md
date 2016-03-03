@@ -46,12 +46,18 @@ asmlinkage void __init start_kernel(void)
 4.cgroup_init_early
 ----------------------------------------
 
+cgroup: 它的全称为control group.即一组进程的行为控制.比如,我们限制进程/bin/sh的CPU使用为20%.
+我们就可以建一个cpu占用为20%的cgroup. 然后将/bin/sh进程添加到这个cgroup中.当然,一个cgroup
+可以有多个进程.
+
 ```
     cgroup_init_early();
 ```
 
 5.local_irq_disable
 ----------------------------------------
+
+关闭当前CUP中断
 
 ```
     local_irq_disable();
@@ -71,6 +77,8 @@ asmlinkage void __init start_kernel(void)
 7.tick_init
 ----------------------------------------
 
+初始化time ticket，时钟
+
 ```
     tick_init();
 ```
@@ -85,12 +93,16 @@ asmlinkage void __init start_kernel(void)
 9.page_address_init
 ----------------------------------------
 
+初始化页地址
+
 ```
     page_address_init();
 ```
 
 10.setup_arch
 ----------------------------------------
+
+体系结构相关的内核初始化过程.
 
 ```
     printk(KERN_NOTICE "%s", linux_banner);
@@ -100,6 +112,11 @@ asmlinkage void __init start_kernel(void)
 11.boot_init_stack_canary
 ----------------------------------------
 
+初始化stack_canary栈,stack_canary的是带防止栈溢出攻击保护的堆栈。当user space的程序通过
+int 0x80进入内核空间的时候，CPU自动完成一次堆栈切换，从user space的stack切换到
+kernel space的stack。在这个进程exit之前所发生的所有系统调用所使用的kernel stack都是同一个。
+kernel stack的大小一般为8192 / sizeof (long);
+
 ```
     /*
      * Set up the the initial canary ASAP:
@@ -107,8 +124,14 @@ asmlinkage void __init start_kernel(void)
     boot_init_stack_canary();
 ```
 
+Linux 0.11 Stack:
+
+https://github.com/leeminghao/doc-linux/blob/master/0.11/misc/Stack.md
+
 12.mm_init_owner
 ----------------------------------------
+
+初始化内存管理
 
 ```
     mm_init_owner(&init_mm, &init_task);
@@ -124,12 +147,16 @@ asmlinkage void __init start_kernel(void)
 14.setup_command_line
 ----------------------------------------
 
+处理启动命令，这里就是设置的command_line.
+
 ```
     setup_command_line(command_line);
 ```
 
 15.setup_nr_cpu_ids
 ----------------------------------------
+
+这个在定义了SMP的时候有作用.
 
 ```
     setup_nr_cpu_ids();
@@ -138,12 +165,17 @@ asmlinkage void __init start_kernel(void)
 16.setup_per_cpu_areas
 ----------------------------------------
 
+setup_per_cpu_areas()函数给每个CPU分配内存，并拷贝.data.percpu段的数据。为系统中的每个
+CPU的per_cpu变量申请空间。
+
 ```
     setup_per_cpu_areas();
 ```
 
 17.smp_prepare_boot_cpu
 ----------------------------------------
+
+如果是SMP环境，则设置boot CPU的一些数据。在引导过程中使用的CPU称为boot CPU.
 
 ```
     smp_prepare_boot_cpu();    /* arch-specific boot-cpu hooks */
@@ -152,6 +184,8 @@ asmlinkage void __init start_kernel(void)
 18.build_all_zonelists
 ----------------------------------------
 
+设置node和zone数据结构
+
 ```
     build_all_zonelists(NULL);
 ```
@@ -159,12 +193,16 @@ asmlinkage void __init start_kernel(void)
 19.page_alloc_init
 ----------------------------------------
 
+初始化page allocation相关结构
+
 ```
     page_alloc_init();
 ```
 
 20.parse_early_param
 ----------------------------------------
+
+解析内核参数.
 
 ```
     printk(KERN_NOTICE "Kernel command line: %s\n", boot_command_line);
@@ -195,12 +233,16 @@ asmlinkage void __init start_kernel(void)
 23.pidhash_init
 ----------------------------------------
 
+初始化hash表，以便于从进程的PID获得对应的进程描述指针，按照实际的物理内存初始化pid hash表.
+
 ```
     pidhash_init();
 ```
 
 24.vfs_caches_init_early
 ----------------------------------------
+
+初始化VFS的两个重要数据结构dcache和inode的缓存。
 
 ```
     vfs_caches_init_early();
@@ -209,12 +251,16 @@ asmlinkage void __init start_kernel(void)
 25.sort_main_extable
 ----------------------------------------
 
+把编译期间,kbuild设置的异常表,也就是__start___ex_table和__stop___ex_table之中的所有元素进行排序
+
 ```
     sort_main_extable();
 ```
 
 26.trap_init
 ----------------------------------------
+
+初始化中断向量表
 
 ```
     trap_init();
@@ -223,12 +269,19 @@ asmlinkage void __init start_kernel(void)
 27.mm_init
 ----------------------------------------
 
+memory map初始化.
+
 ```
     mm_init();
 ```
 
 28.sched_init
 ----------------------------------------
+
+核心进程调度器初始化，调度器的初始化的优先级要高于任何中断的建立，并且初始化进程0，即idle进程，
+但是并没有设置idle进程的NEED_RESCHED标志，所以还会继续完成内核初始化剩下的事情。这里仅仅为进程
+调度程序的执行做准备。它所做的具体工作是调用init_bh函数(kernel/softirq.c)把timer,tqueue,
+immediate三个人物队列加入下半部分的数组
 
 ```
     /*
@@ -242,6 +295,8 @@ asmlinkage void __init start_kernel(void)
 29.preempt_disable
 ----------------------------------------
 
+抢占计数器加1
+
 ```
     /*
      * Disable preemption - early bootup scheduling is extremely
@@ -252,6 +307,8 @@ asmlinkage void __init start_kernel(void)
 
 30.local_irq_disable
 ----------------------------------------
+
+检查中断是否打开
 
 ```
     if (!irqs_disabled()) {
@@ -278,12 +335,19 @@ asmlinkage void __init start_kernel(void)
 33.rcu_init
 ----------------------------------------
 
+Read-Copy-Update的初始化
+RCU机制是Linux2.6之后提供的一种数据一致性访问的机制，从RCU（read-copy-update）的名称上看，
+我们就能对他的实现机制有一个大概的了解，在修改数据的时候，首先需要读取数据，然后生成一个副本，
+对副本进行修改，修改完成之后再将老数据update成新的数据，此所谓RCU.
+
 ```
     rcu_init();
 ```
 
 34.radix_tree_init
 ----------------------------------------
+
+Linux使用radix树来管理位于文件系统缓冲区中的磁盘块，radix树是trie树的一种.
 
 ```
     radix_tree_init();
@@ -292,6 +356,8 @@ asmlinkage void __init start_kernel(void)
 35.early_irq_init
 ----------------------------------------
 
+early_irq_init 则对数组中每个成员结构进行初始化,例如, 初始每个中断源的中断号.其他的函数基本为空.
+
 ```
     /* init some links before init_ISA_irqs() */
     early_irq_init();
@@ -299,6 +365,10 @@ asmlinkage void __init start_kernel(void)
 
 36.init_IRQ
 ----------------------------------------
+
+初始化IRQ中断和终端描述符.初始化系统中支持的最大可能的中断描述结构struct irqdesc
+变量数组irq_desc[NR_IRQS],把每个结构变量irq_desc[n]都初始化为预先定义好的坏中断
+描述结构变量bad_irq_desc,并初始化该中断的链表表头成员结构变量pend.
 
 ```
     init_IRQ();
@@ -314,12 +384,16 @@ asmlinkage void __init start_kernel(void)
 38.init_timers
 ----------------------------------------
 
+初始化定时器Timer相关的数据结构.
+
 ```
     init_timers();
 ```
 
 39.hrtimers_init
 ----------------------------------------
+
+对高精度时钟进行初始化.
 
 ```
     hrtimers_init();
@@ -328,12 +402,16 @@ asmlinkage void __init start_kernel(void)
 40.softirq_init
 ----------------------------------------
 
+软中断初始化.
+
 ```
     softirq_init();
 ```
 
 50.timekeeping_init
 ----------------------------------------
+
+初始化时钟源
 
 ```
     timekeeping_init();
@@ -342,12 +420,17 @@ asmlinkage void __init start_kernel(void)
 51.time_init
 ----------------------------------------
 
+初始化系统时间，检查系统定时器描述结构struct sys_timer全局变量system_timer是否为空，
+如果为空将其指向dummy_gettimeoffset()函数。
+
 ```
     time_init();
 ```
 
 52.profile_init
 ----------------------------------------
+
+profile只是内核的一个调试性能的工具,这个可以通过menuconfig中的Instrumentation Support->profile.
 
 ```
     profile_init();
@@ -362,6 +445,8 @@ asmlinkage void __init start_kernel(void)
 
 54.local_irq_enable
 ----------------------------------------
+
+与local_irq_disbale相对应，开中断
 
 ```
     if (!irqs_disabled())
@@ -383,12 +468,18 @@ asmlinkage void __init start_kernel(void)
 56.kmem_cache_init_late
 ----------------------------------------
 
+memory cache的初始化.
+
 ```
     kmem_cache_init_late();
 ```
 
 57.console_init
 ----------------------------------------
+
+初始化控制台以显示printk的内容，在此之前调用的printk，只是把数据存到缓冲区里，只有在这个函数调用
+后，才会在控制台打印出内容该函数执行后可调用printk()函数将log_buf中符合打印级别要求的系统信息
+打印到控制台上。
 
 ```
     /*
@@ -403,6 +494,8 @@ asmlinkage void __init start_kernel(void)
 
 58.lockdep_info
 ----------------------------------------
+
+如果定义了CONFIG_LOCKDEP宏，那么就打印锁依赖信息，否则什么也不做
 
 ```
     lockdep_info();
