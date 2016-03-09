@@ -152,6 +152,10 @@ asmlinkage int sys_fork(struct pt_regs *regs)
 }
 ```
 
+唯一使用的标志是SIGCHLD。这意味着在子进程终止后发送SIGCHLD信号通知父进程。最初，父子进程的
+栈地址相同。但如果操作栈地址并写入数据，则COW机制会为每个进程分别创建一个栈副本。如果do_fork成功，
+则新建进程的PID作为系统调用的结果返回，否则返回错误码(负值)。
+
 **注意**: 在系统刚启动时sp是在__mmap_switched函数中指定的:
 
 https://github.com/leeminghao/doc-linux/blob/master/4.x.y/arch/arm/kernel/head-common.S/__mmap_switched.md
