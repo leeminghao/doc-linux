@@ -165,4 +165,6 @@ https://github.com/leeminghao/doc-linux/blob/master/4.x.y/include/linux/sched_h/
 init_task
 ----------------------------------------
 
+init_task在Linux系统中，只有这个进程是静态分配的:
+
 https://github.com/leeminghao/doc-linux/blob/master/4.x.y/arch/arm/kernel/init_task.c/README.md
