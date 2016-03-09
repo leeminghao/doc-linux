@@ -1,20 +1,37 @@
-rest_init
+rest_init - init/main.c
 ========================================
 
-path: init/main.c
 ```
 static noinline void __init_refok rest_init(void)
 {
     int pid;
     const struct sched_param param = { .sched_priority = 1 };
+```
 
+1.rcu_scheduler_starting
+----------------------------------------
+
+```
     rcu_scheduler_starting();
+```
+
+2.kernel_thread
+----------------------------------------
+
+调用kernel_thread函数可启动一个内核线程。其定义是特定于体系结构的，但原型总是相同的。
+
+```
     /*
      * We need to spawn init first so that it obtains pid 1, however
      * the init task will end up wanting to create kthreads, which, if
      * we schedule it before we create kthreadd, will OOPS.
      */
     kernel_thread(kernel_init, NULL, CLONE_FS | CLONE_SIGHAND);
+```
+
+https://github.com/leeminghao/doc-linux/blob/master/4.x.y/arch/arm/kernel/process.c/kernel_thread.md
+
+```
     numa_default_policy();
     pid = kernel_thread(kthreadd, NULL, CLONE_FS | CLONE_FILES);
     rcu_read_lock();
