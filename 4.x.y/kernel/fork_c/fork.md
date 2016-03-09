@@ -152,6 +152,10 @@ asmlinkage int sys_fork(struct pt_regs *regs)
 }
 ```
 
+**注意**: 在系统刚启动时sp是在__mmap_switched函数中指定的:
+
+https://github.com/leeminghao/doc-linux/blob/master/4.x.y/arch/arm/kernel/head-common.S/__mmap_switched.md
+
 sys_fork函数最终是调用do_fork来实现一个进程的创建:
 
 ### do_fork

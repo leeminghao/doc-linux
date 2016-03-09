@@ -54,11 +54,15 @@ EXPORT_SYMBOL(kernel_thread);
 
 1.kernel_thread的第一个任务是构建一个pt_regs实例，对其中的寄存器指定适当的值.
 
+注意: 在系统刚启动时sp是在__mmap_switched函数中指定的:
+
+https://github.com/leeminghao/doc-linux/blob/master/4.x.y/arch/arm/kernel/head-common.S/__mmap_switched.md
+
 2.接下来调用我们熟悉的do_fork函数。
 
 https://github.com/leeminghao/doc-linux/tree/master/4.x.y/kernel/fork_c/do_fork.md
 
 因为内核线程是由内核自身生成的，应该注意下面两个特别之处。
 
-* 1.它们在CPU的管态（supervisor mode）执行，而不是用户状态;
+* 1.它们在CPU的管态(supervisor mode)执行，而不是用户状态;
 * 2.它们只可以访问虚拟地址空间的内核部分（高于TASK_SIZE的所有地址），但不能访问用户空间。
