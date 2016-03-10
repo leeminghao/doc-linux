@@ -83,6 +83,8 @@ copy_process
              child_tidptr, NULL, trace);
 ```
 
+https://github.com/leeminghao/doc-linux/tree/master/4.x.y/kernel/fork_c/copy_process.md
+
 do_fork以调用copy_process开始，后者执行生成新进程的实际工作，并根据指定的标志重用父进程的数据。
 在子进程生成之后，内核必须执行下列收尾操作：
 

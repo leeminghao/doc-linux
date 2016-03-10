@@ -34,3 +34,15 @@ thread_info保存了特定于体系结构的汇编语言代码需要访问的那
 ### arm
 
 https://github.com/leeminghao/doc-linux/blob/master/4.x.y/arch/arm/include/asm/thread_info.h/thread_info.md
+
+current vs current_thread_info
+----------------------------------------
+
+所有体系结构都将两个名为current和current_thread_info的符号定义为宏或函数。其语义如下所示:
+
+* current_thread_info可获得指向当前执行进程的thread_info实例的指针。其地址可以根据内核栈
+指针确定，因为thread_info实例总是位于栈顶。因为每个进程分别使用各自的内核栈，进程到栈的
+映射是唯一的。
+
+* current给出了当前进程task_struct实例的地址。该函数在源代码中出现非常频繁。该地址可以使用
+current_thread_info()确定：current = current_thread_info()->task。
