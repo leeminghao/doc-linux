@@ -73,9 +73,23 @@ long do_fork(unsigned long clone_flags,
         if (likely(!ptrace_event_enabled(current, trace)))
             trace = 0;
     }
+```
 
+copy_process
+----------------------------------------
+
+```
     p = copy_process(clone_flags, stack_start, regs, stack_size,
              child_tidptr, NULL, trace);
+```
+
+do_fork以调用copy_process开始，后者执行生成新进程的实际工作，并根据指定的标志重用父进程的数据。
+在子进程生成之后，内核必须执行下列收尾操作：
+
+1.task_pid_vnr
+----------------------------------------
+
+```
     /*
      * Do this prior waking up the new thread - the thread pointer
      * might get invalid after that point, if the thread exits quickly.
@@ -85,6 +99,8 @@ long do_fork(unsigned long clone_flags,
 
         trace_sched_process_fork(current, p);
 
+        // 由于fork要返回新进程的PID，因此必须获得PID。如果PID命名空间没有改变，调用task_pid_vnr
+        // 获取局部PID即可，因为新旧进程都在同一个命名空间中。
         nr = task_pid_vnr(p);
 
         if (clone_flags & CLONE_PARENT_SETTID)
@@ -95,7 +111,18 @@ long do_fork(unsigned long clone_flags,
             init_completion(&vfork);
             get_task_struct(p);
         }
+```
 
+2.wake_up_new_task
+----------------------------------------
+
+```
+        // 子进程使用wake_up_new_task唤醒。换言之，即将其task_struct添加到调度器队列。
+        // 调度器也有机会对新启动的进程给予特别处理，这使得可以实现一种策略以便新进程
+        // 有较高的几率尽快开始运行，另外也可以防止一再地调用fork浪费CPU时间。如果子进程
+        // 在父进程之前开始运行，则可以大大地减少复制内存页的工作量，尤其是子进程在fork
+        // 之后发出exec调用的情况下。但要记住，将进程排到调度器数据结构中并不意味着该
+        // 子进程可以立即开始执行，而是调度器此时起可以选择它运行。
         wake_up_new_task(p);
 
         /* forking complete and child started to run, tell ptracer */
@@ -112,3 +139,18 @@ long do_fork(unsigned long clone_flags,
     return nr;
 }
 ```
+
+注意:
+
+如果使用vfork机制（内核通过设置的CLONE_VFORK标志识别），必须启用子进程的完成机制
+（completions mecha-nism）。子进程的task_struct的vfork_done成员即用于该目的。
+借助于wait_for_vfork_done函数，父进程在该变量上进入睡眠状态，直至子进程退出。
+在进程终止（或用execve启动新应用程序）时，内核自动调用com-plete（vfork_done）。
+这会唤醒所有因该变量睡眠的进程。通过采用这种方法，内核可以确保使用vfork生成的
+子进程的父进程会一直处于不活动状态，直至子进程退出或执行一个新的程序。父进程的
+临时睡眠状态，也确保了两个进程不会彼此干扰或操作对方的地址空间。
+
+流程图
+----------------------------------------
+
+https://github.com/leeminghao/doc-linux/tree/master/4.x.y/kernel/fork_c/res/do_fork.jpg
