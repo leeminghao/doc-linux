@@ -490,6 +490,10 @@ pid_nr函数对给定的pid实例计算全局数值PID。
 }
 ```
 
+有关进程id相关操作如下所示:
+
+https://github.com/leeminghao/doc-linux/blob/master/4.x.y/include/linux/sched_h/id/README.md
+
 流程图
 ----------------------------------------
 

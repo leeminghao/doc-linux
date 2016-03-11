@@ -27,11 +27,8 @@ SID可以使用setsid系统调用设置。
 我们必须区分局部ID和全局ID。
 
 * 全局ID是在内核本身和初始命名空间中的唯一ID号，在系统启动期间开始的init进程即属于初始命名空间。
-对每个ID类型，都有一个给定的全局ID，保证在整个系统中是唯一的。
-
-* 局部ID属于某个特定的命名空间，不具备全局有效性。对每个ID类型，它们在所属的命名空间内部有效，
-但类型相同、值也相同的ID可能出现在不同的命名空间中。全局PID和TGID直接保存在task_struct中，
-分别是task_struct的pid和tgid成员：
+  对每个ID类型，都有一个给定的全局ID，保证在整个系统中是唯一的。全局PID和TGID直接保存在task_struct
+  中，分别是task_struct的pid和tgid成员：
 
 ```
     pid_t pid;
@@ -42,6 +39,9 @@ SID可以使用setsid系统调用设置。
 即可以同时使用232个不同的ID。会话和进程组ID不是直接包含在task_struct本身中，但保存在用于信号
 处理的结构中。task_struct->signal->__ses-sion表示全局SID，而全局PGID则保存在
 task_struct->signal->__pgrp。辅助函数set_task_session和set_task_pgrp可用于修改这些值。
+
+* 局部ID属于某个特定的命名空间，不具备全局有效性。对每个ID类型，它们在所属的命名空间内部有效，
+但类型相同、值也相同的ID可能出现在不同的命名空间中。
 
 管理PID
 ----------------------------------------
@@ -57,34 +57,33 @@ task_struct->signal->__pgrp。辅助函数set_task_session和set_task_pgrp可用
 path: include/linux/pid_namespace.h
 ```
 struct pid_namespace {
-	struct kref kref;
-	struct pidmap pidmap[PIDMAP_ENTRIES];
-	struct rcu_head rcu;
-	int last_pid;
-	unsigned int nr_hashed;
-	struct task_struct *child_reaper;
-	struct kmem_cache *pid_cachep;
-	unsigned int level;
-	struct pid_namespace *parent;
+    struct kref kref;
+    struct pidmap pidmap[PIDMAP_ENTRIES];
+    struct rcu_head rcu;
+    int last_pid;
+    unsigned int nr_hashed;
+    struct task_struct *child_reaper;
+    struct kmem_cache *pid_cachep;
+    unsigned int level;
+    struct pid_namespace *parent;
 #ifdef CONFIG_PROC_FS
-	struct vfsmount *proc_mnt;
-	struct dentry *proc_self;
-	struct dentry *proc_thread_self;
+    struct vfsmount *proc_mnt;
+    struct dentry *proc_self;
+    struct dentry *proc_thread_self;
 #endif
 #ifdef CONFIG_BSD_PROCESS_ACCT
-	struct bsd_acct_struct *bacct;
+    struct bsd_acct_struct *bacct;
 #endif
-	struct user_namespace *user_ns;
-	struct work_struct proc_work;
-	kgid_t pid_gid;
-	int hide_pid;
-	int reboot;	/* group exit code if this pidns was rebooted */
-	struct ns_common ns;
+    struct user_namespace *user_ns;
+    struct work_struct proc_work;
+    kgid_t pid_gid;
+    int hide_pid;
+    int reboot;    /* group exit code if this pidns was rebooted */
+    struct ns_common ns;
 };
 ```
 
-实际上PID分配器也需要依靠该结构的某些部分来连续生成唯一ID，但我们目前对此无需关注。
-我们上述代码中给出的下列成员更感兴趣。
+实际上PID分配器也需要依靠该结构的某些部分来连续生成唯一ID.
 
 * 每个PID命名空间都具有一个进程，其发挥的作用相当于全局的init进程。init的一个目的是对孤儿进程调用
 wait4，命名空间局部的init变体也必须完成该工作。child_reaper保存了指向该进程的task_struct的指针。
@@ -94,7 +93,7 @@ level为0，该命名空间的子空间level为1，下一层的子空间level为
 因为level较高的命名空间中的ID，对level较低的命名空间来说是可见的。从给定的level设置，内核即可推断
 进程会关联到多少个ID。
 
-PID的管理围绕两个数据结构展开：struct pid是内核对PID的内部表示，而struct upid则表示特定的命名空间
+PID的管理围绕两个数据结构展开: struct pid是内核对PID的内部表示，而struct upid则表示特定的命名空间
 中可见的信息。两个结构的定义如下：
 
 path: include/linux/pid.h
@@ -106,36 +105,90 @@ path: include/linux/pid.h
  */
 
 struct upid {
-	/* Try to keep pid_chain in the same cacheline as nr for find_vpid */
-	int nr;
-	struct pid_namespace *ns;
-	struct hlist_node pid_chain;
+    /* Try to keep pid_chain in the same cacheline as nr for find_vpid */
+    int nr;
+    struct pid_namespace *ns;
+    struct hlist_node pid_chain;
 };
 
 struct pid
 {
-	atomic_t count;
-	unsigned int level;
-	/* lists of tasks that use this pid */
-	struct hlist_head tasks[PIDTYPE_MAX];
-	struct rcu_head rcu;
-	struct upid numbers[1];
+    atomic_t count;
+    unsigned int level;
+    /* lists of tasks that use this pid */
+    struct hlist_head tasks[PIDTYPE_MAX];
+    struct rcu_head rcu;
+    struct upid numbers[1];
 };
 ```
 
-对于struct upid，nr表示ID的数值，ns是指向该ID所属的命名空间的指针。所有的upid实例都保存在一个
-散列表中，稍后我们会看到该结构。pid_chain用内核的标准方法实现了散列溢出链表。
-struct pid的定义首先是一个引用计数器count。tasks是一个数组，每个数组项都是一个散列表头，对应于
-一个ID类型。这样做是必要的，因为一个ID可能用于几个进程。所有共享同一给定ID的task_struct实例，
-都通过该列表连接起来。PIDTYPE_MAX表示ID类型的数目:
+### struct upid
+
+* nr表示ID的数值;
+* ns是指向该ID所属的命名空间的指针;
+* pid_chain用内核的标准方法实现了散列溢出链表。
+
+### struct pid:
+
+* 引用计数器count。
+* tasks是一个数组，每个数组项都是一个散列表头，对应于一个ID类型。这样做是必要的，因为一个ID
+  可能用于几个进程。所有共享同一给定ID的task_struct实例，都通过该列表连接起来。PIDTYPE_MAX
+  表示ID类型的数目:
 
 path: include/linux/pid.h
 ```
 enum pid_type
 {
-	PIDTYPE_PID,
-	PIDTYPE_PGID,
-	PIDTYPE_SID,
-	PIDTYPE_MAX
+    PIDTYPE_PID,
+    PIDTYPE_PGID,
+    PIDTYPE_SID,
+    PIDTYPE_MAX
 };
 ```
+
+**注意**: 枚举类型中定义的ID类型不包括线程组ID！这是因为线程组ID无非是线程组组长的PID而已，
+          因此再单独定义一项是不必要的。
+
+一个进程可能在多个命名空间中可见，而其在各个命名空间中的局部ID各不相同。
+
+* level表示可以看到该进程的命名空间的数目(即包含该进程的命名空间在命名空间层次结构中的深度);
+* numbers是一个upid实例的数组，每个数组项都对应于一个命名空间。注意该数组形式上只有一个数组项，
+  如果一个进程只包含在全局命名空间中，那么确实如此。由于该数组位于结构的末尾，因此只要分配更多
+  的内存空间，即可向数组添加附加的项。
+
+由于所有共享同一ID的task_struct实例都按进程存储在一个散列表中，因此需要在
+struct task_struct中增加一个散列表元素:
+
+```
+    /* PID/PID hash table linkage. */
+    struct pid_link pids[PIDTYPE_MAX];
+```
+
+辅助数据结构pid_link可以将task_struct连接到表头在struct pid中的散列表上：
+
+path: include/linux/pid.h
+```
+struct pid_link
+{
+    struct hlist_node node;
+    struct pid *pid;
+};
+```
+
+上述各结构组织如下所示:
+
+https://github.com/leeminghao/doc-linux/blob/master/4.x.y/include/linux/sched_h/id/res/id_struct.jpg
+
+pid指向进程所属的pid结构实例，node用作散列表元素。为在给定的命名空间中查找对应于指定PID数值的pid
+结构实例，使用了一个散列表:
+
+path: kernel/pid.c
+```
+static struct hlist_head *pid_hash;
+```
+
+pid_hash用作一个hlist_head数组。数组的元素数目取决于计算机的内存配置，大约在24=16和212=4096之间。
+pidhash_init用于计算恰当的容量并分配所需的内存。
+
+相关函数
+----------------------------------------
