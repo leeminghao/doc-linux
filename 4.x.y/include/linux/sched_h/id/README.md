@@ -192,3 +192,163 @@ pidhash_init用于计算恰当的容量并分配所需的内存。
 
 相关函数
 ----------------------------------------
+
+### 1.alloc_pid
+
+https://github.com/leeminghao/doc-linux/tree/master/4.x.y/kernel/pid.c/alloc_pid.md
+
+### 2.attach_pid
+
+https://github.com/leeminghao/doc-linux/tree/master/4.x.y/kernel/pid.c/attach_pid.md
+
+### 3.task_struct <--> ID
+
+内核提供了若干辅助函数，用于操作和扫描上面描述的数据结构。本质上内核必须完成下面两个不同的任务:
+
+#### task_struct --> ID
+
+给出task_struct、ID类型、命名空间，取得命名空间局部的数字ID。
+
+1.获得与task_struct关联的pid实例。辅助函数task_pid、task_tgid、task_pgrp和task_session分别用于
+取得不同类型的ID。获取PID的实现很简单：
+
+path: include/linux/sched.h
+```
+static inline struct pid *task_pid(struct task_struct *task)
+{
+    return task->pids[PIDTYPE_PID].pid;
+}
+```
+
+获取TGID的做法类似，因为TGID不过是线程组组长的PID而已。只要将上述实现替换为
+task->group_leader->pids[PIDTYPE_PID].pid即可。
+找出进程组ID则需要使用PIDTYPE_PGID作为数组索引，但该ID仍然需要从线程组组长的task_struct实例获取：
+
+path: include/linux/sched.h
+```
+/*
+ * Without tasklist or rcu lock it is not safe to dereference
+ * the result of task_pgrp/task_session even if task == current,
+ * we can race with another thread doing sys_setsid/sys_setpgid.
+ */
+static inline struct pid *task_pgrp(struct task_struct *task)
+{
+    return task->group_leader->pids[PIDTYPE_PGID].pid;
+}
+```
+
+2.在获得pid实例之后，从struct pid的numbers数组中的uid信息，即可获得数字ID：
+
+path: kernel/pid.c
+```
+pid_t pid_nr_ns(struct pid *pid, struct pid_namespace *ns)
+{
+    struct upid *upid;
+    pid_t nr = 0;
+
+    // 因为父命名空间可以看到子命名空间中的PID，反过来却不行，内核必须确保当前命名空间的level
+    // 小于或等于产生局部PID的命名空间的level。
+    if (pid && ns->level <= pid->level) {
+        upid = &pid->numbers[ns->level];
+        if (upid->ns == ns)
+            nr = upid->nr;
+    }
+    return nr;
+}
+
+pid_t pid_vnr(struct pid *pid)
+{
+    return pid_nr_ns(pid, current->nsproxy->pid_ns);
+}
+```
+
+同样重要的是要注意到，内核只需要关注产生全局PID。因为全局命名空间中所有其他ID类型都会映射到PID，
+因此不必生成诸如全局TGID或SID。
+
+除了在使用的pid_nr_ns之外，内核还可以使用下列辅助函数：
+
+* pid_vnr返回该ID所属的命名空间所看到的局部PID；
+* pid_nr则获取从init进程看到的全局PID。
+
+这两个函数都依赖于pid_nr_ns，并自动选择适当的level：0用于获取全局PID，而pid->level则用于
+获取局部PID。内核提供了几个辅助函数，合并了前述步骤：
+
+path: kernel/pid.c
+```
+pid_t task_pid_nr_ns(struct task_struct *tsk, struct pid_namespace *ns)
+pid_t task_tgid_nr_ns(struct task_struct *tsk, struct pid_namespace *ns)
+pid_t task_pgrp_nr_ns(struct task_struct *tsk, struct pid_namespace *ns)
+pid_t task_session_nr_ns(struct task_struct *tsk, struct pid_namespace *ns)
+```
+
+#### ID --> task_struct
+
+给出局部数字ID和对应的命名空间，查找此二元组描述的task_struct.
+内核如何将数字PID和命名空间转换为pid实例。同样需要下面两个步骤:
+
+1.给出进程的局部数字PID和关联的命名空间(这是PID的用户空间表示),为确定pid实例(这是PID的内核表示)，
+  内核必须采用标准的散列方案。首先，根据PID和命名空间指针计算在pid_hash数组中的索引，然后遍历
+  散列表直至找到所要的元素。这是通过辅助函数find_pid_ns处理的：
+
+path: kernel/pid.c
+```
+struct pid *find_pid_ns(int nr, struct pid_namespace *ns)
+{
+    struct hlist_node *elem;
+    struct upid *pnr;
+
+    // struct upid的实例保存在散列表中，由于这些实例直接包含在struct pid中，内核可以使用
+    // container_of机制
+    hlist_for_each_entry_rcu(pnr, elem,
+            &pid_hash[pid_hashfn(nr, ns)], pid_chain)
+        if (pnr->nr == nr && pnr->ns == ns)
+            return container_of(pnr, struct pid,
+                    numbers[ns->level]);
+
+    return NULL;
+}
+```
+
+2.pid_task函数取出pid->tasks[type]散列表中的第一个task_struct实例。这两个步骤可以通过辅助函数
+  find_task_by_pid_type_ns完成：
+
+path: kernel/pid.c
+```
+struct task_struct *pid_task(struct pid *pid, enum pid_type type)
+{
+    struct task_struct *result = NULL;
+    if (pid) {
+        struct hlist_node *first;
+        first = rcu_dereference_check(hlist_first_rcu(&pid->tasks[type]),
+                          lockdep_tasklist_lock_is_held());
+        if (first)
+            result = hlist_entry(first, struct task_struct, pids[(type)].node);
+    }
+    return result;
+}
+
+/*
+ * Must be called under rcu_read_lock().
+ */
+struct task_struct *find_task_by_pid_ns(pid_t nr, struct pid_namespace *ns)
+{
+    rcu_lockdep_assert(rcu_read_lock_held(),
+               "find_task_by_pid_ns() needs rcu_read_lock()"
+               " protection");
+    return pid_task(find_pid_ns(nr, ns), PIDTYPE_PID);
+}
+```
+
+一些简单一点的辅助函数基于最一般性的find_task_by_pid_type_ns：
+
+* find_task_by_pid_ns(pid_t nr, struct pid_namespace* ns)
+  根据给出的数字PID和进程的命名空间来查找task_struct实例。
+
+* find_task_by_vpid(pid_t vnr)
+  通过局部数字PID查找进程。
+
+* find_task_by_pid(pid_t nr)
+  通过全局数字PID查找进程。
+
+内核源代码中许多地方都需要find_task_by_pid，因为很多特定于进程的操作(例如，使用kill发送一个信号)
+都通过PID标识目标进程。

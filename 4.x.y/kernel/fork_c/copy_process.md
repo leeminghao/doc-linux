@@ -333,6 +333,8 @@ pid_nr函数对给定的pid实例计算全局数值PID。
 ```
     if (pid != &init_struct_pid) {
         retval = -ENOMEM;
+        // 在建立一个新进程时，进程可能在多个命名空间中是可见的。对每个这样的命名空间，都需要
+        // 生成一个局部PID。这是在alloc_pid中处理的
         pid = alloc_pid(p->nsproxy->pid_ns);
         if (!pid)
             goto bad_fork_cleanup_io;
@@ -468,6 +470,7 @@ pid_nr函数对给定的pid实例计算全局数值PID。
             list_add_tail_rcu(&p->tasks, &init_task.tasks);
             __this_cpu_inc(process_counts);
         }
+        // 假如已经分配了struct pid的一个新实例，并设置用于给定的ID类型。它会如下附加到task_struct
         attach_pid(p, PIDTYPE_PID, pid);
         nr_threads++;
     }
