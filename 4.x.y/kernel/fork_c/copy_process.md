@@ -100,6 +100,8 @@ https://github.com/leeminghao/doc-linux/blob/master/4.x.y/arch/arm/kernel/init_t
         goto fork_out;
 ```
 
+https://github.com/leeminghao/doc-linux/blob/master/4.x.y/kernel/fork_c/dup_task_struct.md
+
 4.检查当前特定用户进程数
 ----------------------------------------
 
@@ -323,7 +325,7 @@ https://github.com/leeminghao/doc-linux/tree/master/4.x.y/kernel/fork_c/res/shar
         goto bad_fork_cleanup_io;
 ```
 
-6.pid_nr
+6.设置ID
 ----------------------------------------
 
 pid_nr函数对给定的pid实例计算全局数值PID。
@@ -343,17 +345,16 @@ pid_nr函数对给定的pid实例计算全局数值PID。
     if (clone_flags & CLONE_THREAD)
         p->tgid = current->tgid;
 
+    // CLONE_CHILD_SETTID首先会将另一个传递到clone的用户空间指针（child_tidptr）保存在新进程的
+    // task_struct中。在新进程第一次执行时，内核会调用schedule_tail函数将当前PID复制到child_tidptr
     p->set_child_tid = (clone_flags & CLONE_CHILD_SETTID) ? child_tidptr : NULL;
     /*
      * Clear TID on mm_release()?
      */
+    // CLONE_CHILD_CLEARTID首先会在copy_process中将用户空间指针child_tidptr保存在task_struct中，
+    // 这次是另一个不同的成员。在进程终止时，将0写入clear_child_tid指定的地址。
     p->clear_child_tid = (clone_flags & CLONE_CHILD_CLEARTID) ? child_tidptr : NULL;
-```
 
-7.其它
-----------------------------------------
-
-```
 #ifdef CONFIG_BLOCK
     p->plug = NULL;
 #endif
@@ -414,6 +415,8 @@ pid_nr函数对给定的pid实例计算全局数值PID。
     write_lock_irq(&tasklist_lock);
 
     /* CLONE_PARENT re-uses the old parent */
+    // 对普通进程，父进程是分支进程。对于线程来说有些不同：由于线程被视为分支进程内部的第二
+    // （或第三、第四，等等）个执行序列，其父进程应是分支进程的父进程。
     if (clone_flags & (CLONE_PARENT|CLONE_THREAD)) {
         p->real_parent = current->real_parent;
         p->parent_exec_id = current->parent_exec_id;
@@ -440,6 +443,8 @@ pid_nr函数对给定的pid实例计算全局数值PID。
         goto bad_fork_free_pid;
     }
 
+    // 非线程的普通进程可通过设置CLONE_PARENT触发同样的行为。对线程来说还需要另一个校正，
+    // 即普通进程的线程组组长是进程本身。对线程来说，其组长是当前进程的组长.
     if (clone_flags & CLONE_THREAD) {
         current->signal->nr_threads++;
         atomic_inc(&current->signal->live);

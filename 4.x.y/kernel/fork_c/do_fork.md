@@ -105,6 +105,9 @@ do_fork以调用copy_process开始，后者执行生成新进程的实际工作�
         // 获取局部PID即可，因为新旧进程都在同一个命名空间中。
         nr = task_pid_vnr(p);
 
+        // CLONE_PARENT_SETTID将生成线程的PID复制到clone调用指定的用户空间中的某个地址
+        // （parent_tidptr，传递到clone的指针）,复制操作在do_fork中执行，此时新线程的
+        // task_struct尚未初始化，copy操作尚未创建新线程的数据。
         if (clone_flags & CLONE_PARENT_SETTID)
             put_user(nr, parent_tidptr);
 
