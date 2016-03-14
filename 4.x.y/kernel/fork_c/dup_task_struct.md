@@ -2,6 +2,13 @@ dup_task_struct - kernel/fork.c
 ========================================
 
 ```
+int __attribute__((weak)) arch_dup_task_struct(struct task_struct *dst,
+                           struct task_struct *src)
+{
+    *dst = *src;
+    return 0;
+}
+
 static struct task_struct *dup_task_struct(struct task_struct *orig)
 {
     struct task_struct *tsk;
@@ -59,11 +66,28 @@ out:
 }
 ```
 
+alloc_thread_info_node
+----------------------------------------
+
+path: kernel/fork.c
 ```
-int __attribute__((weak)) arch_dup_task_struct(struct task_struct *dst,
-                           struct task_struct *src)
+static struct thread_info *alloc_thread_info_node(struct task_struct *tsk,
+       int node)
 {
-    *dst = *src;
-    return 0;
+#ifdef CONFIG_DEBUG_STACK_USAGE
+    gfp_t mask = GFP_KERNEL | __GFP_ZERO;
+#else
+    gfp_t mask = GFP_KERNEL;
+#endif
+    struct page *page = alloc_pages_node(node, mask, THREAD_SIZE_ORDER);
+
+    return page ? page_address(page) : NULL;
 }
 ```
+
+这里THREAD_SIZE_ORDER值为1，也就是说这个thread_info结构需要2个页8KB的空间。
+这个8KB空间分为两部分，一部分保存thread_info值，另一部分当做线程的内核栈来用。
+也就是8KB空间的起始位置+sizeof(thread_info)的位置。
+内栈的结束位置会写入一个STACK_END_MAGIC(0x57AC6E9D)用于检测内核栈是否溢出。
+
+https://github.com/leeminghao/doc-linux/tree/master/4.x.y/kernel/fork_c/res/kernel_stack.jpg

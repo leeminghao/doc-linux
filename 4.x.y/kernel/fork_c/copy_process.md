@@ -327,6 +327,8 @@ copy_thread与这里讨论的所有其他复制操作都大不相同，这是一
 其定义是体系结构相关的。它包含了所有寄存器（和其他信息），内核在进程之间切换时需要保存和恢复进程
 的内容，该结构可用于此。为理解各个thread_struct结构的布局，需要深入了解各种CPU的相关知识。
 
+https://github.com/leeminghao/doc-linux/tree/master/4.x.y/arch/arm/kernel/process.c/copy_thread.md
+
 6.设置ID
 ----------------------------------------
 
