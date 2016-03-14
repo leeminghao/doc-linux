@@ -63,7 +63,7 @@ ENTRY(__fork)
     mov     ip, r7          # 将r7寄存器的值保存到ip寄存器中.
     ldr     r7, =__NR_fork  # 将__NR_fork宏表示的值加载到r7寄存器中
 
-    swi     #0
+    swi     #0 # 触发软中断
     mov     r7, ip
     cmn     r0, #(MAX_ERRNO + 1)
     bxls    lr
@@ -71,13 +71,6 @@ ENTRY(__fork)
     b       __set_errno
 END(__fork)
 ```
-
-__NR_fork定义在kernel/arch/arm/include/asm/unistd.h中:
-EABI是什么东西呢? ABI: Application Binary Interface, 应用二进制接口.
-* 在较新的EABI规范中,是将系统调用号压入寄存器r7中;
-* 而在老的OABI中则是执行的swi中断号的方式, 也就是说原来的调用方式(Old ABI)是通过跟随在swi指令中的调用号来进行的.
-
-### __NR_fork
 
 path: kernel/arch/arm/include/asm/unistd.h
 ```
@@ -96,6 +89,18 @@ path: kernel/arch/arm/include/asm/unistd.h
 ...
 #define __NR_fork             (__NR_SYSCALL_BASE+  2)
 ```
+
+* 在较新的EABI规范中,是将系统调用号压入寄存器r7中;
+  EABI是什么东西呢? ABI: Application Binary Interface, 应用二进制接口.
+* 而在老的OABI中则是执行的swi中断号的方式, 也就是说原来的调用方式(Old ABI)是通过跟随在swi
+  指令中的调用号来进行的.
+
+如上面的代码，用swi #0指令即可触发软中断，并切换到内核态(管理模式)。此时CPU就做的事情就是:
+* 1.关中断
+* 2.将cpsr值写入到spsr_svc中
+* 3.将cpsr[5:0]设置成0b10011（svc模式）
+* 4.将pc值+4的地址，也就是swi指令的下一行地址写入lr_svc中
+* 5.__vectors_start+8写入pc（向量表第三项，系统调用的处理函数）
 
 当使用swi触发软中断的时候将会调用vector_swi处的中断处理函数来处理对应的软件中断.
 

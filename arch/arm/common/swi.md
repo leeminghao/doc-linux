@@ -7,6 +7,21 @@ swi软中断
 状态保存寄存器,用于保存CPSR的状态，以便异常返回后恢复异常发生时的工作状态),执行转移到swi向量,
 在其他模式下也可使用swi指令，处理器同样地切换到管理模式。
 
+程序在用户态运行，当发生系统调用、异常、中断等事件，就会切换到另一个模式，
+此时CPU硬件会做如下几种事情：
+* 1.关中断
+* 2.将cpsr的值保存到目标模式的spsr中
+* 3.通过修改cpsr的模式位，切换到目标模式。
+* 4.将当前pc值加上一定偏移（0或4），写入到目标模式的lr中。
+* 5.将pc值指向异常向量表
+之后就会执行异常处理流程。
+参看fork系统调用处理流程:
+
+### fork
+
+https://github.com/leeminghao/doc-linux/blob/master/4.x.y/kernel/fork_c/fork.md
+
+
 指令格式
 ----------------------------------------
 
@@ -45,4 +60,12 @@ swi异常处理程序可以提供相关的服务,这两种方法均是用户软�
 Linux kernel swi中断处理函数
 ----------------------------------------
 
-https://github.com/leeminghao/doc-linux/blob/master/4.x.y/arch/arm/kernel/entry-common.S/vector_swi.md
+用swi指令即可触发软中断，并切换到内核态(管理模式)。此时CPU就做的事情就是:
+
+* 1.关中断
+* 2.将cpsr值写入到spsr_svc中
+* 3.将cpsr[5:0]设置成0b10011（svc模式）
+* 4.将pc值+4的地址，也就是swi指令的下一行地址写入lr_svc中
+* 5.__vectors_start+8写入pc（向量表第三项，系统调用的处理函数）
+
+https://github.com/leeminghao/doc-linux/blob/master/4.x.y/arch/arm/kernel/entry-armv.S/__vector_start.md

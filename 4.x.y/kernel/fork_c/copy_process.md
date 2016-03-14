@@ -313,17 +313,19 @@ https://github.com/leeminghao/doc-linux/tree/master/4.x.y/kernel/fork_c/res/shar
     if (retval)
         goto bad_fork_cleanup_namespaces;
 
-    // copy_thread与这里讨论的所有其他复制操作都大不相同，这是一个特定于体系结构的函数，用于
-    // 复制进程中特定于线程（thread-specific）的数据。这里的特定于线程并不是指某个CLONE标志，
-    // 也不是指操作对线程而非整个进程执行。其语义无非是指复制执行上下文中特定于体系结构的所有
-    // 数据（内核中名词线程通常用于多个含义）。重要的是填充task_struct->thread的各个成员。这是
-    // 一个thread_struct类型的结构，其定义是体系结构相关的。它包含了所有寄存器（和其他信息），
-    // 内核在进程之间切换时需要保存和恢复进程的内容，该结构可用于此。为理解各个thread_struct
-    // 结构的布局，需要深入了解各种CPU的相关知识。
     retval = copy_thread(clone_flags, stack_start, stack_size, p, regs);
     if (retval)
         goto bad_fork_cleanup_io;
 ```
+
+### copy_thread
+
+copy_thread与这里讨论的所有其他复制操作都大不相同，这是一个特定于体系结构的函数，用于复制进程
+中特定于线程（thread-specific）的数据。这里的特定于线程并不是指某个CLONE标志，也不是指操作对
+线程而非整个进程执行。其语义无非是指复制执行上下文中特定于体系结构的所有数据（内核中名词线程
+通常用于多个含义）。重要的是填充task_struct->thread的各个成员。这是一个thread_struct类型的结构，
+其定义是体系结构相关的。它包含了所有寄存器（和其他信息），内核在进程之间切换时需要保存和恢复进程
+的内容，该结构可用于此。为理解各个thread_struct结构的布局，需要深入了解各种CPU的相关知识。
 
 6.设置ID
 ----------------------------------------
