@@ -145,7 +145,12 @@ do_fork以调用copy_process开始，后者执行生成新进程的实际工作�
 }
 ```
 
-注意:
+do_fork()函数在创建好task_struct和thread_info等数据结构，并设置好子进程用户态和内核态上下文后，
+会将这个子进程丢进调度队列里。当有其他线程调用schedule来进行线程切换时，这个创建出来的进程将
+有机会被执行。
+
+注意
+----------------------------------------
 
 如果使用vfork机制（内核通过设置的CLONE_VFORK标志识别），必须启用子进程的完成机制
 （completions mecha-nism）。子进程的task_struct的vfork_done成员即用于该目的。
