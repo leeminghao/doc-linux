@@ -529,3 +529,28 @@ https://github.com/leeminghao/doc-linux/blob/master/4.x.y/include/linux/sched_h/
 ### id
 
 https://github.com/leeminghao/doc-linux/blob/master/4.x.y/include/linux/sched_h/id/README.md
+
+### 进程关系
+
+除了源于ID连接的关系之外,内核还负责管理建立在UNIX进程创建模型之上“家族关系”.
+相关讨论一般使用下列术语:
+
+* 如果进程A分支形成进程B，进程A称之为父进程而进程B则是子进程。如果进程B再次分支建立另一个进程C，
+  进程A和进程C之间有时称之为祖孙关系。
+* 如果进程A分支若干次形成几个子进程B1，B2，…，Bn，各个Bi进程之间的关系称之为兄弟关系。
+
+https://github.com/leeminghao/doc-linux/blob/master/4.x.y/include/linux/sched_h/res/task_relation.jpg
+
+task_struct数据结构提供了两个链表表头，用于实现这些关系：
+
+```
+    /*
+     * children/sibling forms the list of my natural children
+     */
+    struct list_head children;    /* list of my children */
+    struct list_head sibling;    /* linkage in my parent's children list */
+```
+
+* children是链表表头，该链表中保存有进程的所有子进程。
+* sibling用于将兄弟进程彼此连接起来。新的子进程置于sibling链表的起始位置，这意味着可以
+  重建进程分支的时间顺序。
