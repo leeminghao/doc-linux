@@ -130,3 +130,7 @@ need_resched:
         goto need_resched;
 }
 ```
+
+### context_switch
+
+https://github.com/leeminghao/doc-linux/tree/master/4.x.y/kernel/sched/core.c/context_switch.md

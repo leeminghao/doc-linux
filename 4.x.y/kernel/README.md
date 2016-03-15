@@ -173,3 +173,8 @@ https://github.com/leeminghao/doc-linux/blob/master/4.x.y/arch/arm/kernel/init_t
 ----------------------------------------
 
 https://github.com/leeminghao/doc-linux/blob/master/4.x.y/kernel/fork_c/fork.md
+
+进程调度
+----------------------------------------
+
+https://github.com/leeminghao/doc-linux/blob/master/4.x.y/kernel/sched/core.c/__schedule.md

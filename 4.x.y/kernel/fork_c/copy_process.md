@@ -255,6 +255,11 @@ https://github.com/leeminghao/doc-linux/tree/master/4.x.y/kernel/fork_c/res/shar
 #endif
 
     /* Perform scheduler related setup. Assign this task to a CPU. */
+    // 每当使用fork系统调用或其变体之一建立新进程时，调度器有机会用sched_fork函数挂钩到该进程。
+    // 在单处理器系统上，该函数实质上执行3个操作：
+    // 1.初始化新进程与调度相关的字段;
+    // 2.建立数据结构（相当简单直接）;
+    // 3.确定进程的动态优先级。
     sched_fork(p);
 
     retval = perf_event_init_task(p);
