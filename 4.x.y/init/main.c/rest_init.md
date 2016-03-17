@@ -15,7 +15,7 @@ static noinline void __init_refok rest_init(void)
     rcu_scheduler_starting();
 ```
 
-2.kernel_thread
+2.kernel_thread - kernel_init
 ----------------------------------------
 
 调用kernel_thread函数可启动一个内核线程。其定义是特定于体系结构的，但原型总是相同的。
@@ -30,6 +30,8 @@ static noinline void __init_refok rest_init(void)
 ```
 
 https://github.com/leeminghao/doc-linux/blob/master/4.x.y/arch/arm/kernel/process.c/kernel_thread.md
+
+通过kernel_thread函数启动了一个内核子线程之后，最后跳转到对应的入口函数kernel_init中去执行.
 
 ```
     numa_default_policy();

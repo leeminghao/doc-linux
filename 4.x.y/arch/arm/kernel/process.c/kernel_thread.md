@@ -70,3 +70,7 @@ https://github.com/leeminghao/doc-linux/tree/master/4.x.y/kernel/fork_c/do_fork.
 3.当通过do_fork创建一个内核线程之后，通过调度函数__switch_to来恢复新创建的线程的线程上下文
 之后，接下来调用ret_from_fork恢复了模式上下文(struct pt_regs). 也就是跳转到regs.ARM_pc所保存
 的pc寄存器中的函数指针kernel_thread_helper中去执行.
+
+https://github.com/leeminghao/doc-linux/blob/master/4.x.y/arch/arm/kernel/process.c/kernel_thread_helper.md
+
+在kernel_thread_helper函数中最后会调用到对应子线程的入口函数去执行.
