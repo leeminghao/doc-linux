@@ -923,3 +923,5 @@ page_cgroup_init()这个函数是容器组的页面内存分配。
     rest_init();
 }
 ```
+
+https://github.com/leeminghao/doc-linux/blob/master/4.x.y/init/main.c/rest_init.md

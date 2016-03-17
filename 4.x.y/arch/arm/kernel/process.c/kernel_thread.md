@@ -66,3 +66,7 @@ https://github.com/leeminghao/doc-linux/tree/master/4.x.y/kernel/fork_c/do_fork.
 
 * 1.它们在CPU的管态(supervisor mode)执行，而不是用户状态;
 * 2.它们只可以访问虚拟地址空间的内核部分（高于TASK_SIZE的所有地址），但不能访问用户空间。
+
+3.当通过do_fork创建一个内核线程之后，通过调度函数__switch_to来恢复新创建的线程的线程上下文
+之后，接下来调用ret_from_fork恢复了模式上下文(struct pt_regs). 也就是跳转到regs.ARM_pc所保存
+的pc寄存器中的函数指针kernel_thread_helper中去执行.
