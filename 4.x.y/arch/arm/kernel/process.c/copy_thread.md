@@ -43,4 +43,4 @@ copy_thread(unsigned long clone_flags, unsigned long stack_start,
 
 ### struct thread_info
 
-https://github.com/leeminghao/doc-linux/blob/master/4.x.y/arch/arm/include/asm/thread_info.h/thread_info.h
+https://github.com/leeminghao/doc-linux/blob/master/4.x.y/arch/arm/include/asm/thread_info.h/thread_info.md

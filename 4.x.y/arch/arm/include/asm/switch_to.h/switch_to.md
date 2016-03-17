@@ -15,3 +15,8 @@ do {                                                 \
     last = __switch_to(prev,task_thread_info(prev), task_thread_info(next));  \
 } while (0)
 ```
+
+__switch_to
+----------------------------------------
+
+https://github.com/leeminghao/doc-linux/blob/master/4.x.y/arch/arm/kernel/entry-armv.S/__switch_to.md

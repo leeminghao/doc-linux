@@ -91,3 +91,10 @@ context_switch(struct rq *rq, struct task_struct *prev,
     finish_task_switch(this_rq(), prev);
 }
 ```
+
+switch_to
+----------------------------------------
+
+### arm
+
+https://github.com/leeminghao/doc-linux/blob/master/4.x.y/arch/arm/include/asm/switch_to.h/switch_to.md
