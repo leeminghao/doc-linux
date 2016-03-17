@@ -61,4 +61,4 @@ path: include/linux/sched.h
 
 在内核栈中struct cpu_context_save同struct pt_regs位置如下所示:
 
-https://github.com/leeminghao/doc-linux/blob/master/4.x.y/arch/arm/include/asm/thread_info.h/threadinfo.png
+https://github.com/leeminghao/doc-linux/blob/master/4.x.y/arch/arm/include/asm/thread_info.h/res/threadinfo.png
