@@ -49,5 +49,11 @@ ENDPROC(ret_to_user)
 
 ret_slow_syscall和ret_fast_syscall差不多，都在调用restore_user_regs，不一样的是参数fast。
 
+ret_fast_syscall详见:
+
+https://github.com/leeminghao/doc-linux/blob/master/4.x.y/arch/arm/kernel/entry-common.S/vector_swi.md
+
 restore_user_regs
 ----------------------------------------
+
+https://github.com/leeminghao/doc-linux/blob/master/4.x.y/arch/arm/kernel/entry-header.S/restore_user_regs.md

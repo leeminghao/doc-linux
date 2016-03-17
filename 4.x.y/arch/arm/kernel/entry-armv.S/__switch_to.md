@@ -122,6 +122,7 @@ https://github.com/leeminghao/doc-linux/blob/master/4.x.y/arch/arm/kernel/proces
 
 接下来将要调用ret_from_fork继续后续工作:
 
+https://github.com/leeminghao/doc-linux/blob/master/4.x.y/arch/arm/kernel/entry-common.S/ret_from_fork.md
 
 注意
 ----------------------------------------
