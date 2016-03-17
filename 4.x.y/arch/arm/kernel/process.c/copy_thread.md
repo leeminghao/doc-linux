@@ -44,3 +44,21 @@ copy_thread(unsigned long clone_flags, unsigned long stack_start,
 ### struct thread_info
 
 https://github.com/leeminghao/doc-linux/blob/master/4.x.y/arch/arm/include/asm/thread_info.h/thread_info.md
+
+task_pt_regs
+----------------------------------------
+
+path: arch/arm/include/asm/processor.h
+```
+#define task_pt_regs(p) \
+	((struct pt_regs *)(THREAD_START_SP + task_stack_page(p)) - 1)
+```
+
+path: include/linux/sched.h
+```
+#define task_stack_page(task)	((task)->stack)
+```
+
+在内核栈中struct cpu_context_save同struct pt_regs位置如下所示:
+
+https://github.com/leeminghao/doc-linux/blob/master/4.x.y/arch/arm/include/asm/thread_info.h/threadinfo.png
