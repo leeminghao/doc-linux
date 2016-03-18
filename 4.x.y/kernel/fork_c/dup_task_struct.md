@@ -38,7 +38,9 @@ static struct task_struct *dup_task_struct(struct task_struct *orig)
     setup_thread_stack(tsk, orig);
     clear_user_return_notifier(tsk);
     clear_tsk_need_resched(tsk);
+    // 设置栈结束标志防止栈溢出
     stackend = end_of_stack(tsk);
+    // #define STACK_END_MAGIC 0x57AC6E9D (include/linux/magic.h)
     *stackend = STACK_END_MAGIC;    /* for overflow detection */
 
 #ifdef CONFIG_CC_STACKPROTECTOR
@@ -91,3 +93,14 @@ static struct thread_info *alloc_thread_info_node(struct task_struct *tsk,
 内栈的结束位置会写入一个STACK_END_MAGIC(0x57AC6E9D)用于检测内核栈是否溢出。
 
 https://github.com/leeminghao/doc-linux/tree/master/4.x.y/kernel/fork_c/res/kernel_stack.jpg
+
+end_of_stack
+----------------------------------------
+
+path: include/linux/sched.h
+```
+static inline unsigned long *end_of_stack(struct task_struct *p)
+{
+    return (unsigned long *)(task_thread_info(p) + 1);
+}
+```

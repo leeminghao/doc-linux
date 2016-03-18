@@ -10,9 +10,16 @@ https://github.com/leeminghao/doc-linux/blob/master/arch/arm/common/swi.md
 vector_swi
 ----------------------------------------
 
-path: kernel/arch/arm/kernel/entry-common.S
+path: arch/arm/kernel/asm-offsets.c
+```
+  DEFINE(S_FRAME_SIZE,		sizeof(struct pt_regs));
+```
+
+path: arch/arm/kernel/entry-common.S
 ```
 ENTRY(vector_swi)
+  @这个栈帧大小正好是struct pt_regs的大小. struct pt_regs中保存的是
+　@线程用户态的寄存器上下文(模式上下文).
   sub    sp, sp, #S_FRAME_SIZE
   @ 将r0-r12寄存器压入内核栈中
   stmia  sp, {r0 - r12}            @ Calling r0 - r12
@@ -40,6 +47,9 @@ ENTRY(vector_swi)
   ...
   cmp    scno, #NR_syscalls        @ check upper syscall limit
   @ 这里先设置系统调用执行函数sys_xxx()的返回地址为ret_fast_syscall
+  @ 这是设置的是当前线程lr_svc寄存器,当下次通过__switch_to恢复
+  @ 当前线程的上下文(cpu_context)时首先调用ret_fast_syscall来恢复其用户态
+  @ 的线程上下文(struct pt_regs).
   adr    lr, BSYM(ret_fast_syscall)    @ return address
   @ 以下就是根据系统调用号调用具体的执行函数。
   ldrcc  pc, [tbl, scno, lsl #2]        @ call sys_* routine
@@ -136,28 +146,8 @@ ret_fast_syscall:
     restore_user_regs fast = 1, offset = S_OFF
 ```
 
-path: arch/arm/kernel/entry-header.S
-```
-    .macro    restore_user_regs, fast = 0, offset = 0
-    ldr    r1, [sp, #\offset + S_PSR]    @ get calling cpsr
-    ldr    lr, [sp, #\offset + S_PC]!    @ get pc
-    msr    spsr_cxsf, r1            @ save in spsr_svc
-#if defined(CONFIG_CPU_V6)
-    strex    r1, r2, [sp]            @ clear the exclusive monitor
-#elif defined(CONFIG_CPU_32v6K)
-    clrex                    @ clear the exclusive monitor
-#endif
-    .if    \fast
-    ldmdb    sp, {r1 - lr}^            @ get calling r1 - lr
-    .else
-    ldmdb    sp, {r0 - lr}^            @ get calling r0 - lr
-    .endif
-    mov    r0, r0                @ ARMv5T and earlier require a nop
-                        @ after ldm {}^
-    add    sp, sp, #S_FRAME_SIZE - S_PC
-    movs    pc, lr                @ return & move spsr_svc into cpsr
-    .endm
-```
+restore_user_regs
+----------------------------------------
 
 restore_user_regs基本上是vector_swi的逆过程了。注意restore_user_regs最后一句代码，mov后面带s，
 且目标寄存器是pc。这是一种特殊的用法，CPU会将当前spsr中的值写入cpsr中，这样就回到了用户态。

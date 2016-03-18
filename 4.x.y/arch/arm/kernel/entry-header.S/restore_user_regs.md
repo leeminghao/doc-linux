@@ -1,10 +1,14 @@
 restore_user_regs
 ========================================
 
+restore_user_regs是vector_swi的逆过程.
+
 path: arch/arm/kernel/entry-header.S
 ```
     .macro    restore_user_regs, fast = 0, offset = 0
     ldr    r1, [sp, #\offset + S_PSR]    @ get calling cpsr
+    @ 获取sp_svc中保存的PC指针,也就是系统调用用户态返回地址.
+    @ 注意:如果是内核线程，该值为kernel_thread_helper函数地址.
     ldr    lr, [sp, #\offset + S_PC]!    @ get pc
     msr    spsr_cxsf, r1            @ save in spsr_svc
 #if defined(CONFIG_CPU_V6)
@@ -13,6 +17,7 @@ path: arch/arm/kernel/entry-header.S
     clrex                    @ clear the exclusive monitor
 #endif
     .if    \fast
+    @ 这里的^标志表示将pt_regs中保存的模式上下文恢复到用户态模式.
     ldmdb    sp, {r1 - lr}^            @ get calling r1 - lr
     .else
     ldmdb    sp, {r0 - lr}^            @ get calling r0 - lr
