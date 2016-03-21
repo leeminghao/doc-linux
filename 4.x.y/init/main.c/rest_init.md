@@ -33,6 +33,10 @@ https://github.com/leeminghao/doc-linux/blob/master/4.x.y/arch/arm/kernel/proces
 
 通过kernel_thread函数启动了一个内核子线程之后，最后跳转到对应的入口函数kernel_init中去执行.
 
+### kernel_init
+
+https://github.com/leeminghao/doc-linux/blob/master/4.x.y/init/main.c/kernel_init.md
+
 ```
     numa_default_policy();
     pid = kernel_thread(kthreadd, NULL, CLONE_FS | CLONE_FILES);
