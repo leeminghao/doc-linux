@@ -18,8 +18,6 @@ int do_execve(struct filename *filename,
 }
 ```
 
-### 参数
-
 * filename: 指向可执行文件的名称;
 * argv: 指向传递给进程的参数;
 * envp: 指向传递给进程的环境变量;
