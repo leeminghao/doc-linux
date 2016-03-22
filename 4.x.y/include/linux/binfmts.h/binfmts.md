@@ -4,6 +4,12 @@ binfmts.h
 linux_binprm
 ----------------------------------------
 
+path: include/uapi/linux/binfmts.h
+```
+/* sizeof(linux_binprm->buf) */
+#define BINPRM_BUF_SIZE 128
+```
+
 path: include/linux/binfmts.h
 ```
 /*

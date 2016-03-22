@@ -44,6 +44,8 @@ __bprm_mm_init
 
 __bprm_mm_init主要在新进程的虚拟地址空间中分配一块新的区域使用vm_area_struct来描述
 
+path: fs/exec.c
+```
 static int __bprm_mm_init(struct linux_binprm *bprm)
 {
     int err;
@@ -97,6 +99,7 @@ err:
     kmem_cache_free(vm_area_cachep, vma);
     return err;
 }
+```
 
 STACK_TOP_MAX
 ----------------------------------------

@@ -30,7 +30,7 @@ int do_execve(struct filename *filename,
 do_execveat_common
 ----------------------------------------
 
-1.检查和初始化工作
+检查和初始化工作
 ----------------------------------------
 
 * 检查程序文件名称是否正确;
@@ -73,7 +73,7 @@ static int do_execveat_common(int fd, struct filename *filename,
     current->flags &= ~PF_NPROC_EXCEEDED;
 ```
 
-2.为linux_binprm分配内存空间
+为linux_binprm分配内存空间
 ----------------------------------------
 
 ```
@@ -119,6 +119,7 @@ https://github.com/leeminghao/doc-linux/tree/master/4.x.y/fs/exec_c/prepare_bprm
 
 调用do_open_execat函数打开进程的可执行文件并返回struct file结构保存到bprm的file成员变量中.
 具体实现如下所示:
+
 https://github.com/leeminghao/doc-linux/tree/master/4.x.y/fs/exec_c/do_open_execat.md
 
 5.sched_exec
