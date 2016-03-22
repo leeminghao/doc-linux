@@ -37,6 +37,9 @@ https://github.com/leeminghao/doc-linux/blob/master/4.x.y/arch/arm/kernel/proces
 
 https://github.com/leeminghao/doc-linux/blob/master/4.x.y/init/main.c/kernel_init.md
 
+3.kthreadd
+----------------------------------------
+
 ```
     numa_default_policy();
     pid = kernel_thread(kthreadd, NULL, CLONE_FS | CLONE_FILES);

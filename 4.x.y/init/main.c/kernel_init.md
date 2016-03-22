@@ -87,3 +87,5 @@ do_basic_setup函数主要是初始化设备驱动，完成其他驱动程序（
     return 0;
 }
 ```
+
+https://github.com/leeminghao/doc-linux/blob/master/4.x.y/init/main.c/init_post.md
