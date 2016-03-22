@@ -30,6 +30,12 @@ int do_execve(struct filename *filename,
 do_execveat_common
 ----------------------------------------
 
+### 1.检查和初始化工作
+
+* 检查程序文件名称是否正确;
+* 检查进程的数量限制;
+* 为bprm(struct linux_binprm)调用kzalloc分配内存;
+
 path: fs/exec.c
 ```
 /*
@@ -64,7 +70,12 @@ static int do_execveat_common(int fd, struct filename *filename,
     /* We're below the limit (still or again), so we don't want to make
      * further execve() calls fail. */
     current->flags &= ~PF_NPROC_EXCEEDED;
+```
 
+2.为linux_binprm分配内存空间
+----------------------------------------
+
+```
     retval = unshare_files(&displaced);
     if (retval)
         goto out_ret;
@@ -73,11 +84,28 @@ static int do_execveat_common(int fd, struct filename *filename,
     bprm = kzalloc(sizeof(*bprm), GFP_KERNEL);
     if (!bprm)
         goto out_files;
+```
 
+linux_binprm结构定义如下所示:
+https://github.com/leeminghao/doc-linux/tree/master/4.x.y/fs/exec_c/binfmts.md
+
+3.prepare_bprm_creds
+----------------------------------------
+
+```
     retval = prepare_bprm_creds(bprm);
     if (retval)
         goto out_free;
+```
 
+prepare_bprm_creds用于准备可执行credential. 具体实现如下:
+
+https://github.com/leeminghao/doc-linux/tree/master/4.x.y/fs/exec_c/prepare_bprm_creds.md
+
+4.do_open_execat
+----------------------------------------
+
+```
     check_unsafe_exec(bprm);
     current->in_execve = 1;
 
@@ -85,9 +113,37 @@ static int do_execveat_common(int fd, struct filename *filename,
     retval = PTR_ERR(file);
     if (IS_ERR(file))
         goto out_unmark;
+```
 
+调用do_open_execat函数打开进程的可执行文件并返回struct file结构保存到bprm的file成员变量中.
+具体实现如下所示:
+https://github.com/leeminghao/doc-linux/tree/master/4.x.y/fs/exec_c/do_open_execat.md
+
+5.sched_exec
+----------------------------------------
+
+```
     sched_exec();
+```
 
+sched_exec
+
+选择最小负载的CPU，以执行新程序.
+
+path: include/linux/sched.h
+```
+/* sched_exec is called by processes performing an exec */
+#ifdef CONFIG_SMP
+extern void sched_exec(void);
+#else
+#define sched_exec()   {}
+#endif
+```
+
+6.bprm_mm_init
+----------------------------------------
+
+```
     bprm->file = file;
     if (fd == AT_FDCWD || filename->name[0] == '/') {
         bprm->filename = filename->name;
@@ -123,7 +179,17 @@ static int do_execveat_common(int fd, struct filename *filename,
     bprm->envc = count(envp, MAX_ARG_STRINGS);
     if ((retval = bprm->envc) < 0)
         goto out;
+```
 
+bprm_mm_init函数调用mm_alloc来生成一个新的mm_struct实例来管理进程的地址空间.
+具体实现如下所示:
+
+https://github.com/leeminghao/doc-linux/tree/master/4.x.y/fs/exec_c/bprm_mm_init.md
+
+7.prepare_binprm
+----------------------------------------
+
+```
     retval = prepare_binprm(bprm);
     if (retval < 0)
         goto out;
@@ -140,7 +206,16 @@ static int do_execveat_common(int fd, struct filename *filename,
     retval = copy_strings(bprm->argc, argv, bprm);
     if (retval < 0)
         goto out;
+```
 
+prepare_binprm用于提供一些父进程相关的值(特别数有效UID和GID).
+
+https://github.com/leeminghao/doc-linux/tree/master/4.x.y/fs/exec_c/prepare_binprm.md
+
+8.exec_binprm
+----------------------------------------
+
+```
     retval = exec_binprm(bprm);
     if (retval < 0)
         goto out;
@@ -156,82 +231,8 @@ static int do_execveat_common(int fd, struct filename *filename,
     if (displaced)
         put_files_struct(displaced);
     return retval;
-
-out:
-    if (bprm->mm) {
-        acct_arg_size(bprm, 0);
-        mmput(bprm->mm);
-    }
-
-out_unmark:
-    current->fs->in_exec = 0;
-    current->in_execve = 0;
-
-out_free:
-    free_bprm(bprm);
-    kfree(pathbuf);
-
-out_files:
-    if (displaced)
-        reset_files_struct(displaced);
-out_ret:
-    putname(filename);
-    return retval;
+    ...
 }
 ```
-
-do_execveat_common主要工作如下所示:
-
-### 1.检查和初始化工作
-
-* 检查程序文件名称是否正确;
-* 检查进程的数量限制;
-* 为bprm(struct linux_binprm)调用kzalloc分配内存;
-
-linux_binprm结构定义如下所示:
-
-https://github.com/leeminghao/doc-linux/tree/master/4.x.y/fs/exec_c/binfmts.md
-
-### 2.prepare_bprm_creds
-
-prepare_bprm_creds用于准备可执行credential. 具体实现如下:
-
-https://github.com/leeminghao/doc-linux/tree/master/4.x.y/fs/exec_c/prepare_bprm_creds.md
-
-### 3.sched_exec
-
-选择最小负载的CPU，以执行新程序.
-
-path: include/linux/sched.h
-```
-/* sched_exec is called by processes performing an exec */
-#ifdef CONFIG_SMP
-extern void sched_exec(void);
-#else
-#define sched_exec()   {}
-#endif
-```
-
-### 4.do_open_execat
-
-调用do_open_execat函数打开进程的可执行文件并返回struct file结构保存到bprm的file成员变量中.
-具体实现如下所示:
-
-https://github.com/leeminghao/doc-linux/tree/master/4.x.y/fs/exec_c/do_open_execat.md
-
-### 5.bprm_mm_init
-
-bprm_mm_init函数调用mm_alloc来生成一个新的mm_struct实例来管理进程的地址空间.
-具体实现如下所示:
-
-https://github.com/leeminghao/doc-linux/tree/master/4.x.y/fs/exec_c/bprm_mm_init.md
-
-### 6.prepare_binprm
-
-prepare_binprm用于提供一些父进程相关的值(特别数有效UID和GID).
-
-https://github.com/leeminghao/doc-linux/tree/master/4.x.y/fs/exec_c/prepare_binprm.md
-
-### 7.exec_binprm
 
 https://github.com/leeminghao/doc-linux/tree/master/4.x.y/fs/exec_c/exec_binprm.md
