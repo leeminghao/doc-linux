@@ -98,7 +98,7 @@ EXPORT_SYMBOL(search_binary_handler);
 
 在Linux内核中，每种二进制格式都表示为下列数据结构:
 
-https://github.com/leeminghao/doc-linux/tree/master/4.x.y/fs/exec_c/binfmts.md
+https://github.com/leeminghao/doc-linux/tree/master/4.x.y/include/linux/binfmts.h/binfmts.md
 
 每种二进制格式首先必须使用register_binfmt向内核注册.该函数的目的是
 向一个链表增加一个新的二进制格式，该链表的表头是:

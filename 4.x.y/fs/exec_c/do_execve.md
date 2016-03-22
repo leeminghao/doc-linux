@@ -88,7 +88,8 @@ static int do_execveat_common(int fd, struct filename *filename,
 ```
 
 linux_binprm结构定义如下所示:
-https://github.com/leeminghao/doc-linux/tree/master/4.x.y/fs/exec_c/binfmts.md
+
+https://github.com/leeminghao/doc-linux/tree/master/4.x.y/include/linux/binfmts.h/binfmts.md
 
 3.prepare_bprm_creds
 ----------------------------------------
