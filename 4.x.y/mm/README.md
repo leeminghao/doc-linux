@@ -84,6 +84,8 @@ NUMA计算机上没有意义，只有不连续内存模型和稀疏内存模型�
 
 首先，内存划分为结点。每个结点关联到系统中的一个处理器，在内核中表示为pg_data_t的实例。
 
+https://github.com/leeminghao/doc-linux/tree/master/4.x.y/include/linux/mmzone.h/pg_data_t.md
+
 * 内存域
 
 各个结点又划分为内存域，是内存的进一步细分。
