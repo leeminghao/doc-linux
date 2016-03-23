@@ -18,11 +18,11 @@ void __ref build_all_zonelists(pg_data_t *pgdat, struct zone *zone)
 {
 ```
 
-* pgdat: 用来描述节点信息
+* pgdat: 结点
 
 https://github.com/leeminghao/doc-linux/tree/master/4.x.y/include/linux/mmzone.h/pg_data_t.md
 
-*
+* zone: 内存域
 
 __build_all_zonelists
 ----------------------------------------
