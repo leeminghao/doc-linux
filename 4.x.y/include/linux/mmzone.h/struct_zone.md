@@ -8,6 +8,15 @@ struct zone
 
 path: include/linux/mmzone.h
 ```
+enum zone_watermarks {
+    WMARK_MIN,
+    WMARK_LOW,
+    WMARK_HIGH,
+    NR_WMARK
+};
+
+...
+
 struct zone {
     /* Read-mostly fields */
 
@@ -214,3 +223,118 @@ struct zone {
     atomic_long_t        vm_stat[NR_VM_ZONE_STAT_ITEMS];
 } ____cacheline_internodealigned_in_smp;
 ```
+
+该结构比较特殊的方面是它由ZONE_PADDING分隔为几个部分。这是因为对zone结构的访问非常频繁。
+在多处理器系统上，通常会有不同的CPU试图同时访问结构成员。因此使用锁防止它们彼此干扰，
+避免错误和不一致。由于内核对该结构的访问非常频繁，因此会经常性地获取该结构的两个自旋锁
+zone->lock和zone->lru_lock。
+如果数据保存在CPU高速缓存中，那么会处理得更快速。高速缓存分为行，每一行负责不同的内存区。
+内核使用ZONE_PADDING宏生成“填充”字段添加到结构中，以确保每个自旋锁都处于自身的缓存行中。
+
+还使用了编译器关键字__cache-line_maxaligned_in_smp，用以实现最优的高速缓存对齐方式。
+
+该结构的最后两个部分也通过填充字段彼此分隔开来。两者都不包含锁，主要目的是将数据保持在一个缓存行中，
+便于快速访问，从而无需从内存加载数据（与CPU高速缓存相比，内存比较慢）。由于填充造成结构长度的增加
+是可以忽略的，特别是在内核内存中zone结构的实例相对很少。
+
+* watermark
+
+是页换出时使用的“水印”。如果内存不足，内核可以将页写到硬盘。其3个成员会影响交换守护进程的行为。
+
+1.如果空闲页多于watermark[WMARK_HIGH]，则内存域的状态是理想的。
+2.如果空闲页的数目低于watermark[WMARK_LOW]，则内核开始将页换出到硬盘。
+3.如果空闲页的数目低于watermark[WMARK_MIN]，那么页回收工作的压力就比较大，因为内存域中急需空闲页。
+
+* lowmem_reserve
+
+数组分别为各种内存域指定了若干页，用于一些无论如何都不能失败的关键性内存分配。各个内存域的份额
+根据重要性确定。
+
+* zone_pgdat
+
+内存域和父结点之间的关联由zone_pgdat建立，zone_pgdat指向对应的pg_list_data实例。
+
+* pageset
+
+是一个数组，用于实现每个CPU的热/冷页帧列表。内核使用这些列表来保存可用于满足实现
+的“新鲜”页。但冷热页帧对应的高速缓存状态不同：有些页帧也很可能仍然在高速缓存中，因此可以
+快速访问，故称之为热的；未缓存的页帧与此相对，故称之为冷的。
+
+* zone_start_pfn
+
+是内存域第一个页帧的索引。
+
+* spanned_pages
+
+指定内存域中页的总数，但并非所有都是可用的。内存域中可能有一些小的空洞。另一个计数器
+（present_pages）则给出了实际上可用的页数目。该计数器的值通常与spanned_pages相同。
+
+* name
+
+是一个字符串，保存该内存域的惯用名称。目前有3个选项可用：Normal、DMA和HighMem.
+
+* wait_table, wait_table_bits和wait_table_hash_nr_entries
+
+实现了一个等待队列，可用于等待某一页变为可用进程。该机制的细节将在第14章给出，直观的概念是
+很好理解的: 进程排成一个队列，等待某些条件。在条件变为真时，内核会通知进程恢复工作。
+
+* free_area
+
+是同名数据结构的数组，用于实现伙伴系统。每个数组元素都表示某种固定长度的一些连续内存区。
+对于包含在每个区域中的空闲内存页的管理，free_area是一个起点。
+
+* flags
+
+描述内存域的当前状态。允许使用下列标志：
+
+path: include/linux/mmzone.h
+```
+enum zone_flags {
+     /* 在SMP系统上，多个CPU可能试图并发地回收一个内存域。ZONE_RECLAIM_LOCKED标志
+      * 可防止这种情况：如果一个CPU在回收某个内存域，则设置该标志。这防止了其他CPU的尝试。
+      */
+    ZONE_RECLAIM_LOCKED,        /* prevents concurrent reclaim */
+    /* 专用于某种不走运的情况：如果进程消耗了大量的内存，致使必要的操作都无法完成，
+     * 那么内核会试图杀死消耗内存最多的进程，以获得更多的空闲页。该标志可以防止多个
+     * CPU同时进行这种操作。
+     */
+    ZONE_OOM_LOCKED,       /* zone is in OOM killer zonelist */
+    ZONE_CONGESTED,        /* zone has many dirty pages backed by a congested BDI */
+    ZONE_DIRTY,            /* reclaim scanning has recently found
+                            * many dirty file pages at the tail
+                            * of the LRU.
+                            */
+    ZONE_WRITEBACK,            /* reclaim scanning has recently found
+                     * many pages under writeback
+                     */
+    ZONE_FAIR_DEPLETED,        /* fair zone policy batch depleted */
+};
+```
+
+* lruvec
+
+path: include/linux/mmzone.h
+```
+enum lru_list {
+    LRU_INACTIVE_ANON = LRU_BASE,
+    LRU_ACTIVE_ANON = LRU_BASE + LRU_ACTIVE,
+    LRU_INACTIVE_FILE = LRU_BASE + LRU_FILE,
+    LRU_ACTIVE_FILE = LRU_BASE + LRU_FILE + LRU_ACTIVE,
+    LRU_UNEVICTABLE,
+    NR_LRU_LISTS
+};
+...
+struct lruvec {
+    struct list_head lists[NR_LRU_LISTS];
+    struct zone_reclaim_stat reclaim_stat;
+#ifdef CONFIG_MEMCG
+    struct zone *zone;
+#endif
+};
+```
+
+LRU_ACTIVE_ANON是活动页的集合，而LRU_INACTIVE_ANON则不活动页的集合.
+
+* vm_stat
+
+维护了大量有关该内存域的统计信息。由于其中维护的大部分信息目前没有多大意义.
