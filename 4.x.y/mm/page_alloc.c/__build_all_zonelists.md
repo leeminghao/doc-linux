@@ -3,6 +3,9 @@ __build_all_zonelists
 
 __build_all_zonelists对系统中的各个NUMA结点分别调用build_zonelists。
 
+build_zonelists
+----------------------------------------
+
 path: mm/page_alloc.c
 ```
 static int __build_all_zonelists(void *data)
@@ -20,13 +23,25 @@ static int __build_all_zonelists(void *data)
         build_zonelist_cache(self);
     }
 
+    /* for_each_online_node遍历了系统中所有的活动结点。由于UMA系统只有一个结点，
+     * build_zonelists只调用了一次，就对所有的内存创建了内存域列表。NUMA系统调用
+     * 该函数的次数等同于结点的数目。每次调用对一个不同结点生成内存域数据。
+     * build_zonelists需要一个指向pgdat_t实例的指针作为参数，其中包含了结点内存配置
+     * 的所有现存信息，而新建的数据结构也会放置在其中。
+     */
     for_each_online_node(nid) {
+        /* 在UMA系统上，NODE_DATA返回contig_page_data的地址。*/
         pg_data_t *pgdat = NODE_DATA(nid);
 
         build_zonelists(pgdat);
         build_zonelist_cache(pgdat);
     }
+```
 
+setup_pageset
+----------------------------------------
+
+```
     /*
      * Initialize the boot_pagesets that are going to be used
      * for bootstrapping processors. The real pagesets for

@@ -78,6 +78,10 @@ typedef struct pglist_data {
 * node_zonelists
 
 指定了备用结点及其内存域的列表，以便在当前结点没有可用空间时，在备用结点分配内存。
+该数组用来表示所描述的层次结构。node_zonelists数组对每种可能的内存域类型，都配置
+了一个独立的数组项。数组项包含了类型为zonelist的一个备用列表:
+
+https://github.com/leeminghao/doc-linux/blob/master/4.x.y/include/linux/mmzone.h/struct_zonelist.md
 
 * nr_zones
 
