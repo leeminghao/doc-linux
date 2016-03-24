@@ -1,6 +1,12 @@
 setup_machine_fdt
 ========================================
 
+setup_machine_fdt函数的功能就是根据Device Tree的信息，找到最适合的machine描述符。
+具体代码如下：
+
+early_init_dt_verify
+----------------------------------------
+
 path: arch/arm/kernel/devtree.c
 ```
 /**
@@ -23,7 +29,14 @@ const struct machine_desc * __init setup_machine_fdt(unsigned int dt_phys)
 
     if (!dt_phys || !early_init_dt_verify(phys_to_virt(dt_phys)))
         return NULL;
+```
 
+of_flat_dt_match_machine
+----------------------------------------
+
+of_flat_dt_match_machine是在machine描述符的列表中scan，找到最合适的那个machine描述符。
+
+```
     mdesc = of_flat_dt_match_machine(mdesc_best, arch_get_next_mach);
 
     if (!mdesc) {
@@ -49,7 +62,12 @@ const struct machine_desc * __init setup_machine_fdt(unsigned int dt_phys)
     /* We really don't want to do this, but sometimes firmware provides buggy data */
     if (mdesc->dt_fixup)
         mdesc->dt_fixup();
+```
 
+early_init_dt_scan_nodes
+----------------------------------------
+
+```
     early_init_dt_scan_nodes();
 
     /* Change machine number to match the mdesc we're using */

@@ -30,8 +30,6 @@ https://github.com/leeminghao/doc-linux/tree/master/4.x.y/arch/arm/kernel/setup.
 setup_machine_fdt
 ----------------------------------------
 
-这个函数时获取设备树的信息.
-
 ```
     mdesc = setup_machine_fdt(__atags_pointer);
 ```
@@ -51,7 +49,8 @@ setup_machine_tags
 
 https://github.com/leeminghao/doc-linux/tree/master/4.x.y/arch/arm/kernel/atags_parse.c/setup_machine_tags.md
 
-
+设置init_mm的代码段和数据段
+----------------------------------------
 
 ```
     /* 这个是重启方式，”s”为软件，”h”为硬件 */
@@ -68,12 +67,18 @@ https://github.com/leeminghao/doc-linux/tree/master/4.x.y/arch/arm/kernel/atags_
     *cmdline_p = cmd_line;
 ```
 
+parse_early_param
+----------------------------------------
+
 ```
     parse_early_param();
 ```
 
 ```
     early_paging_init(mdesc, lookup_processor_type(read_cpuid_id()));
+```
+
+```
     setup_dma_zone(mdesc);
     sanity_check_meminfo();
     arm_memblock_init(mdesc);
