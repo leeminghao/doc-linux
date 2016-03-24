@@ -74,8 +74,15 @@ other
     erratum_a15_798181_init();
 
     elf_hwcap_fixup();
+```
 
+cacheid_init
+----------------------------------------
+
+```
     cacheid_init();
     cpu_init();
 }
 ```
+
+https://github.com/leeminghao/doc-linux/tree/master/4.x.y/arch/arm/kernel/setup.c/cacheid_init.md
