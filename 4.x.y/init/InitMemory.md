@@ -46,30 +46,34 @@ https://github.com/leeminghao/doc-linux/tree/master/4.x.y/init/main.c/res/start_
 
 我们首先概述相关函数的任务:
 
-* setup_arch
+### setup_arch
 
 是一个特定于体系结构的设置函数，其中一项任务是负责初始化自举分配器。
 
-* setup_per_cpu_areas
+#### ARM
+
+https://github.com/leeminghao/doc-linux/tree/master/4.x.y/arch/arm/kernel/setup.c/setup_arch.md
+
+### setup_per_cpu_areas
 
 在SMP系统上，setup_per_cpu_areas初始化源代码中（使用per_cpu宏）定义的静态per-cpu变量，这种变量
 对系统中的每个CPU都有一个独立的副本。此类变量保存在内核二进制映像的一个独立的段中。
 setup_per_cpu_areas的目的是为系统的各个CPU分别创建一份这些数据的副本。
 在非SMP系统上该函数是一个空操作。
 
-* build_all_zonelists
+### build_all_zonelists
 
 建立结点和内存域的数据结构。
 
-* mem_init
+### mem_init
 
 是另一个特定于体系结构的函数，用于停用boot-mem分配器并迁移到实际的内存管理函数。
 
-* kmem_cache_init
+### kmem_cache_init
 
 初始化内核内部用于小块内存区的分配器。
 
-* setup_per_cpu_pageset
+### setup_per_cpu_pageset
 
 从上文提到的struct zone，为pageset数组的第一个数组元素分配内存。分配第一个数组元素，
 换句话说，就是意味着为第一个系统处理器分配。系统的所有内存域都会考虑进来。该函数还
