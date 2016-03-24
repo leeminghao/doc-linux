@@ -1,20 +1,60 @@
 setup_arch
 ========================================
 
+参数
+----------------------------------------
+
+在我们的实验环境传递进来的cmdline如下所示:
+
+```
+console=ttyHSL0,115200,n8 androidboot.hardware=qcom ehci-hcd.park=3 maxcpus=2 androidboot.bootdevice=msm_sdcc.1 androidboot.emmc=true androidboot.serialno=c0d9b895 androidboot.sdcard.type=mixed syspart=system  androidboot.baseband=mdm
+```
+
 path: arch/arm/kernel/setup.c
 ```
 void __init setup_arch(char **cmdline_p)
 {
+```
+
+setup_processor
+----------------------------------------
+
+```
     const struct machine_desc *mdesc;
 
     setup_processor();
+```
+
+https://github.com/leeminghao/doc-linux/tree/master/4.x.y/arch/arm/kernel/setup.c/setup_processor.md
+
+setup_machine_fdt
+----------------------------------------
+
+这个函数时获取设备树的信息.
+
+```
     mdesc = setup_machine_fdt(__atags_pointer);
+```
+
+https://github.com/leeminghao/doc-linux/tree/master/4.x.y/arch/arm/kernel/devtree.c/setup_machine_fdt.md
+
+setup_machine_tags
+----------------------------------------
+
+```
     if (!mdesc)
         mdesc = setup_machine_tags(__atags_pointer, __machine_arch_type);
     machine_desc = mdesc;
     machine_name = mdesc->name;
     dump_stack_set_arch_desc("%s", mdesc->name);
+```
 
+https://github.com/leeminghao/doc-linux/tree/master/4.x.y/arch/arm/kernel/atags_parse.c/setup_machine_tags.md
+
+
+
+```
+    /* 这个是重启方式，”s”为软件，”h”为硬件 */
     if (mdesc->reboot_mode != REBOOT_HARD)
         reboot_mode = mdesc->reboot_mode;
 
@@ -26,9 +66,13 @@ void __init setup_arch(char **cmdline_p)
     /* populate cmd_line too for later use, preserving boot_command_line */
     strlcpy(cmd_line, boot_command_line, COMMAND_LINE_SIZE);
     *cmdline_p = cmd_line;
+```
 
+```
     parse_early_param();
+```
 
+```
     early_paging_init(mdesc, lookup_processor_type(read_cpuid_id()));
     setup_dma_zone(mdesc);
     sanity_check_meminfo();
