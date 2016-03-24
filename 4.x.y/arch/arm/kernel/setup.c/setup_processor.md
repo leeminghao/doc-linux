@@ -1,6 +1,9 @@
 setup_processor
 ========================================
 
+lookup_processor_type
+----------------------------------------
+
 path: arch/arm/kernel/setup.c
 ```
 static void __init setup_processor(void)
@@ -12,6 +15,9 @@ static void __init setup_processor(void)
      * types.  The linker builds this table for us from the
      * entries in arch/arm/mm/proc-*.S
      */
+     /* read_cpuid_id从CP15的寄存器中读取CPU ID，然后查找到CPU对应的proc_info_list结构体。
+      * 然后通过printk打印出CPU的相关信息。
+      */
     list = lookup_processor_type(read_cpuid_id());
     if (!list) {
         pr_err("CPU configuration botched (ID %08x), unable to continue.\n",
@@ -38,7 +44,19 @@ static void __init setup_processor(void)
     pr_info("CPU: %s [%08x] revision %d (ARMv%s), cr=%08lx\n",
         cpu_name, read_cpuid_id(), read_cpuid_id() & 15,
         proc_arch[cpu_architecture()], get_cr());
+```
 
+在我们实验环境中打印如下CPU信息:
+```
+[    0.000000] CPU: ARMv7 Processor [511f06f0] revision 0 (ARMv7), cr=10c5387d
+```
+
+https://github.com/leeminghao/doc-linux/blob/master/4.x.y/arch/arm/kernel/head-common.S/lookup_processor_type.md
+
+other
+----------------------------------------
+
+```
     snprintf(init_utsname()->machine, __NEW_UTS_LEN + 1, "%s%c",
          list->arch_name, ENDIANNESS);
     snprintf(elf_platform, ELF_PLATFORM_SIZE, "%s%c",
