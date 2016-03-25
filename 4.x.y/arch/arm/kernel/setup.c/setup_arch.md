@@ -30,6 +30,8 @@ https://github.com/leeminghao/doc-linux/tree/master/4.x.y/arch/arm/kernel/setup.
 setup_machine_fdt
 ----------------------------------------
 
+如果atags中带有device tree的信息则调用函数setup_machine_fdt来解析对应的atags.
+
 ```
     mdesc = setup_machine_fdt(__atags_pointer);
 ```
@@ -38,6 +40,8 @@ https://github.com/leeminghao/doc-linux/tree/master/4.x.y/arch/arm/kernel/devtre
 
 setup_machine_tags
 ----------------------------------------
+
+如果atags中没有带有设备树相关信息就调用setup_machine_tags来获取对应的机器描述符.
 
 ```
     if (!mdesc)
@@ -48,6 +52,10 @@ setup_machine_tags
 ```
 
 https://github.com/leeminghao/doc-linux/tree/master/4.x.y/arch/arm/kernel/atags_parse.c/setup_machine_tags.md
+
+**注意**: 对应带有Device Tree信息和不带Device Tree信息的ATAGS是由bootloader来组织的:
+
+https://github.com/leeminghao/doc-linux/blob/master/bootloader/lk/apps/aboot/aboot_c/boot_linux.md
 
 设置init_mm的代码段和数据段
 ----------------------------------------
@@ -73,6 +81,11 @@ parse_early_param
 ```
     parse_early_param();
 ```
+
+https://github.com/leeminghao/doc-linux/blob/master/4.x.y/init/main.c/parse_early_param.md
+
+early_paging_init
+----------------------------------------
 
 ```
     early_paging_init(mdesc, lookup_processor_type(read_cpuid_id()));
