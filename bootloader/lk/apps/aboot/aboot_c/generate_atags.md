@@ -63,6 +63,7 @@ atag_ptable
 ----------------------------------------
 
 path: lk/app/aboot/aboot.c
+```
 unsigned *atag_ptable(unsigned **ptr_addr)
 {
     int i;
@@ -78,6 +79,7 @@ unsigned *atag_ptable(unsigned **ptr_addr)
 
     return (*ptr_addr);
 }
+```
 
 atag_cmdline
 ----------------------------------------

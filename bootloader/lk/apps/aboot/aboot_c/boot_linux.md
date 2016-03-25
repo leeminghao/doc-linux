@@ -24,7 +24,15 @@ void boot_linux(void *kernel, unsigned *tags,
     final_cmdline = update_cmdline((const char*)cmdline);
 
 #if DEVICE_TREE
-    ...
+    dprintf(INFO, "Updating device tree: start\n");
+
+    /* Update the Device Tree */
+    ret = update_device_tree((void *)tags, final_cmdline, ramdisk, ramdisk_size);
+    if(ret)
+    {
+        dprintf(CRITICAL, "ERROR: Updating Device Tree Failed \n");
+                          ASSERT(0);
+    }
 #else
     /* Generating the Atags */
     generate_atags(tags, final_cmdline, ramdisk, ramdisk_size);
