@@ -71,6 +71,15 @@ void boot_linux(void *kernel, unsigned *tags,
 * tags_addr - 0x80200100
 * ramdisk_addr -  0x82200000
 
+如果定义设备树atags由函数update_device_tree组织
+
+update_device_tree
+----------------------------------------
+
+https://github.com/leeminghao/doc-linux/tree/master/bootloader/lk/apps/aboot/aboot_c/update_device_tree.md
+
+如果没有定义设备树atags由函数generate_atags组织.
+
 generate_atags
 ----------------------------------------
 

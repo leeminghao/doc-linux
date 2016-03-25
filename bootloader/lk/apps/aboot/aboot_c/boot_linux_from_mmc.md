@@ -194,7 +194,7 @@ int boot_linux_from_mmc(void)
         ......
     } else
     {
-        ...
+        second_actual  = ROUND_TO_PAGE(hdr->second_size,  page_mask);
 
         dprintf(INFO, "Loading boot image (%d): start\n",
                 kernel_actual + ramdisk_actual);
@@ -223,7 +223,58 @@ int boot_linux_from_mmc(void)
         dprintf(INFO, "Loading boot image (%d): done\n",
                 kernel_actual + ramdisk_actual);
         /* 处理secondary和dt设备树 */
-        ...
+        if(hdr->second_size != 0) {
+            offset += second_actual;
+            /* Second image loading not implemented. */
+            ASSERT(0);
+        }
+
+#if DEVICE_TREE
+        if(hdr->dt_size != 0) {
+
+            /* Read the device tree table into buffer */
+            if(mmc_read(ptn + offset,(unsigned int *) dt_buf, page_size)) {
+                dprintf(CRITICAL, "ERROR: Cannot read the Device Tree Table\n");
+                return -1;
+            }
+            table = (struct dt_table*) dt_buf;
+
+            /* Restriction that the device tree entry table should be less than a page*/
+            ASSERT(((table->num_entries * sizeof(struct dt_entry))+ DEV_TREE_HEADER_SIZE) < hdr->page_size);
+
+            /* Validate the device tree table header */
+            if((table->magic != DEV_TREE_MAGIC) && (table->version != DEV_TREE_VERSION)) {
+                dprintf(CRITICAL, "ERROR: Cannot validate Device Tree Table \n");
+                return -1;
+            }
+
+            /* Calculate the offset of device tree within device tree table */
+            if((dt_entry_ptr = get_device_tree_ptr(table)) == NULL){
+                dprintf(CRITICAL, "ERROR: Getting device tree address failed\n");
+                return -1;
+            }
+
+            /* Validate and Read device device tree in the "tags_add" */
+            if (check_aboot_addr_range_overlap(hdr->tags_addr, dt_entry_ptr->size))
+            {
+                dprintf(CRITICAL, "Device tree addresses overlap with aboot addresses.\n");
+                return -1;
+            }
+
+            if(mmc_read(ptn + offset + dt_entry_ptr->offset,
+                         (void *)hdr->tags_addr, dt_entry_ptr->size)) {
+                dprintf(CRITICAL, "ERROR: Cannot read device tree\n");
+                return -1;
+            }
+
+            /* Validate the tags_addr */
+            if (check_aboot_addr_range_overlap(hdr->tags_addr, kernel_actual))
+            {
+                dprintf(CRITICAL, "Device tree addresses overlap with aboot addresses.\n");
+                return -1;
+            }
+        }
+#endif
     }
 
 unified_boot:
