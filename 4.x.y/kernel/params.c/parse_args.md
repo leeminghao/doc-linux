@@ -1,6 +1,9 @@
 parse_args
 ========================================
 
+参数
+----------------------------------------
+
 path: kernel/params.c
 ```
 /* Args looks like "foo=bar,bar2 baz=fuz wiz". */
@@ -12,6 +15,21 @@ char *parse_args(const char *doing,
          s16 max_level,
          int (*unknown)(char *param, char *val, const char *doing))
 {
+```
+
+在我们的例子中:
+
+https://github.com/leeminghao/doc-linux/blob/master/4.x.y/init/main.c/parse_early_param.md
+
+* doing - "early options"
+* args -"root=/dev/sda2 panic=1 rootfstype=ext4 rw init=/bin/bash"
+* params - NULL
+* num - 0
+* min_level - 0
+* max_level - 0
+* unknown - do_early_param
+
+```
     char *param, *val;
 
     /* Chew leading spaces */

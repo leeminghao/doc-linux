@@ -24,6 +24,12 @@ void __init parse_early_param(void)
 }
 ```
 
+我们假设boot_command_line为如下信息，其余的类似:
+
+```
+"root=/dev/sda2 panic=1 rootfstype=ext4 rw init=/bin/bash"
+```
+
 parse_early_options
 ----------------------------------------
 
