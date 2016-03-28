@@ -98,6 +98,8 @@ https://github.com/leeminghao/doc-linux/blob/master/4.x.y/arch/arm/mm/mmu.c/earl
 paging_init
 ----------------------------------------
 
+这部分的主要工作建立页表，初始化内存.
+
 ```
     setup_dma_zone(mdesc);
     sanity_check_meminfo();
@@ -147,3 +149,5 @@ paging_init
         mdesc->init_early();
 }
 ```
+
+https://github.com/leeminghao/doc-linux/blob/master/4.x.y/arch/arm/mm/mmu.c/paging_init.md
