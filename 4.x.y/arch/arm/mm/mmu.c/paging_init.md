@@ -1,6 +1,12 @@
 paging_inig
 ========================================
 
+build_mem_type_table
+----------------------------------------
+
+build_mem_type_table主要是用来建立各种类型的页表选项(比如内存是MEMORY类型，设备是DEVICE，
+中断向量表是HIGH_VECTORS)。
+
 path: arch/arm/mm/mmu.c
 ```
 /*
@@ -12,6 +18,10 @@ void __init paging_init(const struct machine_desc *mdesc)
     void *zero_page;
 
     build_mem_type_table();
+```
+
+
+```
     prepare_page_table();
     map_lowmem();
     dma_contiguous_remap();
