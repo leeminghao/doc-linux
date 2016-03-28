@@ -20,9 +20,16 @@ void __init paging_init(const struct machine_desc *mdesc)
     build_mem_type_table();
 ```
 
+https://github.com/leeminghao/doc-linux/blob/master/4.x.y/arch/arm/mm/mmu.c/build_mem_type_table.md
+
+prepare_page_table
+----------------------------------------
 
 ```
     prepare_page_table();
+```
+
+```
     map_lowmem();
     dma_contiguous_remap();
     devicemaps_init(mdesc);

@@ -9,9 +9,11 @@ path: arch/arm/mm/mmu.c
 static void __init build_mem_type_table(void)
 {
     struct cachepolicy *cp;
+    // get_cr获取cp15处理器的控制寄存器c1的值。
     unsigned int cr = get_cr();
     pteval_t user_pgprot, kern_pgprot, vecs_pgprot;
     pteval_t hyp_device_pgprot, s2_pgprot, s2_device_pgprot;
+    // cpu_architecture获取CPU架构
     int cpu_arch = cpu_architecture();
     int i;
 
