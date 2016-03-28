@@ -87,9 +87,16 @@ https://github.com/leeminghao/doc-linux/blob/master/4.x.y/init/main.c/parse_earl
 early_paging_init
 ----------------------------------------
 
+与平台相关的内存初始化函数.
+
 ```
     early_paging_init(mdesc, lookup_processor_type(read_cpuid_id()));
 ```
+
+https://github.com/leeminghao/doc-linux/blob/master/4.x.y/arch/arm/mm/mmu.c/early_paging_init.md
+
+paging_init
+----------------------------------------
 
 ```
     setup_dma_zone(mdesc);
