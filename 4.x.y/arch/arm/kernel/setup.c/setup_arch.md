@@ -104,10 +104,21 @@ sanity_check_meminfo
 ```
     setup_dma_zone(mdesc);
     sanity_check_meminfo();
-    arm_memblock_init(mdesc);
+
 ```
 
 https://github.com/leeminghao/doc-linux/blob/master/4.x.y/arch/arm/mm/mmu.c/sanity_check_meminfo.md
+
+arm_memblock_init
+----------------------------------------
+
+Linux内核初期内存管理memblock
+
+```
+    arm_memblock_init(mdesc);
+```
+
+https://github.com/leeminghao/doc-linux/tree/master/4.x.y/arch/arm/mm/init.c/arm_memblock_init.md
 
 paging_init
 ----------------------------------------
