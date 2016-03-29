@@ -1,20 +1,75 @@
 build_mem_type_table
 ========================================
 
+struct cachepolicy
+----------------------------------------
+
+struct cachepolicy *cp用来处理映射策略。它在初始化时被赋值为CPOLICY_WRITEBACK。为了保证
+cache和memory的数据一致性，通常有三种方法：
+
+* write through
+  CPU向cache写入数据时，同时向memory也写一份，使cache和memory的数据保持一致。
+  优点是简单，缺点是每次都要访问memory，速度比较慢。
+
+* post write
+  CPU更新cache数据时，把更新的数据写入到一个更新缓冲器，在合适的时候才对memory进行更新。
+  这样可以提高cache访问速度，但是，在数据连续被更新两次以上的时候，缓冲区将不够使用，
+  被迫同时更新memory。
+
+* write back
+  CPU更新cache时，只是把更新的cache区标记一下，并不同步更新memory。只是在cache区要被
+  新进入的数据取代时，才更新memory。这样做的原因是考虑到很多时候cache存入的是中间结果，
+  没有必要同步更新memory。优点是CPU执行的效率提高，缺点是实现起来技术比较复杂。
+
 path: arch/arm/mm/mmu.c
 ```
+static unsigned int cachepolicy __initdata = CPOLICY_WRITEBACK;
+...
 /*
  * Adjust the PMD section entries according to the CPU in use.
  */
 static void __init build_mem_type_table(void)
 {
     struct cachepolicy *cp;
-    // get_cr获取cp15处理器的控制寄存器c1的值。
+    ...
+    /*
+     * Now deal with the memory-type mappings
+     */
+    cp = &cache_policies[cachepolicy];
+    vecs_pgprot = kern_pgprot = user_pgprot = cp->pte;
+    ...
+```
+
+cp对应的内存策略如下所示:
+
+https://github.com/leeminghao/doc-linux/tree/master/4.x.y/arch/arm/mm/mmu.c/struct_cachepolicy.md
+
+get_cr
+----------------------------------------
+
+get_cr获取cp15处理器的控制寄存器c1的值。
+
+```
     unsigned int cr = get_cr();
+```
+
+cpu_architecture
+----------------------------------------
+
+cpu_architecture获取CPU架构.
+
+```
     pteval_t user_pgprot, kern_pgprot, vecs_pgprot;
     pteval_t hyp_device_pgprot, s2_pgprot, s2_device_pgprot;
-    // cpu_architecture获取CPU架构
     int cpu_arch = cpu_architecture();
+```
+
+mem_types
+----------------------------------------
+
+根据CPU型号来配置对应cache策略和memory的类型信息.
+
+```
     int i;
 
     if (cpu_arch < CPU_ARCH_ARMv6) {
@@ -217,21 +272,7 @@ static void __init build_mem_type_table(void)
     }
 
 #ifdef CONFIG_ARM_LPAE
-    /*
-     * Do not generate access flag faults for the kernel mappings.
-     */
-    for (i = 0; i < ARRAY_SIZE(mem_types); i++) {
-        mem_types[i].prot_pte |= PTE_EXT_AF;
-        if (mem_types[i].prot_sect)
-            mem_types[i].prot_sect |= PMD_SECT_AF;
-    }
-    kern_pgprot |= PTE_EXT_AF;
-    vecs_pgprot |= PTE_EXT_AF;
-
-    /*
-     * Set PXN for user mappings
-     */
-    user_pgprot |= PTE_EXT_PXN;
+    ...
 #endif
 
     for (i = 0; i < 16; i++) {
@@ -279,4 +320,10 @@ static void __init build_mem_type_table(void)
             t->prot_sect |= PMD_DOMAIN(t->domain);
     }
 }
+```
+
+在我们aries的实验环境输出如下信息:
+
+```
+[    0.000000] Memory policy: ECC disabled, Data cache writealloc
 ```

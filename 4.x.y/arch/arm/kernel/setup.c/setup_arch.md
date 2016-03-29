@@ -95,16 +95,23 @@ early_paging_init
 
 https://github.com/leeminghao/doc-linux/blob/master/4.x.y/arch/arm/mm/mmu.c/early_paging_init.md
 
+sanity_check_meminfo
+----------------------------------------
+
+```
+    setup_dma_zone(mdesc);
+    sanity_check_meminfo();
+    arm_memblock_init(mdesc);
+```
+
+https://github.com/leeminghao/doc-linux/blob/master/4.x.y/arch/arm/mm/mmu.c/sanity_check_meminfo.md
+
 paging_init
 ----------------------------------------
 
 这部分的主要工作建立页表，初始化内存.
 
 ```
-    setup_dma_zone(mdesc);
-    sanity_check_meminfo();
-    arm_memblock_init(mdesc);
-
     paging_init(mdesc);
     request_standard_resources(mdesc);
 
