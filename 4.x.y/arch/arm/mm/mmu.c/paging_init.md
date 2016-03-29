@@ -25,6 +25,8 @@ https://github.com/leeminghao/doc-linux/blob/master/4.x.y/arch/arm/mm/mmu.c/buil
 prepare_page_table
 ----------------------------------------
 
+prepare_page_table则用于初始化页表.
+
 ```
     prepare_page_table();
 ```

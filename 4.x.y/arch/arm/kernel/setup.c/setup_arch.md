@@ -78,6 +78,9 @@ https://github.com/leeminghao/doc-linux/blob/master/bootloader/lk/apps/aboot/abo
 parse_early_param
 ----------------------------------------
 
+内核接下来用parse_early_param分析命令行，类似mem=XXX[KkmM], highmem=XXX[kKmM]或
+memmap=XXX[KkmM], @XXX[KkmM]之类的参数通常与内存相关.
+
 ```
     parse_early_param();
 ```

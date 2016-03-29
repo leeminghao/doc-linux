@@ -91,10 +91,3 @@ void __init sanity_check_meminfo(void)
     memblock_set_current_limit(memblock_limit);
 }
 ```
-
-aries output
-----------------------------------------
-
-```
-[    0.000000] Truncating memory at 0xc0000000 to fit in 32-bit physical address space
-```
