@@ -33,3 +33,8 @@ static int __init_memblock memblock_reserve_region(phys_addr_t base,
 ### memblock
 
 https://github.com/leeminghao/doc-linux/tree/master/4.x.y/mm/memblock.c/memblock.md
+
+memblock_add_range
+----------------------------------------
+
+https://github.com/leeminghao/doc-linux/tree/master/4.x.y/mm/memblock.c/memblock_add_range.md
