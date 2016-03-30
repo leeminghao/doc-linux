@@ -4,6 +4,7 @@ arm_memblock_init
 memblock算法是linux内核初始化阶段的一个内存分配器,本质上是取代了原来的bootmem算法.
 memblock实现比较简单,而它的作用就是在page allocator初始化之前来管理内存,完成分配和释放请求.
 
+memblock_reserve
 ----------------------------------------
 
 path: arch/arm/mm/init.c
@@ -35,7 +36,6 @@ c0100000 T _stext
 ...
 c1a4e2e4 B _end
 ```
-
 
 ----------------------------------------
 
