@@ -51,6 +51,14 @@ page address extension的缩写，该特性为内存指针提供了额外的比�
 内存布局
 ----------------------------------------
 
+### msm8960
+
+https://github.com/leeminghao/doc-linux/blob/master/arch/arm/msm8960/memory_map.md
+
+### aries
+
+https://github.com/leeminghao/doc-linux/blob/master/arch/arm/msm8960/memory_layout.md
+
 初始化内存管理
 ----------------------------------------
 

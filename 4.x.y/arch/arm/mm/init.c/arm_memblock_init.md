@@ -4,8 +4,10 @@ arm_memblock_init
 memblock算法是linux内核初始化阶段的一个内存分配器,本质上是取代了原来的bootmem算法.
 memblock实现比较简单,而它的作用就是在page allocator初始化之前来管理内存,完成分配和释放请求.
 
-memblock_reserve
+memblock_reserve - kernel
 ----------------------------------------
+
+将kernel占用的内存空间添加到已分配内存集合reserved中
 
 path: arch/arm/mm/init.c
 ```
@@ -42,7 +44,10 @@ c1a4e2e4 B _end
 https://github.com/leeminghao/doc-linux/tree/master/4.x.y/mm/memblock.c/memblock_reserve.md
 
 
+memblock_reserve - initrd
 ----------------------------------------
+
+将ramdisk(initrd)占用的物理内存空间添加到已分配内存集合reserved中
 
 ```
 #ifdef CONFIG_BLK_DEV_INITRD
@@ -72,9 +77,24 @@ https://github.com/leeminghao/doc-linux/tree/master/4.x.y/mm/memblock.c/memblock
         initrd_end = initrd_start + phys_initrd_size;
     }
 #endif
+```
 
+aries设备输出dmesg
+```
+[    0.000000] memblock_reserve: [0x00000082200000-0x000000823e1a0d] arm_memblock_init+0xe8/0x1a0
+```
+
+arm_mm_memblock_reserve
+----------------------------------------
+
+```
     arm_mm_memblock_reserve();
+```
 
+other
+----------------------------------------
+
+```
     /* reserve any platform specific memblock areas */
     if (mdesc->reserve)
         mdesc->reserve();
@@ -95,13 +115,17 @@ https://github.com/leeminghao/doc-linux/tree/master/4.x.y/mm/memblock.c/memblock
 aries output
 ----------------------------------------
 
+向内核参数传入: "memblock=debug"即可打印对应的memblock信息.
+
 ```
 [    0.000000] memblock_reserve: [0x00000080300000-0x00000081c4e2e4] arm_memblock_init+0x68/0x1a0
 [    0.000000] memblock_reserve: [0x00000082200000-0x000000823e1a0d] arm_memblock_init+0xe8/0x1a0
 [    0.000000] memblock_reserve: [0x00000080204000-0x00000080208000] arm_memblock_init+0x110/0x1a0
+
 [    0.000000] memblock_reserve: [0x000000af800000-0x000000b0000000] memblock_alloc_base_nid+0x48/0x5c
 [    0.000000] memblock_reserve: [0x000000a0000000-0x000000a5800000] dma_declare_contiguous+0xb4/0x16c
 [    0.000000] memblock_reserve: [0x000000ae800000-0x000000af800000] memblock_alloc_base_nid+0x48/0x5c
+
 [    0.000000] MEMBLOCK configuration:
 [    0.000000]  memory size = 0x7d1ff000 reserved size = 0x8b33cf1
 [    0.000000]  memory.cnt  = 0x7
