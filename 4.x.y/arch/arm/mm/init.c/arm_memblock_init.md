@@ -37,6 +37,11 @@ c0100000 T _stext
 c1a4e2e4 B _end
 ```
 
+### memblock_reserve
+
+https://github.com/leeminghao/doc-linux/tree/master/4.x.y/mm/memblock.c/memblock_reserve.md
+
+
 ----------------------------------------
 
 ```
@@ -88,8 +93,9 @@ c1a4e2e4 B _end
 ```
 
 aries output
-=======================
+----------------------------------------
 
+```
 [    0.000000] memblock_reserve: [0x00000080300000-0x00000081c4e2e4] arm_memblock_init+0x68/0x1a0
 [    0.000000] memblock_reserve: [0x00000082200000-0x000000823e1a0d] arm_memblock_init+0xe8/0x1a0
 [    0.000000] memblock_reserve: [0x00000080204000-0x00000080208000] arm_memblock_init+0x110/0x1a0
