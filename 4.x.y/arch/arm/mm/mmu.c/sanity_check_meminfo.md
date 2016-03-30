@@ -1,8 +1,8 @@
 sanity_check_meminfo
 ========================================
 
-sanity_check_meminfo用于检查meminfo注册的内存bank的有效性，比如大小，是否重叠等，
-检测错误的内存bank将被从meminfo中移除。
+sanity_check_meminfo用于检查meminfo注册的内存region的有效性，比如大小，是否重叠等，
+检测错误的内存region将被从meminfo中移除。
 
 path: arch/arm/mm/mmu.c
 ```
