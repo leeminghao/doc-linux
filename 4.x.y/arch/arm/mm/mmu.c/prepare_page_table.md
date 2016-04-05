@@ -32,6 +32,7 @@ static inline void prepare_page_table(void)
     /*
      * Clear out all the mappings below the kernel image.
      */
+     /*1.清除0~MODULES_VADDR区间的内存映射关系*/
     for (addr = 0; addr < MODULES_VADDR; addr += PMD_SIZE)
         pmd_clear(pmd_off_k(addr));
 
@@ -39,6 +40,7 @@ static inline void prepare_page_table(void)
     /* The XIP kernel is mapped in the module area -- skip over it */
     addr = ((unsigned long)_etext + PMD_SIZE - 1) & PMD_MASK;
 #endif
+    /* 2.清除MODULES_VADDR ~ PAGE_OFFSET区间的内存映射关系 */
     for ( ; addr < PAGE_OFFSET; addr += PMD_SIZE)
         pmd_clear(pmd_off_k(addr));
 
@@ -59,6 +61,12 @@ static inline void prepare_page_table(void)
              pmd_clear(pmd_off_k(addr));
 }
 ```
+
+pmd_off_k
+----------------------------------------
+
+pmd_clear
+----------------------------------------
 
 Virutal kernel memory layout (aries)
 ----------------------------------------
