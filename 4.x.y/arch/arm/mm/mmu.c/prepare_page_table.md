@@ -59,3 +59,8 @@ static inline void prepare_page_table(void)
              pmd_clear(pmd_off_k(addr));
 }
 ```
+
+Virutal kernel memory layout (aries)
+----------------------------------------
+
+https://github.com/leeminghao/doc-linux/tree/master/4.x.y/arch/arm/mm/init.c/aries_virtual_memory_layout.md

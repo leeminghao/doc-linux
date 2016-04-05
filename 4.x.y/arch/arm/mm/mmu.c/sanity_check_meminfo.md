@@ -22,8 +22,14 @@ https://github.com/leeminghao/doc-linux/blob/master/4.x.y/arch/arm/mm/init.c/arm
 接下来调用sanity_check_meminfo用于检查meminfo注册的内存region的有效性，比如大小，是否重叠等，
 检测错误的内存region将被从meminfo中移除。
 
+vmalloc_min
+----------------------------------------
+
 path: arch/arm/mm/mmu.c
 ```
+static void * __initdata vmalloc_min =
+    (void *)(VMALLOC_END - (240 << 20) - VMALLOC_OFFSET);
+
 phys_addr_t arm_lowmem_limit __initdata = 0;
 
 void __init sanity_check_meminfo(void)
@@ -31,10 +37,30 @@ void __init sanity_check_meminfo(void)
     phys_addr_t memblock_limit = 0;
     int highmem = 0;
     phys_addr_t vmalloc_limit = __pa(vmalloc_min - 1) + 1;
+```
+
+### aries dmesg
+
+```
+vmalloc_min=ef800000
+```
+
+for_each_memblock
+----------------------------------------
+
+```
     struct memblock_region *reg;
 
     /* 逐个扫描可用物理内存region */
     for_each_memblock(memory, reg) {
+```
+
+https://github.com/leeminghao/doc-linux/tree/master/4.x.y/include/linux/memblock.h/for_each_memblock.md
+
+计算high_memory
+----------------------------------------
+
+```
         phys_addr_t block_start = reg->base;
         phys_addr_t block_end = reg->base + reg->size;
         phys_addr_t size_limit = reg->size;
@@ -111,10 +137,13 @@ void __init sanity_check_meminfo(void)
 }
 ```
 
-for_each_memblock
-----------------------------------------
+### aries dmesg
 
-https://github.com/leeminghao/doc-linux/tree/master/4.x.y/include/linux/memblock.h/for_each_memblock.md
+```
+arm_lowmem_limit=afa00000
+__va(arm_lowmem_limit)=ef800000
+high_memory=ef800000
+```
 
 high_memory vs low_memory
 ----------------------------------------

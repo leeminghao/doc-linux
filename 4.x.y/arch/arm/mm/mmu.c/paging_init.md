@@ -35,15 +35,27 @@ prepare_page_table则用于初始化页表.
 
 https://github.com/leeminghao/doc-linux/blob/master/4.x.y/arch/arm/mm/mmu.c/prepare_page_table.md
 
+map_lowmem
+----------------------------------------
+
+```
+    map_lowmem();
+```
+
 devicemaps_init
 ----------------------------------------
 
 为设备IO内存创建映射.
 
 ```
-    map_lowmem();
     dma_contiguous_remap();
     devicemaps_init(mdesc);
+```
+
+kmap_init
+----------------------------------------
+
+```
     kmap_init();
     tcm_init();
 
