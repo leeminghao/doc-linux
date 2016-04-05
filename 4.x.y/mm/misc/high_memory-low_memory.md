@@ -84,3 +84,8 @@ https://github.com/leeminghao/doc-linux/tree/master/4.x.y/mm/misc/res/high-low-m
 是高端内存，无法直接被使用，并且它只有128M地址空间去管理超过896M的内存，且这些非线性区映射，
 使用上有很多限制，只有需要使用时，才去映射(如kmap用atmoic参数，当然要尽快释放。)，也有永久
 映射的一些内存，主要也是为了特定需求。
+
+好文
+----------------------------------------
+
+http://blog.csdn.net/crazyjiang/article/details/7903772
