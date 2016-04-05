@@ -1,6 +1,8 @@
 paging_inig
 ========================================
 
+在那linux刚启动时，系统创建了一个临时页表，那个是临时的，既然正式的要上场了，临时的当然要退休了.
+
 build_mem_type_table
 ----------------------------------------
 
@@ -31,6 +33,13 @@ prepare_page_table则用于初始化页表.
     prepare_page_table();
 ```
 
+https://github.com/leeminghao/doc-linux/blob/master/4.x.y/arch/arm/mm/mmu.c/prepare_page_table.md
+
+devicemaps_init
+----------------------------------------
+
+为设备IO内存创建映射.
+
 ```
     map_lowmem();
     dma_contiguous_remap();
@@ -42,7 +51,14 @@ prepare_page_table则用于初始化页表.
 
     /* allocate the zero page. */
     zero_page = early_alloc(PAGE_SIZE);
+```
 
+bootmem_init
+----------------------------------------
+
+为主内存创建映射.
+
+```
     bootmem_init();
 
     empty_zero_page = virt_to_page(zero_page);

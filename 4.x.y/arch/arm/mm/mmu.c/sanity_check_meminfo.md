@@ -1,7 +1,25 @@
 sanity_check_meminfo
 ========================================
 
-sanity_check_meminfo用于检查meminfo注册的内存region的有效性，比如大小，是否重叠等，
+在通过arm_memblock_init函数通过memblock算法初始化了内核初始化阶段的物理内存分配器:
+
+https://github.com/leeminghao/doc-linux/blob/master/4.x.y/arch/arm/mm/init.c/arm_memblock_init.md
+
+初始化完成之后可用物理内存region如下所示:
+
+```
+[    0.000000]  memory size = 0x7d1ff000 reserved size = 0x8b33cf1
+[    0.000000]  memory.cnt  = 0x7
+[    0.000000]  memory[0x0]     [0x00000080200000-0x00000088dfffff], 0x8c00000 bytes
+[    0.000000]  memory[0x1]     [0x00000089000000-0x0000008d9fffff], 0x4a00000 bytes
+[    0.000000]  memory[0x2]     [0x0000008ec00000-0x0000008effffff], 0x400000 bytes
+[    0.000000]  memory[0x3]     [0x0000008f700000-0x0000008fdfffff], 0x700000 bytes
+[    0.000000]  memory[0x4]     [0x0000008ff00000-0x0000009fdfffff], 0xff00000 bytes
+[    0.000000]  memory[0x5]     [0x000000a0000000-0x000000a57fffff], 0x5800000 bytes
+[    0.000000]  memory[0x6]     [0x000000a5900000-0x000000ff2fefff], 0x599ff000 bytes
+```
+
+接下来调用sanity_check_meminfo用于检查meminfo注册的内存region的有效性，比如大小，是否重叠等，
 检测错误的内存region将被从meminfo中移除。
 
 path: arch/arm/mm/mmu.c
@@ -15,6 +33,7 @@ void __init sanity_check_meminfo(void)
     phys_addr_t vmalloc_limit = __pa(vmalloc_min - 1) + 1;
     struct memblock_region *reg;
 
+    /* 逐个扫描可用物理内存region */
     for_each_memblock(memory, reg) {
         phys_addr_t block_start = reg->base;
         phys_addr_t block_end = reg->base + reg->size;
@@ -25,7 +44,7 @@ void __init sanity_check_meminfo(void)
         else
             size_limit = vmalloc_limit - reg->base;
 
-
+        /* 检查是否支持高端内存, 不支持执行如下代码 */
         if (!IS_ENABLED(CONFIG_HIGHMEM) || cache_is_vipt_aliasing()) {
 
             if (highmem) {
@@ -91,3 +110,13 @@ void __init sanity_check_meminfo(void)
     memblock_set_current_limit(memblock_limit);
 }
 ```
+
+for_each_memblock
+----------------------------------------
+
+https://github.com/leeminghao/doc-linux/tree/master/4.x.y/include/linux/memblock.h/for_each_memblock.md
+
+high_memory vs low_memory
+----------------------------------------
+
+https://github.com/leeminghao/doc-linux/tree/master/4.x.y/mm/misc/high_memory-low_memory.md
