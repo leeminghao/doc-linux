@@ -5,6 +5,11 @@ paging_inig
 
 https://github.com/leeminghao/doc-linux/blob/master/4.x.y/arch/arm/kernel/head.S/__create_page_tables.md
 
+aries virtual memory layout
+----------------------------------------
+
+https://github.com/leeminghao/doc-linux/tree/master/4.x.y/arch/arm/mm/init.c/aries_virtual_memory_layout.md
+
 build_mem_type_table
 ----------------------------------------
 
@@ -40,9 +45,13 @@ https://github.com/leeminghao/doc-linux/blob/master/4.x.y/arch/arm/mm/mmu.c/prep
 map_lowmem
 ----------------------------------------
 
+map_lowmem()是为低端物理内存建立映.
+
 ```
     map_lowmem();
 ```
+
+https://github.com/leeminghao/doc-linux/blob/master/4.x.y/arch/arm/mm/mmu.c/map_lowmem.md
 
 devicemaps_init
 ----------------------------------------
@@ -54,11 +63,21 @@ devicemaps_init
     devicemaps_init(mdesc);
 ```
 
+https://github.com/leeminghao/doc-linux/blob/master/4.x.y/arch/arm/mm/mmu.c/devicemaps_init.md
+
 kmap_init
 ----------------------------------------
 
 ```
     kmap_init();
+```
+
+https://github.com/leeminghao/doc-linux/blob/master/4.x.y/arch/arm/mm/mmu.c/kmap_init.md
+
+tcm_init
+----------------------------------------
+
+```
     tcm_init();
 
     top_pmd = pmd_off_k(0xffff0000);
@@ -79,3 +98,5 @@ bootmem_init
     __flush_dcache_page(NULL, empty_zero_page);
 }
 ```
+
+https://github.com/leeminghao/doc-linux/blob/master/4.x.y/arch/arm/mm/init.c/bootmem_init.md

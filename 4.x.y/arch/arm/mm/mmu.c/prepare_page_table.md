@@ -56,6 +56,7 @@ static inline void prepare_page_table(void)
      * Clear out all the kernel space mappings, except for the first
      * memory bank, up to the vmalloc region.
      */
+     /* 3.清除high_memory(arm_lowmem_limit) ~ VMALLOC_START段映射. */
     for (addr = __phys_to_virt(end);
          addr < VMALLOC_START; addr += PMD_SIZE)
              pmd_clear(pmd_off_k(addr));
@@ -67,10 +68,14 @@ pmd_off_k
 
 pmd_off_k查找一个虚拟地址的内核页表目录项.
 
+https://github.com/leeminghao/doc-linux/tree/master/4.x.y/arch/arm/include/asm/pgtable.h/pgd_offset_k.md
+
 pmd_clear
 ----------------------------------------
 
 Virutal kernel memory layout (aries)
 ----------------------------------------
+
+在我们实验环境对应的虚拟地址空间映射如下所示:
 
 https://github.com/leeminghao/doc-linux/tree/master/4.x.y/arch/arm/mm/init.c/aries_virtual_memory_layout.md
