@@ -1,6 +1,9 @@
 __enable_mmu
 ========================================
 
+__enable_mmu
+----------------------------------------
+
 path: arch/arm/kernel/head.S
 ```
 /*
@@ -46,6 +49,7 @@ __enable_mmu:
               domain_val(DOMAIN_IO, DOMAIN_CLIENT))
 #endif
     mcr    p15, 0, r5, c3, c0, 0        @ load domain access register
+    # r4寄存器保存页表物理地址
     mcr    p15, 0, r4, c2, c0, 0        @ load page table pointer
 #endif
     b    __turn_mmu_on
@@ -63,6 +67,9 @@ ENDPROC(__enable_mmu)
 下次由cache读取数据，则需要cache从内存中重新获取数据。这是保证cache数据一致性的手段。
 
 接下来再次跳转到__turn_mmu_on执行:
+
+__turn_mmu_on
+----------------------------------------
 
 path: arch/arm/kernel/head.S
 ```
@@ -115,4 +122,14 @@ ENDPROC(__turn_mmu_on)
 
 接下来将执行__mmap_switched函数:
 
+__mmap_switched
+----------------------------------------
+
 https://github.com/leeminghao/doc-linux/blob/master/4.x.y/arch/arm/kernel/head-common.S/__mmap_switched.md
+
+参考资料
+----------------------------------------
+
+CP15协处理器的作用如下:
+
+https://github.com/leeminghao/doc-linux/blob/master/arch/arm/common/CP15.md
