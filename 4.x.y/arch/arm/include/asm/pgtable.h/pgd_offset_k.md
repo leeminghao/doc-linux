@@ -16,3 +16,8 @@ init_mm
 ----------------------------------------
 
 https://github.com/leeminghao/doc-linux/tree/master/4.x.y/mm/init-mm.c/init_mm.md
+
+PGDIR_SHIFT
+----------------------------------------
+
+https://github.com/leeminghao/doc-linux/tree/master/4.x.y/arch/arm/include/asm/pgtable-2level.h/PMD_SIZE.md

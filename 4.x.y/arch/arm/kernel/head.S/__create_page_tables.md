@@ -9,10 +9,23 @@ kernel代码将跳到第一个C语言函数start_kernl来执行，在哪个时�
 需要为这段内存空间建立va = pa的内存映射关系。当然，本函数建立的所有页表都会在将来paging_init
 销毁再重建，这是临时过度性的映射关系和页表。
 
-1.计算页表起始物理地址保存到r4寄存器
+计算页表起始物理地址保存到r4寄存器
+----------------------------------------
 
 path: arch/arm/kernel/head.S
 ```
+#ifdef CONFIG_ARM_LPAE
+...
+#else
+#define PG_DIR_SIZE 0x4000
+#define PMD_ORDER   2
+#endif
+
+    ...
+    .macro    pgtbl, rd, phys
+    add    \rd, \phys, #TEXT_OFFSET - PG_DIR_SIZE
+    .endm
+    ...
 /*
  * Setup the initial page tables.  We only setup the barest
  * amount which are required to get the kernel running, which
@@ -30,27 +43,11 @@ __create_page_tables:
 
 r8寄存器保存的是物理内存的起始地址(在这里我们是0x80200000),TEXT_OFFSET是0x8000, PG_DIR_SIZE是
 0x4000，根据宏pgtbl计算得到的页表起始地址为0x80204000,而kernel image起始地址为0x80208000,
-即页表是存放在kernel其实地址下16KB的地方.
+即页表是存放在kernel其实地址下16KB的地方(0x80204000 ~ 0x80208000 | 0xc0004000 ~ 0xc0008000).
 
-path: arch/arm/kernel/head.S
-```
-#ifdef CONFIG_ARM_LPAE
-...
-#else
-#define PG_DIR_SIZE 0x4000
-#define PMD_ORDER   2
-#endif
+清空16KB页表空间
+----------------------------------------
 
-    ...
-    .macro    pgtbl, rd, phys
-    add    \rd, \phys, #TEXT_OFFSET - PG_DIR_SIZE
-    .endm
-    ...
-```
-
-2.清空16KB页表空间
-
-path: arch/arm/kernel/head.S
 ```
     ...
 
@@ -68,7 +65,8 @@ path: arch/arm/kernel/head.S
     bne    1b
 ```
 
-3.读取proc_info_list的成员__cpu_mm_mmu_flags保存到r7寄存器
+读取proc_info_list的成员__cpu_mm_mmu_flags保存到r7寄存器
+----------------------------------------
 
 r10 = proc_info_list类型结构体的基地址.
 PROCINFO_MM_MMUFLAGS 8 /* offsetof(struct proc_info_list, __cpu_mm_mmu_flags)
@@ -77,9 +75,8 @@ PROCINFO_MM_MMUFLAGS 8 /* offsetof(struct proc_info_list, __cpu_mm_mmu_flags)
     ldr    r7, [r10, #PROCINFO_MM_MMUFLAGS] @ mm_mmuflags
 ```
 
-4.首先建立包含__turn_mmu_on函数1M空间的平映射(virt addr = phy addr)
-
-https://github.com/leeminghao/doc-linux/blob/master/4.x.y/arch/arm/kernel/head.S/res/L1.png
+首先建立包含__turn_mmu_on函数1M空间的平映射(virt addr = phy addr)
+----------------------------------------
 
 ```
     /*
@@ -116,7 +113,8 @@ __turn_mmu_on_loc:
     .long    __turn_mmu_on_end
 ```
 
-5.建立kernel image镜像的映射
+建立kernel image镜像的映射
+----------------------------------------
 
 接下来以多个1M的线性映射页表，建立kernel整个镜像的线性映射，这里有一个小技巧，利用当前
 PC值作为内核物理地址起始，create_page_tables距离内核起始地址不超过1MB，因此移位之后就是
@@ -168,7 +166,8 @@ pc值计算物理页号，这样的好处是，不管内核加载到什么物理
 
 ```
 
-6.建立atags的映射
+建立atags的映射
+----------------------------------------
 
 ```
     /*
@@ -226,3 +225,10 @@ TEXT_OFFSET = 0x8000.所以加载的物理地址必须为0x****8000. 这样，�
 atags地址是有bootloader中指定，然后告诉kernel。那就有这样一种情况，加入sdram
 起始地址为0x80200000，atags起始地址为0x80200100。但kernel image我加载到0x81008000，
 可以看出，这时atags跟kernel image就在不同一1M空间啦atags单独的线性映射操作还是很有必要的。
+
+参考资料
+----------------------------------------
+
+有关ARM一级页表的相关信息如下所示:
+
+https://github.com/leeminghao/doc-linux/blob/master/4.x.y/arch/arm/kernel/head.S/res/L1.png

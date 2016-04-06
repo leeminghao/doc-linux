@@ -3,6 +3,8 @@ paging_inig
 
 在那linux刚启动时，系统创建了一个临时页表，那个是临时的，既然正式的要上场了，临时的当然要退休了.
 
+https://github.com/leeminghao/doc-linux/blob/master/4.x.y/arch/arm/kernel/head.S/__create_page_tables.md
+
 build_mem_type_table
 ----------------------------------------
 
