@@ -64,3 +64,18 @@ static void __init map_lowmem(void)
     }
 }
 ```
+
+struct map_desc
+----------------------------------------
+
+https://github.com/leeminghao/doc-linux/blob/master/4.x.y/arch/arm/include/asm/mach/map.h/struct_map_desc.md
+
+__phys_to_pfn
+----------------------------------------
+
+https://github.com/leeminghao/doc-linux/blob/master/4.x.y/arch/arm/include/asm/memory.h/__phys_to_pfn.md
+
+__phys_to_virt
+----------------------------------------
+
+https://github.com/leeminghao/doc-linux/blob/master/4.x.y/arch/arm/include/asm/memory.h/__pa_vs__va.md
