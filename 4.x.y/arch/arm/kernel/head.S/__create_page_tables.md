@@ -163,7 +163,6 @@ pc值计算物理页号，这样的好处是，不管内核加载到什么物理
     add    r3, r3, #1 << SECTION_SHIFT
     strls  r3, [r0], #1 << PMD_ORDER
     bls    1b
-
 ```
 
 建立atags的映射
