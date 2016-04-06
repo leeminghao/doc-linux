@@ -6,10 +6,8 @@ zImage由其头部的解压程序将真正的内核代码解压到zreladdr地址
 
 https://github.com/leeminghao/doc-linux/blob/master/4.x.y/arch/arm/boot/compressed/head_S.md
 
-入口
+内核入口
 ----------------------------------------
-
-内核入口定义如下所示:
 
 path: arch/arm/kernel/vmlinux.ld.S
 ```
@@ -86,50 +84,16 @@ ENTRY(stext)
 https://github.com/torvalds/linux/blob/bdec41963890f8ed9ad89f8b418959ab3cdc2aa3/Documentation/arm/Porting
 
 * PHYS_OFFSET
-        Physical start address of the first bank of RAM.
 
-path: arch/arm/include/asm/memory.h
-```
-#define PHYS_OFFSET   UL(CONFIG_PHYS_OFFSET)
-```
-
-```
-CONFIG_PHYS_OFFSET=0x80200000
-```
+https://github.com/leeminghao/doc-linux/blob/master/4.x.y/arch/arm/include/asm/memory.h/PHYS_OFFSET.md
 
 * PAGE_OFFSET
-        Virtual start address of the first bank of RAM.  During the kernel
-        boot phase, virtual address PAGE_OFFSET will be mapped to physical
-        address PHYS_OFFSET, along with any other mappings you supply.
-        This should be the same value as TASK_SIZE.
 
-path: arch/arm/include/asm/memory.h
-```
-#define PAGE_OFFSET             UL(CONFIG_PAGE_OFFSET)
-```
-
-在对应的配置文件arch/arm/configs/aries_xxxxdefconfig中:
-
-```
-CONFIG_PAGE_OFFSET=0xC0000000
-```
+https://github.com/leeminghao/doc-linux/blob/master/4.x.y/arch/arm/include/asm/memory.h/PAGE_OFFSET.md
 
 * TEXT_OFFSET
-  The byte offset of the kernel image in RAM from the start of RAM.
 
-path: arch/arm/Makefile
-```
-# The byte offset of the kernel image in RAM from the start of RAM.
-textofs-y	:= 0x00008000
-...
-TEXT_OFFSET := $(textofs-y)
-```
-
-* TEXTADDR
-        Virtual start address of kernel, normally PAGE_OFFSET + 0x8000.
-        This is where the kernel image ends up.  With the latest kernels,
-        it must be located at 32768 bytes into a 128MB region.  Previous
-        kernels placed a restriction of 256MB here.
+https://github.com/leeminghao/doc-linux/blob/master/4.x.y/arch/arm/Makefile/TEXT_OFFSET
 
 流程
 ----------------------------------------

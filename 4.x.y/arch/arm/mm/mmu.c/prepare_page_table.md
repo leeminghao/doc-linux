@@ -65,6 +65,8 @@ static inline void prepare_page_table(void)
 pmd_off_k
 ----------------------------------------
 
+pmd_off_k查找一个虚拟地址的内核页表目录项.
+
 pmd_clear
 ----------------------------------------
 

@@ -1,6 +1,8 @@
 PHYS_OFFSET
 ========================================
 
+Physical start address of the first bank of RAM.
+
 path: arch/arm/include/asm/memory.h
 ```
 /*
