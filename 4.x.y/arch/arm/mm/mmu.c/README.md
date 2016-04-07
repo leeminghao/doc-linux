@@ -35,8 +35,8 @@ LINUX
 * 2.中间级的页表的页目录表项用pud表示（arm架构其实不需要);
 * 3.第三级的页表的页目录表项用pmd表示
 
-(由于中间pud是空的，所以pgd=pmd)，另外目前arm体系的移动设备中RAM的page大小一般都是4KB/page，
-所以L1页表中的页表项都是指向fine page table的。
+另外目前arm体系的移动设备中RAM的page大小一般都是4KB/page，所以L1页表中的页表项都是指向
+fine page table的。
 
 ### __create_page_table
 

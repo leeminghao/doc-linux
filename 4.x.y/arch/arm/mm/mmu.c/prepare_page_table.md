@@ -68,7 +68,6 @@ pmd_off_k
 
 pmd_off_k查找一个虚拟地址的内核页表目录项.
 
-https://github.com/leeminghao/doc-linux/tree/master/4.x.y/arch/arm/include/asm/pgtable.h/pgd_offset_k.md
 
 pmd_clear
 ----------------------------------------

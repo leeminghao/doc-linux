@@ -74950,6 +74950,7 @@ c101ddc0 d cpu_idle_info
 c101de40 d iowait_on_cpu
 c101de80 D softnet_data
 c101df40 D __init_end
+
 c101df40 D __per_cpu_end
 c101e000 D __data_loc
 c101e000 D _data
