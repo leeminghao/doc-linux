@@ -22,6 +22,7 @@ with 512 entries in the "PTE" level.
 
 This leads to the page tables having the following layout:
 
+```
    pgd             pte
 |        |
 +--------+
@@ -34,6 +35,7 @@ This leads to the page tables having the following layout:
 |        |-----> +------------+ +3072
 +--------+ +8    |  h/w pt 1  |
 |        |       +------------+ +4096
+```
 
 See L_PTE_xxx below for definitions of bits in the "Linux pt", and
 PTE_xxx for definitions of bits appearing in the "h/w pt".
@@ -59,7 +61,6 @@ by clearing the hardware PTE.  Currently Linux does not flush the TLB
 for us in this case, which means the TLB will retain the transation
 until either the TLB entry is evicted under pressure, or a context
 switch which changes the user space mapping occurs.
-
 
 重要调整说明如下：
 
