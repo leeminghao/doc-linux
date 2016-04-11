@@ -70,6 +70,7 @@ pgd_offset_k
         return;
     }
 
+    // 一级数组中addr对应的段在init_mm->pgd的下标
     pgd = pgd_offset_k(addr);
 ```
 
@@ -81,8 +82,10 @@ pgd_addr_end
 pgd_addr_end()确保[addr，next]地址不会跨越一个L1表项所能映射的最大内存空间2MB
 
 ```
+    // 计算结束地址
     end = addr + length;
     do {
+        // 获得下一页开始地址
         unsigned long next = pgd_addr_end(addr, end);
 ```
 
@@ -91,6 +94,10 @@ arm典型的mmu映射框架图显示的是映射1MB, linux映射框架图在它�
 linux所做的调整描述如下:
 
 https://github.com/leeminghao/doc-linux/tree/master/4.x.y/arch/arm/include/asm/pgtable-2level.h/comments.md
+
+### pgd_addr_end
+
+https://github.com/leeminghao/doc-linux/tree/master/4.x.y/include/asm-generic/pgtable.h/pgd_addr_end.md
 
 alloc_init_pud
 ----------------------------------------
