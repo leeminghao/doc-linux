@@ -1,4 +1,4 @@
-MMU
+MMU - page table
 ========================================
 
 arm mmu的页表结构的通用框图:
@@ -29,6 +29,8 @@ Linux page table
 ----------------------------------------
 
 https://github.com/leeminghao/doc-linux/blob/master/4.x.y/mm/misc/page_table.md
+
+ARM是2级的页表目录管理，事实上，只有PGD, PTE才是真正有意义的。
 
 __create_page_table
 ----------------------------------------
