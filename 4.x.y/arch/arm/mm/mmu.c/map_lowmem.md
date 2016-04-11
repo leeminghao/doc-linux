@@ -19,15 +19,7 @@ static void __init map_lowmem(void)
         phys_addr_t start = reg->base;
         phys_addr_t end = start + reg->size;
         struct map_desc map;
-```
 
-https://github.com/leeminghao/doc-linux/blob/master/4.x.y/arch/arm/include/asm/mach/map.h/struct_map_desc.md
-
-### dmesg
-
-在上述代码段添加如下log信息打印如下所示:
-
-```
     printk(KERN_CRIT "liminghao: %s(%llx~%llx)\n",
            __FUNCTION__,
            (unsigned long long)start,
@@ -39,21 +31,40 @@ https://github.com/leeminghao/doc-linux/blob/master/4.x.y/arch/arm/include/asm/m
            (unsigned long long)__phys_to_virt(end));
 ```
 
+https://github.com/leeminghao/doc-linux/blob/master/4.x.y/arch/arm/include/asm/mach/map.h/struct_map_desc.md
+
+### dmesg
+
+在上述代码段添加如下log信息打印如下所示:
+
 ```
 [    0.000000] liminghao: map_lowmem(80200000~88e00000)
 [    0.000000] liminghao: map_lowmem(c0000000~c8c00000)
+
 [    0.000000] liminghao: map_lowmem(89000000~8da00000)
 [    0.000000] liminghao: map_lowmem(c8e00000~cd800000)
+
 [    0.000000] liminghao: map_lowmem(8ec00000~8f000000)
 [    0.000000] liminghao: map_lowmem(cea00000~cee00000)
+
 [    0.000000] liminghao: map_lowmem(8f700000~8fe00000)
 [    0.000000] liminghao: map_lowmem(cf500000~cfc00000)
+
 [    0.000000] liminghao: map_lowmem(8ff00000~9fe00000)
 [    0.000000] liminghao: map_lowmem(cfd00000~dfc00000)
+
 [    0.000000] liminghao: map_lowmem(a0000000~a5800000)
 [    0.000000] liminghao: map_lowmem(dfe00000~e5600000)
+
 [    0.000000] liminghao: map_lowmem(a5900000~afa00000)
 [    0.000000] liminghao: map_lowmem(e5700000~ef800000)
+```
+
+从dmesg中信息我们得知map_lowmem函数的作用就是映射lowmem区间，lowmem区间在我们的实验环境中是
+如下地址区间:
+
+```
+[    0.000000]     lowmem  : 0xc0000000 - 0xef800000   ( 760 MB)
 ```
 
 create_mapping
