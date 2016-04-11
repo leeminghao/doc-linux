@@ -28,7 +28,7 @@ https://github.com/leeminghao/doc-linux/blob/master/4.x.y/arch/arm/mm/mmu.c/res/
 Linux page table
 ----------------------------------------
 
-https://github.com/leeminghao/doc-linux/blob/master/4.x.y/misc/page_table.md
+https://github.com/leeminghao/doc-linux/blob/master/4.x.y/mm/misc/page_table.md
 
 __create_page_table
 ----------------------------------------
