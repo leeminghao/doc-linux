@@ -166,4 +166,4 @@ L1表项所能映射为什么是2MB而不是1MB呢? 这个是linux的一个处�
 arm典型的mmu映射框架图显示的是映射1MB, linux映射框架图在它的基础做了些调整和优化。
 linux所做的调整描述如下:
 
-https://github.com/leeminghao/doc-linux/tree/master/4.x.y/arch/arm/include/asm/pgtable-2level.h/comments.md
+https://github.com/leeminghao/doc-linux/tree/master/4.x.y/arch/arm/include/asm/pgtable-2level.h/README.md

@@ -1,5 +1,13 @@
-Linux对L1表项映射调整
+Linux arm page table
 ========================================
+
+Linux page table
+----------------------------------------
+
+https://github.com/leeminghao/doc-linux/blob/master/4.x.y//mm/misc/page_table.md
+
+Linux arm page table
+----------------------------------------
 
 path: arch/arm/include/asm/pgtable-2level.h
 

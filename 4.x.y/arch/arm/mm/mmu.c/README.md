@@ -25,25 +25,13 @@ https://github.com/leeminghao/doc-linux/blob/master/4.x.y/arch/arm/mm/mmu.c/res/
 
 * 指向第二级页表(L2页表)的基地址;
 
-LINUX
+Linux page table
 ----------------------------------------
 
-具体对应到linux，由于linux的软件架构是支持3级页表结构，而arm架构实际只有2级的页表结构，
-所以linux代码中的中间级页表的实现是空的。在linux代码中:
+https://github.com/leeminghao/doc-linux/blob/master/4.x.y/misc/page_table.md
 
-* 1.第一级的页表的页目录表项用pgd表示;
-* 2.第二级的页表的页目录表项用pud表示; （arm架构其实不需要)
-* 3.第三级的页表的页目录表项用pmd表示;
-* 4.第四级的页表的页目录表项用pte表示;
-
-如下所示:
-
-https://github.com/leeminghao/doc-linux/blob/master/4.x.y/arch/arm/mm/mmu.c/res/linux_page.png
-
-另外目前arm体系的移动设备中RAM的page大小一般都是4KB/page，所以L1页表中的页表项都是指向
-fine page table的。
-
-### __create_page_table
+__create_page_table
+----------------------------------------
 
 但在linux内核启动的初始化阶段，临时建立页表（initial page tables）以供linux内核初始化提供
 执行环境，这时L1的页表项使用的就是第二种页表项（section enty），他直接映射的是1M的内存空间。
@@ -54,7 +42,8 @@ https://github.com/leeminghao/doc-linux/blob/master/4.x.y/arch/arm/kernel/head.S
 
 https://github.com/leeminghao/doc-linux/blob/master/4.x.y/arch/arm/mm/mmu.c/res/L1.png
 
-### paging_init
+paging_init
+----------------------------------------
 
 以上在初始化过程使用的临时页表（initial page tables），在内核启动的后期会被覆盖掉即在
 paging_init-->map_lowmem函数中会重新建立页表，该函数为物理内存从0地址到低端内存(lowmem_limit)
