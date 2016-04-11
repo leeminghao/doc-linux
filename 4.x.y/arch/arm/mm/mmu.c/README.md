@@ -32,8 +32,13 @@ LINUX
 所以linux代码中的中间级页表的实现是空的。在linux代码中:
 
 * 1.第一级的页表的页目录表项用pgd表示;
-* 2.中间级的页表的页目录表项用pud表示（arm架构其实不需要);
-* 3.第三级的页表的页目录表项用pmd表示
+* 2.第二级的页表的页目录表项用pud表示; （arm架构其实不需要)
+* 3.第三级的页表的页目录表项用pmd表示;
+* 4.第四级的页表的页目录表项用pte表示;
+
+如下所示:
+
+https://github.com/leeminghao/doc-linux/blob/master/4.x.y/arch/arm/mm/mmu.c/res/linux_page.png
 
 另外目前arm体系的移动设备中RAM的page大小一般都是4KB/page，所以L1页表中的页表项都是指向
 fine page table的。

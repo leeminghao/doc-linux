@@ -16,7 +16,7 @@ NUMA计算机（非一致内存访问，non-uniformmemory access）总是多处�
 
 **UMA和NUMA的区别**:
 
-https://github.com/leeminghao/doc-linux/tree/master/4.x.y/mm/res/uma_numa.jpg
+https://github.com/leeminghao/doc-linux/tree/master/4.x.y/mm/misc/res/uma_numa.jpg
 
 两种类型计算机的混合也是可能的，其中使用不连续的内存。即在UMA系统中，内存不是连续的，
 而有比较大的洞。在这里应用NUMA体系结构的原理通常有所帮助，可以使内核的内存访问更简单。
@@ -56,4 +56,4 @@ https://github.com/leeminghao/doc-linux/tree/master/4.x.y/include/linux/mmzone.h
 
 对应numa系统中的内存划分如下所示:
 
-https://github.com/leeminghao/doc-linux/tree/master/4.x.y/mm/res/numa_struct.jpg
+https://github.com/leeminghao/doc-linux/tree/master/4.x.y/mm/misc/res/numa_struct.jpg
