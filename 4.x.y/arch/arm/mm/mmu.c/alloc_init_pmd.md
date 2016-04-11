@@ -35,5 +35,12 @@ static void __init alloc_init_pmd(pud_t *pud, unsigned long addr,
 }
 ```
 
+pmd_addr_end
+----------------------------------------
+
+https://github.com/leeminghao/doc-linux/tree/master/4.x.y/include/asm-generic/pgtable.h/pmd_addr_end.md
+
 alloc_init_pte
 ----------------------------------------
+
+https://github.com/leeminghao/doc-linux/blob/master/4.x.y/arch/arm/mm/mmu.c/alloc_init_pte.md
