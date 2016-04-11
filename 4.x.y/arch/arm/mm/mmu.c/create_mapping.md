@@ -157,6 +157,8 @@ https://github.com/leeminghao/doc-linux/tree/master/4.x.y/include/asm-generic/pg
 
 ### alloc_init_pud
 
+https://github.com/leeminghao/doc-linux/blob/master/4.x.y/arch/arm/mm/mmu.c/alloc_init_pud.md
+
 问题
 ----------------------------------------
 
