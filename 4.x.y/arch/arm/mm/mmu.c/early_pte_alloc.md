@@ -11,15 +11,14 @@ static pte_t * __init early_pte_alloc(pmd_t *pmd, unsigned long addr, unsigned l
     if (pmd_none(*pmd)) {
         // 判断pmd所指向的L2页表是否存在，不存在则通过early_alloc函数分配
         // PTE_HWTABLE_OFF（512*4=2KB）+ PTE_HWTABLE_SIZE（512*4=2KB）总计
-        // 4KB的一个物理页来存储2个linuxpet 页表 + 2个hwpte页表。
+        // 4KB的一个物理页来存储2个linux PTE页表 + 2个hw PTE页表。
         pte_t *pte = early_alloc(PTE_HWTABLE_OFF + PTE_HWTABLE_SIZE);
 
         // 2个L2页表已经建立，该函数的作用就是设置L1页表的对应表项，使其指向刚建立的2个L2页表
-        // （hwpte0，hwpte1），正如前面所说，由于linux的L1页表项是8个字节大小.
+        // (hwpte0，hwpte1)，正如前面所说，linux的L1页表项是8个字节大小.
         __pmd_populate(pmd, __pa(pte), prot);
     }
     BUG_ON(pmd_bad(*pmd));
-    // 返回这个物理页所在虚拟地址
     return pte_offset_kernel(pmd, addr);
 }
 ```
