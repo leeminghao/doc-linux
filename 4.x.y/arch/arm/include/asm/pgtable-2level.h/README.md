@@ -70,9 +70,11 @@ for us in this case, which means the TLB will retain the transation
 until either the TLB entry is evicted under pressure, or a context
 switch which changes the user space mapping occurs.
 
-重要调整说明如下：
-
-L1页表从4096个item变为2048个item，但每个item的大小从原来的4字节变为8个字节。
-一个page中，放置2个L2页表，每个还是256项，每项是4个字节，所以总计是256 \* 2 \* 4=2KB，
-放置在page页的下半部，而上部分放置对应的linux内存管理系统使用的页表，mmu硬件是
-不会去使用它的。所以刚好占满一个page页的大小（4KB），这样就不浪费空间了。
+Linux支持四级页表，作为其默认的页表结构。ARM是两级页表, PGD和PTE。从上面可以可以
+看出一个work around的实现。PGD和PTE并不是直接对应ARM硬件的页表目录项。而是做了一些
+为了linux上层的要求的一个方案。首先，他把4096个pgd项变成2048个，物理上还是一个pgd
+指向一个256个pte项的数组的，这没办法改。但是pgd指针逻辑上合并成一个，各自指向的pte
+数组也合并,并且是连续的。这512个pte项合并起来，这个pte分配的页（一般linux需要一个pte表
+在一个页里，代码注释也写了）还剩下一半的内容，刚好可以存放arm不支持的一些标记(Linux pt 0, 1),
+而这些标记是linux必须的，比如dirty。这个方案还非常具有可扩展性，不依赖arm本身的标记。
+dirty标记的实现是通过对arm支持的权限fault的中断来写这个标记,这样方式是相当于一种模拟。
