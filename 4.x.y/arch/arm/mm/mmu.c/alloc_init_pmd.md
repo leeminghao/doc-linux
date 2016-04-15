@@ -35,6 +35,13 @@ static void __init alloc_init_pmd(pud_t *pud, unsigned long addr,
 }
 ```
 
+pmd_offset
+----------------------------------------
+
+对于arm平台来说通常只有两级页表，所以pmd == pud == pgd.
+
+https://github.com/leeminghao/doc-linux/tree/master/4.x.y/arch/arm/include/asm/pgtable-2level.h/pmd_offset.md
+
 pmd_addr_end
 ----------------------------------------
 

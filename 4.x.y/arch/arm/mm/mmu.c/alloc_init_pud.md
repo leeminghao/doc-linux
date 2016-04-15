@@ -18,6 +18,13 @@ static void __init alloc_init_pud(pgd_t *pgd, unsigned long addr,
 }
 ```
 
+pud_offset
+----------------------------------------
+
+对于arm平台来说通常只有两级页表，所以pud == pgd.
+
+https://github.com/leeminghao/doc-linux/tree/master/4.x.y/include/asm-generic/4level-fixup.h/pud_offset.md
+
 pud_addr_end
 ----------------------------------------
 

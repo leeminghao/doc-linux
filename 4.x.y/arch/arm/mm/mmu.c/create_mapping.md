@@ -83,6 +83,9 @@ alloc_init_pud
 alloc_init_pud()函数为定位到的L1页目录表项pgd所指向的二级页表(L2)建立映射表
 
 ```
+    printk(KERN_CRIT "liminghao: %s(%lx: %lx~%lx) - %lx - pgd(%p)\n",
+           __FUNCTION__, (unsigned long)phys, addr, end, length,
+           (void *)(pgd));
     // 计算结束地址
     end = addr + length;
     do {
@@ -90,8 +93,9 @@ alloc_init_pud()函数为定位到的L1页目录表项pgd所指向的二级页�
         // pgd_addr_end()确保[addr，next]地址不会跨越一个L1表项所能映射的最大内存空间2MB
         unsigned long next = pgd_addr_end(addr, end);
 
-        printk(KERN_CRIT "liminghao: %s(%lx: %lx~%lx)\n",
-               __FUNCTION__, (unsigned long)phys, addr, next);
+        printk(KERN_CRIT "liminghao: %s(%lx: %lx~%lx) - pgd(%p)\n",
+               __FUNCTION__, (unsigned long)phys, addr, next,
+               (void *)(pgd));
 
         alloc_init_pud(pgd, addr, next, phys, type);
 
@@ -117,36 +121,31 @@ https://github.com/leeminghao/doc-linux/tree/master/4.x.y/include/asm-generic/pg
 以如上memory region的映射我们看下相关的映射过程:
 
 ```
-[    0.000000] liminghao: map_lowmem(80200000~88e00000)
-[    0.000000] liminghao: map_lowmem(c0000000~c8c00000)
+[    0.000000] liminghao: create_mapping(80200000: c0000000~c0100000) - 100000 - pgd(c0007000)
+[    0.000000] liminghao: create_mapping(80200000: c0000000~c0100000) - pgd(c0007000)
 
-[    0.000000] liminghao: create_mapping(80200000: c0000000~c0100000) - 100000
+[    0.000000] liminghao: create_mapping(80300000: c0100000~c0a00000) - 900000 - pgd(c0007000)
+[    0.000000] liminghao: create_mapping(80300000: c0100000~c0200000) - pgd(c0007000)
+[    0.000000] liminghao: create_mapping(80400000: c0200000~c0400000) - pgd(c0007008)
+[    0.000000] liminghao: create_mapping(80600000: c0400000~c0600000) - pgd(c0007010)
+[    0.000000] liminghao: create_mapping(80800000: c0600000~c0800000) - pgd(c0007018)
+[    0.000000] liminghao: create_mapping(80a00000: c0800000~c0a00000) - pgd(c0007020)
 
-[    0.000000] liminghao: create_mapping(80200000: c0000000~c0100000)
+[    0.000000] liminghao: create_mapping(80c00000: c0a00000~c0f00000) - 500000 - pgd(c0007028)
+[    0.000000] liminghao: create_mapping(80c00000: c0a00000~c0c00000) - pgd(c0007028)
+[    0.000000] liminghao: create_mapping(80e00000: c0c00000~c0e00000) - pgd(c0007030)
+[    0.000000] liminghao: create_mapping(81000000: c0e00000~c0f00000) - pgd(c0007038)
 
-[    0.000000] liminghao: create_mapping(80300000: c0100000~c0a00000) - 900000
+[    0.000000] liminghao: create_mapping(81100000: c0f00000~c1000000) - 100000 - pgd(c0007038)
+[    0.000000] liminghao: create_mapping(81100000: c0f00000~c1000000) - pgd(c0007038)
 
-[    0.000000] liminghao: create_mapping(80300000: c0100000~c0200000)
-[    0.000000] liminghao: create_mapping(80400000: c0200000~c0400000)
-[    0.000000] liminghao: create_mapping(80600000: c0400000~c0600000)
-[    0.000000] liminghao: create_mapping(80800000: c0600000~c0800000)
-[    0.000000] liminghao: create_mapping(80a00000: c0800000~c0a00000)
-
-[    0.000000] liminghao: create_mapping(80c00000: c0a00000~c0f00000) - 500000
-
-[    0.000000] liminghao: create_mapping(80c00000: c0a00000~c0c00000)
-[    0.000000] liminghao: create_mapping(80e00000: c0c00000~c0e00000)
-[    0.000000] liminghao: create_mapping(81000000: c0e00000~c0f00000)
-
-[    0.000000] liminghao: create_mapping(81100000: c0f00000~c1000000) - 100000
-
-[    0.000000] liminghao: create_mapping(81100000: c0f00000~c1000000)
-
-[    0.000000] liminghao: create_mapping(81200000: c1000000~c8c00000) - 7c00000
-
-[    0.000000] liminghao: create_mapping(81200000: c1000000~c1200000)
+[    0.000000] liminghao: create_mapping(81200000: c1000000~c8c00000) - 7c00000 - pgd(c0007040)
+[    0.000000] liminghao: create_mapping(81200000: c1000000~c1200000) - pgd(c0007040)
+[    0.000000] liminghao: create_mapping(81400000: c1200000~c1400000) - pgd(c0007048)
 ...
-[    0.000000] liminghao: create_mapping(88c00000: c8a00000~c8c00000)
+[    0.000000] liminghao: create_mapping(88800000: c8600000~c8800000) - pgd(c0007218)
+[    0.000000] liminghao: create_mapping(88a00000: c8800000~c8a00000) - pgd(c0007220)
+[    0.000000] liminghao: create_mapping(88c00000: c8a00000~c8c00000) - pgd(c0007228)
 ```
 
 从如上dmesg中我们得知在这块区间物理地址和虚拟地址是一一映射的,例如:
@@ -154,6 +153,7 @@ https://github.com/leeminghao/doc-linux/tree/master/4.x.y/include/asm-generic/pg
 ```
 (0x80200000 ~ 0x80300000) --> (0xc0000000 ~ 0xc0100000)
 ```
+其中pgd正是一级页表0xc0004000~0xc0008000之间的偏移量.
 
 ### alloc_init_pud
 
