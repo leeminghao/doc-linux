@@ -289,6 +289,14 @@ ssh
 
 ```
 $ ssh guest@10.237.14.123
+
+# Start the ssh-agent in the background
+
+$ eval "$(ssh-agent -s)"
+
+# Add your SSH key to the ssh-agent:
+
+$ ssh-add ~/.ssh/id_rsa
 ```
 
 java
