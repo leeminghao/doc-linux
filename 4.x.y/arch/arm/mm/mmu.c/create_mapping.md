@@ -1,6 +1,9 @@
 create_mapping
 ========================================
 
+mem_types
+----------------------------------------
+
 path: arch/arm/mm/mmu.c
 ```
 /*
@@ -45,10 +48,17 @@ static void __init create_mapping(struct map_desc *md)
         return;
     }
 #endif
+    ...
 ```
 
-pgd_offset_k
+https://github.com/leeminghao/doc-linux/blob/master/4.x.y/arch/arm/mm/mmu.c/mem_types.md
+
+pgd
 ----------------------------------------
+
+页全局目录(Page Global Directory)，即 pgd，是多级页表的抽象最高层。每一级的页表都处理不同大小的
+内存。每项都指向一个更小目录的低级表，因此pgd就是一个页表目录。当代码遍历这个结构时
+（有些驱动程序就要这样做），就称为是在遍历页表。
 
 获得该虚拟地址addr属于第一级页表(L1)的哪个表项，详细跟踪pgd_offset_k函数，我们内核的L1
 页目录表的基地址位于0xc0004000，而我们的内核代码则是放置在0xc0008000开始的位置。

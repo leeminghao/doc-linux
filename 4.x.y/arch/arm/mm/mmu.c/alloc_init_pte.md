@@ -21,4 +21,7 @@ static void __init alloc_init_pte(pmd_t *pmd, unsigned long addr,
 early_pte_alloc
 ----------------------------------------
 
+pte: 页表条目 (Page Table Entry)，即pte，是页表的最低层，它直接处理页，该值包含某页的物理地址，
+还包含了说明该条目是否有效及相关页是否在物理内存中的位。
+
 https://github.com/leeminghao/doc-linux/blob/master/4.x.y/arch/arm/mm/mmu.c/early_pte_alloc.md

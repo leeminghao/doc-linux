@@ -1,6 +1,11 @@
 init_mm
 ========================================
 
+任何一个用户进程都有自己的页表，与此同时，内核本身就是一个名为init_task的0号进程，每一个进程
+都有一个mm_struct结构管理进程的内存空间，init_mm是内核的mm_struct。在系统引导阶段，首先通过
+__create_page_tables在内核代码的起始处_stext向低地址方向预留16K，用于一级页表(主内存页表)的存放，
+每个进程的页表都通过mm_struct中的pgd描述符进行引用。内核页表被定义在swapper_pg_dir。
+
 path: mm/init-mm.c
 ```
 struct mm_struct init_mm = {

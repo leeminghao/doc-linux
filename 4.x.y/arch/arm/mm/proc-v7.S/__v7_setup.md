@@ -1,6 +1,21 @@
 __v7_setup
 ========================================
 
+__v7_setup用来配置与armv7平台相关的MMU和页表相关信息.配置完毕后才能enable MMU.
+其在内核启动过程中被调用.
+
+https://github.com/leeminghao/doc-linux/blob/master/4.x.y/arch/arm/kernel/head.S/head_S.md
+
+完成的主要工作如下：
+
+* 刷新cache，v7_flush_dcache_all
+* 无效cache
+* 无效掉指令和数据TLB
+* 从CP15 c0寄存器读出到r0，进行处理，做为下一步写入CP15 c0的值.
+
+__v7_setup
+----------------------------------------
+
 path: arch/arm/mm/proc-v7.S
 ```
 /*
@@ -153,7 +168,23 @@ __v7_setup:
     mcr    p14, 6, r0, c0, c0, 0        @ stop userspace TEEHBR access
 1:
 #endif
+```
+
+### v7_crval
+
+v7_crval定义了三个常量.
+
+```
     adr    r5, v7_crval
+```
+
+https://github.com/leeminghao/doc-linux/blob/master/4.x.y/arch/arm/mm/proc-v7-2level.S/v7_crval.md
+
+### set cp15
+
+```
+    # r5 - clear
+    # r6 - mmuset
     ldmia    r5, {r5, r6}
 #ifdef CONFIG_CPU_ENDIAN_BE8
     orr    r6, r6, #1 << 25        @ big-endian page tables
@@ -162,21 +193,25 @@ __v7_setup:
     orr     r5, r5, #(1 << 10)              @ set SW bit in "clear"
     bic     r6, r6, #(1 << 10)              @ clear it in "mmuset"
 #endif
+    # 首先mrc指令读取c1到r0.
     mrc    p15, 0, r0, c1, c0, 0        @ read control register
+    # 然后清除clear(r5) - 0x0120c302常量指定的比特位
     bic    r0, r0, r5            @ clear bits them
+    # 然后设置mmuset(r6) - 0x10c03c7d指定的比特位，其中bit23为1.
+    # 表示为ARMv6以上特有的MMU页表描述符格式.
     orr    r0, r0, r6            @ set them
  THUMB(    orr    r0, r0, #1 << 30    )    @ Thumb exceptions
+    # 在mov pc, lr跳转后将执行定义在head.S中的__enable_mmu函数，在进一步调节其它的比特位后
+    # 最终将把r0中的值写回c1寄存器。
     mov    pc, lr                @ return to head.S:__ret
 ENDPROC(__v7_setup)
 ```
 
-完成的主要工作如下：
+### __enable_mmu
 
-* 刷新cache，v7_flush_dcache_all
-* 无效cache
-* 无效掉指令和数据TLB
-* 从CP15 c0寄存器读出到r0，进行处理，做为下一步写入CP15 c0的值.
+https://github.com/leeminghao/doc-linux/blob/master/4.x.y/arch/arm/kernel/head.S/head_S.md
 
-有关CP15协处理器作用如下:
+CP15
+----------------------------------------
 
 https://github.com/leeminghao/doc-linux/blob/master/arch/arm/common/CP15.md

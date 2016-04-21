@@ -22,6 +22,12 @@ https://github.com/leeminghao/doc-linux/tree/master/4.x.y/arch/arm/include/asm/p
 prepare_page_table
 ----------------------------------------
 
+调用prepare_page_table初始化虚拟地址[0, PAGE_OFFSET]和[memory.regions[0].start +
+memory.regions[0].size, VMALLOC_END]所对应的主页表项，所有表项均初始化为0。
+
+这里保留了内核代码区，主页表区以及memblock机制中的位图映射区对应的主页表。这是为了保证内核代码
+的执行以及对主页表区和位图区的访问。
+
 path: arch/arm/mm/mmu.c
 ```
 static inline void prepare_page_table(void)

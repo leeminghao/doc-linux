@@ -1,22 +1,8 @@
 mem_types
 ========================================
 
-struct mem_types
-----------------------------------------
-
-path: arch/arm/mm/mm.h
-```
-struct mem_type {
-    pteval_t prot_pte;
-    pteval_t prot_pte_s2;
-    pmdval_t prot_l1;
-    pmdval_t prot_sect;
-    unsigned int domain;
-};
-```
-
-mem_types
-----------------------------------------
+它定义了一个类型为struct mem_type的局部静态数组。根据不同的映射类型，它定义了不同的访问权限，
+它通过md参数中的type成员传递给create_mapping
 
 path: arch/arm/mm/mmu.c
 ```
@@ -129,3 +115,21 @@ static struct mem_type mem_types[] = {
     },
 };
 ```
+
+struct mem_type
+----------------------------------------
+
+https://github.com/leeminghao/doc-linux/tree/master/4.x.y/arch/arm/mm/struct_mem_type.h
+
+
+映射类型
+----------------------------------------
+
+* MT_MEMORY       - 对应RAM;
+* MT_DEVICE       - 对应了其他I/O设备，应用于ioremap;
+* MT_ROM          - 对应于ROM;
+* MT_LOW_VECTORS  - 对应0地址开始的向量;
+* MT_HIGH_VECTORS - 对应高地址开始的向量，它有vector_base宏决定.
+
+访问控制属性
+----------------------------------------

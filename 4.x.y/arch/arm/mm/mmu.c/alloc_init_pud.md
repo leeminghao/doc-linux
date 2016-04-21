@@ -18,7 +18,7 @@ static void __init alloc_init_pud(pgd_t *pgd, unsigned long addr,
 }
 ```
 
-pud_offset
+pud
 ----------------------------------------
 
 对于arm平台来说通常只有两级页表，所以pud == pgd.

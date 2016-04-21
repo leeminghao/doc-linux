@@ -5,10 +5,30 @@ arm mmu的页表结构的通用框图:
 
 https://github.com/leeminghao/doc-linux/blob/master/4.x.y/arch/arm/mm/mmu.c/res/mmu.jpg
 
-以上是arm的页表框图的典型结构 - 即是二级页表结构：
+以上是arm的页表框图的典型结构 - 即是二级页表结构.
 
-L1
-----------------------------------------
+当ARM要访问内存RAM时，MMU首先查找TLB中的虚拟地址表，如果ARM的结构支持分开的数据TLB和指令TLB，
+那么它用：
+
+* 取指令使用指令TLB
+* 其它的所有访问类别用数据TLB
+
+指令TLB和数据TLB在ARMv6架构的MMU中被分别称为指令MicroTLB和数据MicroTLB。如果没有命中MicroTLB，
+那么将查询主TLB，此时不区分指令和数据TLB。
+
+如果TLB中没有虚拟地址的入口，则转换表遍历硬件从存在主存储器中的页表中获取转换页表项，
+它包含了物理地址或者二级页表地址和访问权限，一旦取到，这些信息将被放在TLB中，它会放在
+一个没有使用的入口处或覆盖一个已有的入口。一旦为存储器访问的TLB 的入口被拿到,这些信息将被用于:
+
+* C(高速缓存)和B(缓冲)位被用来控制高速缓存和写缓冲，并决定是否高速缓存。
+
+* 首先检查域位，然后检查访问权限位用来控制访问是否被允许。如果不允许，则MMU 将向ARM处理器
+  发送一个存储器异常；否则访问将被允许进行。
+
+* 对没有或者禁止高速缓存的系统（包括在没有高速缓存系统中的所有存储器访问），物理地址将被用
+  作主存储器访问的地址。
+
+https://github.com/leeminghao/doc-linux/blob/master/4.x.y/arch/arm/mm/mmu.c/res/mmu_tlb_mm.jpg
 
 其中第一级页表（L1）是由虚拟地址的高12bit（bits[31：20]）组成,所以第一级页表有4096个item，
 每个item占4个字节，所以一级页表的大小为16KB，而在第一级页表中的每个entry的最低2bit可以用
@@ -32,8 +52,7 @@ https://github.com/leeminghao/doc-linux/blob/master/4.x.y/mm/misc/page_table.md
 
 ARM是2级的页表目录管理，事实上，只有PGD, PTE才是真正有意义的。
 
-__create_page_table
-----------------------------------------
+### __create_page_table
 
 但在linux内核启动的初始化阶段，临时建立页表（initial page tables）以供linux内核初始化提供
 执行环境，这时L1的页表项使用的就是第二种页表项（section enty），他直接映射的是1M的内存空间。
@@ -44,8 +63,7 @@ https://github.com/leeminghao/doc-linux/blob/master/4.x.y/arch/arm/kernel/head.S
 
 https://github.com/leeminghao/doc-linux/blob/master/4.x.y/arch/arm/mm/mmu.c/res/L1.png
 
-paging_init
-----------------------------------------
+### paging_init
 
 以上在初始化过程使用的临时页表（initial page tables），在内核启动的后期会被覆盖掉即在
 paging_init-->map_lowmem函数中会重新建立页表，该函数为物理内存从0地址到低端内存(lowmem_limit)
@@ -77,3 +95,37 @@ https://github.com/leeminghao/doc-linux/blob/master/4.x.y/arch/arm/mm/mmu.c/res/
 那么内核代码是如何建立映射表的呢？
 
 https://github.com/leeminghao/doc-linux/blob/master/4.x.y/arch/arm/mm/mmu.c/paging_init.md
+
+ARM 页表描述符
+----------------------------------------
+
+尽管Linux在多数系统上实现或者模拟了3级页表，但是在ARM Linux上它只实现了主页表和两级页表。
+主页表通过ARM CPU的段表实现，段表中的每个页表项管理1M的内存，虚拟地址只需要一次转换既
+可以得到物理地址，它通常存放在swapper_pg_dir开始的16K区域内。两级页表只有在被映射的
+物理内存块不满足1M的情况下才被使用，此时它由L1和L2组成。
+
+如下两种页表转换机制由CP15协处理器的控制寄存器c1中的bit23来选择。bit23为0时为兼容ARMv4和ARMv5,
+否则为ARMv6。在CPU初始化后该位的默认值为0。Linux在系统引导时会设置MMU的控制寄存器的相关位，
+其中把bit23设置为1，所以Linux在ARMv6体系架构上采用的是ARMv6 MMU页表转换机制。
+
+### ARMv4 vs ARMv5
+
+兼容ARMv4和ARMv5 MMU机制的页表描述符。这种描述符可以对64K大页面和4K小页面再进一步细分为子页面。
+
+#### L1
+
+https://github.com/leeminghao/doc-linux/blob/master/4.x.y/arch/arm/mm/mmu.c/res/pg_armv45_l1.jpg
+
+#### L2
+
+https://github.com/leeminghao/doc-linux/blob/master/4.x.y/arch/arm/mm/mmu.c/res/pg_armv45_l2.jpg
+
+### ARMv6
+
+#### L1
+
+https://github.com/leeminghao/doc-linux/blob/master/4.x.y/arch/arm/mm/mmu.c/res/pg_armv6_l1.jpg
+
+#### L2
+
+https://github.com/leeminghao/doc-linux/blob/master/4.x.y/arch/arm/mm/mmu.c/res/pg_armv6_l2.jpg

@@ -33,6 +33,11 @@ __enable_mmu:
 #ifdef CONFIG_CPU_ICACHE_DISABLE
     bic    r0, r0, #CR_I
 #endif
+```
+
+### 页面访问控制
+
+```
 #ifdef CONFIG_ARM_LPAE
     mov    r5, #0
     mcrr    p15, 0, r4, r5, c2        @ load TTBR0
@@ -48,23 +53,23 @@ __enable_mmu:
               domain_val(DOMAIN_TABLE, DOMAIN_CLIENT) | \
               domain_val(DOMAIN_IO, DOMAIN_CLIENT))
 #endif
+    # * 配置CP15 c3寄存器，配置ARM域的访问权限
     mcr    p15, 0, r5, c3, c0, 0        @ load domain access register
-    # r4寄存器保存页表物理地址
+    # r4寄存器保存页表物理地址,配置CP15 c2寄存器，指定内存页表地址
     mcr    p15, 0, r4, c2, c0, 0        @ load page table pointer
 #endif
     b    __turn_mmu_on
 ENDPROC(__enable_mmu)
 ```
 
-该函数根据内核配置对CP15和r0寄存器进行配置，工作如下：
-
-* 操作CP15的c1寄存器打开L2 cache
-* 根据内核配置，关闭指令或者数据cache
-* 配置CP15 c3寄存器，配置ARM域的访问权限
-* 配置CP15 c2寄存器，指定内存页表地址
+https://github.com/leeminghao/doc-linux/tree/master/4.x.y/arch/arm/include/asm/domain.h/domain.h.md
 
 需要注意的是前面__v7_setup中只是无效掉cache，无效是cache操作一种，表示cache中数据无效了，
 下次由cache读取数据，则需要cache从内存中重新获取数据。这是保证cache数据一致性的手段。
+
+### __v7_setup
+
+https://github.com/leeminghao/doc-linux/blob/master/4.x.y/arch/arm/mm/proc-v7.S/__v7_setup.md
 
 接下来再次跳转到__turn_mmu_on执行:
 
