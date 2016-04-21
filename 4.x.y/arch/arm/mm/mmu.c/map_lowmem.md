@@ -1,7 +1,7 @@
 map_lowmem
 ========================================
 
-struct map_desc
+memblock
 ----------------------------------------
 
 path: arch/arm/mm/mmu.c
@@ -31,7 +31,9 @@ static void __init map_lowmem(void)
            (unsigned long long)__phys_to_virt(end));
 ```
 
-https://github.com/leeminghao/doc-linux/blob/master/4.x.y/arch/arm/include/asm/mach/map.h/struct_map_desc.md
+在memblock机制应用中有提到，系统中所有的内存块都在启动时被注册到memblock中以
+struct memblock_region的形式存在。map_lowmem的作用就是将以struct memblock_region类型的
+内存节点转换为struct map_desc类型然后传递给create_mapping。
 
 ### dmesg
 

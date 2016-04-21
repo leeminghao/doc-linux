@@ -121,11 +121,11 @@ struct mem_type
 
 https://github.com/leeminghao/doc-linux/tree/master/4.x.y/arch/arm/mm/struct_mem_type.h
 
-
 映射类型
 ----------------------------------------
 
-* MT_MEMORY       - 对应RAM;
+* MT_MEMORY       - 对应RAM; MT_MEMORY被用来映射主存RAM。它只有段页表，
+                    对应访问权限中的第二条:特权模式可以读写，用户模式禁止访问。
 * MT_DEVICE       - 对应了其他I/O设备，应用于ioremap;
 * MT_ROM          - 对应于ROM;
 * MT_LOW_VECTORS  - 对应0地址开始的向量;
@@ -133,3 +133,5 @@ https://github.com/leeminghao/doc-linux/tree/master/4.x.y/arch/arm/mm/struct_mem
 
 访问控制属性
 ----------------------------------------
+
+https://github.com/leeminghao/doc-linux/tree/master/4.x.y/arch/arm/include/asm/domain.h/domain.h.md

@@ -78,3 +78,7 @@ Linux在系统引导设置MMU时初始化c3寄存器来实现对内存域的访�
 * 对DOMAIN_IO设置DOMAIN_CLIENT权限。
 
 如果此时读取c3寄存器，它的值应该是0x1f。
+
+在系统的引导过程中对这3个域的访问控制位并不是一成不变的，它提供了一个名为modify_domain的宏来
+修改域访问控制位。系统在setup_arch中调用early_trap_init后，DOMAIN_USER的权限位将被设置成
+DOMAIN_CLIENT，此时它的值应该是0x17。

@@ -112,7 +112,7 @@ other
 }
 ```
 
-aries output
+aries demsg
 ----------------------------------------
 
 向内核参数传入: "memblock=debug"即可打印对应的memblock信息.

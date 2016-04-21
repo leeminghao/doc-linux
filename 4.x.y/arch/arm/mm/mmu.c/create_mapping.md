@@ -1,8 +1,11 @@
 create_mapping
 ========================================
 
-mem_types
+struct map_desc
 ----------------------------------------
+
+create_mapping只有一个类型为struct map_desc的参数。这是一个非常简单的参数，但是包含了创建页表
+相关的所有信息。
 
 path: arch/arm/mm/mmu.c
 ```
@@ -15,18 +18,43 @@ path: arch/arm/mm/mmu.c
  */
 static void __init create_mapping(struct map_desc *md)
 {
+```
+
+https://github.com/leeminghao/doc-linux/blob/master/4.x.y/arch/arm/include/asm/mach/map.h/struct_map_desc.md
+
+参数合法性检查
+----------------------------------------
+
+```
     unsigned long addr, length, end;
     phys_addr_t phys;
     const struct mem_type *type;
     pgd_t *pgd;
 
-    /* 1.参数合法性检查，该函数不为用户空间的虚拟地址建立映射表 */
+    /* 首先根据传入的virtual虚拟地址与中断向量起始地址比较，除特殊的
+     * 中断向量使用的虚拟地址可能落在0地址外，确保映射到的虚拟地址落在内核空间。
+     *
+     * 通过vectors_base宏，获取中断向量的起始地址，这是由于ARMv4以下的版本，该地址固定为0;
+     * ARMv4及以上版本，ARM中断向量表的地址由CP15协处理器c1寄存器中的V位(bit[13])控制，
+     * 如果V位为1，那么该地址为0xffff0000。考虑到除了ARMv4以下的版本的
+     * 中断向量所在的虚拟地址为0，其他所有映射到的虚拟地址应该都在地址
+     * 0xc0000000之上的内核空间，而不可能被映射到用户空间。
+     */
     if (md->virtual != vectors_base() && md->virtual < TASK_SIZE) {
         pr_warn("BUG: not creating mapping for 0x%08llx at 0x%08lx in user region\n",
             (long long)__pfn_to_phys((u64)md->pfn), md->virtual);
         return;
     }
+```
 
+### TASK_SIZE
+
+https://github.com/leeminghao/doc-linux/tree/master/4.x.y/arch/arm/include/asm/memory.h/TASK_SIZE.md
+
+mem_types
+----------------------------------------
+
+```
     /* 如果是iomemory，则映射的虚拟地址范围应属于高端内存区间，由于我们这里是常规的memory，
      * 即type为MT_MEMORY，所以不会进入该分支
      */

@@ -67,7 +67,7 @@ cpu_architecture获取CPU架构.
 mem_types
 ----------------------------------------
 
-根据CPU型号来配置对应cache策略和memory的类型信息.
+根据CPU型号来配置对应cache策略和memory的类型信息.根据当前CPU的特性进一步调整这些访问权限位。
 
 ```
     int i;
@@ -322,7 +322,9 @@ mem_types
 }
 ```
 
-在我们aries的实验环境输出如下信息:
+https://github.com/leeminghao/doc-linux/blob/master/4.x.y/arch/arm/mm/mmu.c/mem_types.md
+
+### aries_dmesg
 
 ```
 [    0.000000] Memory policy: ECC disabled, Data cache writealloc
