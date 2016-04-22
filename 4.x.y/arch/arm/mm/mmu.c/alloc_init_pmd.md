@@ -1,12 +1,30 @@
 alloc_init_pmd
 ========================================
 
+参数
+----------------------------------------
+
 path: arch/arm/mm/mmu.c
 ```
 static void __init alloc_init_pmd(pud_t *pud, unsigned long addr,
                       unsigned long end, phys_addr_t phys,
                       const struct mem_type *type)
 {
+```
+
+* pgd参数指定生成的页表的起始地址，它是一个pgd_t类型，被定义为typedef unsigned long pgd_t[2]，
+  所以它是一个2维数组。
+
+* addr和end分别指明被映射到的虚拟地址的起止地址。
+
+* phys指明被映射的物理地址的起始地址。
+
+* type参数指明映射类型，所有映射类型在struct mem_type mem_types[]数组中被统一定义。
+
+pmd
+----------------------------------------
+
+```
     pmd_t *pmd = pmd_offset(pud, addr);
     unsigned long next;
 
@@ -35,8 +53,7 @@ static void __init alloc_init_pmd(pud_t *pud, unsigned long addr,
 }
 ```
 
-pmd
-----------------------------------------
+
 
 对于arm平台来说通常只有两级页表，所以pmd == pud == pgd.
 

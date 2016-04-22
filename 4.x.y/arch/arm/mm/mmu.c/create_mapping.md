@@ -55,8 +55,10 @@ mem_types
 ----------------------------------------
 
 ```
-    /* 如果是iomemory，则映射的虚拟地址范围应属于高端内存区间，由于我们这里是常规的memory，
-     * 即type为MT_MEMORY，所以不会进入该分支
+    /*接着根据type类型判断是否为普通设备或者ROM，这些设备中的内存不能被映射到RAM映射的
+     * 区域[PAGE_OFFSET，high_memory)，也不能被映射到VMALLOC所在的区域[high_memory，VMALLOC_END)，
+     * 由于这两个区域是连续的，中间隔了8M的VMALLOC_OFFSET隔离区，准确来说是不能映射到
+     * [VMALLOC_START，VMALLOC_END)，但是这一隔离区为了使能隔离之用也是不能被映射的。
      */
     if ((md->type == MT_DEVICE || md->type == MT_ROM) &&
         md->virtual >= PAGE_OFFSET &&
@@ -70,6 +72,10 @@ mem_types
 #ifndef CONFIG_ARM_LPAE
     /*
      * Catch 36-bit addresses
+     */
+    /* 根据pfn与1G内存对应的最大物理页框0x100000比较，如果物理内存的起始地址位于32bits
+     * 的物理地址之外，那么通过create_36bit_mapping创建36bits长度的页表，
+     * 对于嵌入式系统来说很少有这种应用
      */
     if (md->pfn >= 0x100000) {
         create_36bit_mapping(md, type);
@@ -98,6 +104,11 @@ pgd
 才能做到每个进程都可以独立拥有属于自己的[0，3GB]的内存空间。
 
 ```
+    /* 调整传入的md中的各成员信息:
+     * 1.virtual向低地址对齐到页面大小;
+     * 2.根据length参数取对齐到页面的大小的长度，并以此计算映射结束的虚拟地址。
+     * 3.根据pfn参数计算起始物理地址。
+     */
     addr = md->virtual & PAGE_MASK;
     phys = __pfn_to_phys(md->pfn);
     length = PAGE_ALIGN(md->length + (md->virtual & ~PAGE_MASK));
@@ -109,6 +120,7 @@ pgd
     }
 
     // 一级数组中addr对应的段在init_mm->pgd(0xc0004000)的下标
+    // 根据虚拟地址和公式pgd = pgd_offset_k(addr)计算页表地址。
     pgd = pgd_offset_k(addr);
 ```
 
