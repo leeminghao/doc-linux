@@ -23,4 +23,6 @@ path: include/asm-generic/4level-fixup.h
 PGDIR_SIZE vs PGDIR_MASK
 ----------------------------------------
 
-https://github.com/leeminghao/doc-linux/blob/master/4.x.y/arch/arm/include/asm/pgtable-2level.h/PGDIR_SIZE.md
+### ARM
+
+https://github.com/leeminghao/doc-linux/blob/master/4.x.y/arch/arm/include/asm/pgtable-2level.h/PGDIR_XXX.md

@@ -27,13 +27,30 @@ pmd
 ```
     pmd_t *pmd = pmd_offset(pud, addr);
     unsigned long next;
+```
 
+对于arm平台来说通常只有两级页表，所以pmd == pud == pgd.
+
+https://github.com/leeminghao/doc-linux/tree/master/4.x.y/arch/arm/include/asm/pgtable-2level.h/pmd_offset.md
+
+pmd_addr_end
+----------------------------------------
+
+```
     do {
         /*
          * With LPAE, we must loop over to map
          * all the pmds for the given range.
          */
         next = pmd_addr_end(addr, end);
+```
+
+https://github.com/leeminghao/doc-linux/tree/master/4.x.y/include/asm-generic/pgtable.h/pmd_addr_end.md
+
+生成页表项
+----------------------------------------
+
+```
 
         /*
          * Try a section mapping - addr, next and phys must all be
@@ -53,21 +70,13 @@ pmd
 }
 ```
 
+### SECTION_MASK
+
+https://github.com/leeminghao/doc-linux/tree/master/4.x.y/arch/arm/include/asm/pgtable-2level.h/SECTION_XXX.md
+
+### __map_init_section
 
 
-对于arm平台来说通常只有两级页表，所以pmd == pud == pgd.
-
-https://github.com/leeminghao/doc-linux/tree/master/4.x.y/arch/arm/include/asm/pgtable-2level.h/pmd_offset.md
-
-pmd_addr_end
-----------------------------------------
-
-https://github.com/leeminghao/doc-linux/tree/master/4.x.y/include/asm-generic/pgtable.h/pmd_addr_end.md
-
-__map_init_section
-----------------------------------------
-
-alloc_init_pte
-----------------------------------------
+### alloc_init_pte
 
 https://github.com/leeminghao/doc-linux/blob/master/4.x.y/arch/arm/mm/mmu.c/alloc_init_pte.md

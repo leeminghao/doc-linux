@@ -14,4 +14,4 @@ path: include/asm-generic/pgtable.h
 PMD_SIZE vs PMD_MASK
 ----------------------------------------
 
-https://github.com/leeminghao/doc-linux/blob/master/4.x.y/arch/arm/include/asm/pgtable-2level.h/PMD_SIZE.md
+https://github.com/leeminghao/doc-linux/blob/master/4.x.y/arch/arm/include/asm/pgtable-2level.h/PMD_XXX.md

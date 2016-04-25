@@ -5,7 +5,7 @@ prepare_page_table
 
 * PMD_SIZE
 
-https://github.com/leeminghao/doc-linux/tree/master/4.x.y/arch/arm/include/asm/pgtable-2level.h/PMD_SIZE.md
+https://github.com/leeminghao/doc-linux/tree/master/4.x.y/arch/arm/include/asm/pgtable-2level.h/PMD_XXX.md
 
 * MODULES_VADDR
 

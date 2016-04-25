@@ -35,6 +35,8 @@ static void __init map_lowmem(void)
 struct memblock_region的形式存在。map_lowmem的作用就是将以struct memblock_region类型的
 内存节点转换为struct map_desc类型然后传递给create_mapping。
 
+https://github.com/leeminghao/doc-linux/blob/master/4.x.y/mm/memblock.c/memblock.md
+
 ### dmesg
 
 在上述代码段添加如下log信息打印如下所示:
