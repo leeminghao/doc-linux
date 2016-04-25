@@ -129,3 +129,39 @@ https://github.com/leeminghao/doc-linux/blob/master/4.x.y/arch/arm/mm/mmu.c/res/
 #### L2
 
 https://github.com/leeminghao/doc-linux/blob/master/4.x.y/arch/arm/mm/mmu.c/res/pg_armv6_l2.jpg
+
+页表计算
+----------------------------------------
+
+### 页目录(PGD)
+
+https://github.com/leeminghao/doc-linux/blob/master/4.x.y/arch/arm/mm/mmu.c/create_mapping.md
+
+#### 页目录项地址
+
+页目录项地址的计算是通过宏pgd_offset_k来计算的，如下所示:
+
+https://github.com/leeminghao/doc-linux/blob/master/4.x.y/arch/arm/include/asm/pgtable.h/pgd_offset_k.md
+
+#### 页目录项值
+
+页目录项值的计算是通过宏__pmd来计算的，如下所示:
+
+https://github.com/leeminghao/doc-linux/blob/master/4.x.y/arch/arm/include/asm/pgtable-2level.h/README.md
+
+### 一级页表项(PMD)
+
+#### 一级页表项地址
+
+同页目录项地址
+
+https://github.com/leeminghao/doc-linux/blob/master/4.x.y/arch/arm/include/asm/pgtable.h/pgd_offset_k.md
+
+#### 一级页表项值
+
+```
+        pte_t *pte = early_alloc(PTE_HWTABLE_OFF + PTE_HWTABLE_SIZE);
+        __pmd_populate(pmd, __pa(pte), prot);
+```
+
+https://github.com/leeminghao/doc-linux/blob/master/4.x.y/arch/arm/mm/mmu.c/early_pte_alloc.md

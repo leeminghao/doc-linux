@@ -50,6 +50,9 @@ https://github.com/leeminghao/doc-linux/tree/master/4.x.y/include/asm-generic/pg
 生成页表项
 ----------------------------------------
 
+首先根据公式(addr | end | phys) & ~SECTION_MASK) == 0依据传入的的addr，end和phys参数判断是否
+满足地址对齐到1M。
+
 ```
 
         /*
@@ -76,7 +79,12 @@ https://github.com/leeminghao/doc-linux/tree/master/4.x.y/arch/arm/include/asm/p
 
 ### __map_init_section
 
+如果满足1MB对齐则直接生成主页表，并存入pgd指向的地址。
+
+https://github.com/leeminghao/doc-linux/blob/master/4.x.y/arch/arm/mm/mmu.c/__map_init_section.md
 
 ### alloc_init_pte
+
+如不满足1MB对齐直接生成主页表，那么调用alloc_init_pte生成二级页表。
 
 https://github.com/leeminghao/doc-linux/blob/master/4.x.y/arch/arm/mm/mmu.c/alloc_init_pte.md

@@ -1,6 +1,10 @@
 __map_init_section
 ========================================
 
+由于pgd是一个2维数组，所以每次需要对2个元素赋值，也即一次可以处理2M的内存映射，生成两个页表项。
+它在一个循环中以SECTION_SIZE为步进单位，通过phys | type->prot_sect来生成和填充页表。
+主RAM内存就是通过这种方法生成。
+
 path: arch/arm/mm/mmu.c
 ```
 static void __init __map_init_section(pmd_t *pmd, unsigned long addr,
@@ -27,6 +31,7 @@ static void __init __map_init_section(pmd_t *pmd, unsigned long addr,
         phys += SECTION_SIZE;
     } while (pmd++, addr += SECTION_SIZE, addr != end);
 
+    // 调用flush_pmd_entry清空TLB中的页面Cache，以使得新页表起作用。
     flush_pmd_entry(p);
 }
 ```
