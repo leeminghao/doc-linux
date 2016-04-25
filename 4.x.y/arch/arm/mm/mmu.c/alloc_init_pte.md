@@ -48,3 +48,5 @@ set_pte_ext
     } while (pte++, addr += PAGE_SIZE, addr != end);
 }
 ```
+
+https://github.com/leeminghao/doc-linux/blob/master/4.x.y/arch/arm/include/asm/pgtable-2level.h/set_pte_ext.md
