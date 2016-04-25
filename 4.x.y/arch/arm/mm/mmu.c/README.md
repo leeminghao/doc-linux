@@ -149,6 +149,10 @@ https://github.com/leeminghao/doc-linux/blob/master/4.x.y/arch/arm/include/asm/p
 
 https://github.com/leeminghao/doc-linux/blob/master/4.x.y/arch/arm/include/asm/pgtable-2level.h/README.md
 
+#### 具体流程
+
+https://github.com/leeminghao/doc-linux/blob/master/4.x.y/arch/arm/mm/mmu.c/__map_init_section.md
+
 ### 一级页表项(PMD)
 
 #### 一级页表项地址
@@ -165,3 +169,23 @@ https://github.com/leeminghao/doc-linux/blob/master/4.x.y/arch/arm/include/asm/p
 ```
 
 https://github.com/leeminghao/doc-linux/blob/master/4.x.y/arch/arm/mm/mmu.c/early_pte_alloc.md
+
+### 二级页表项(PTE)
+
+#### 二级页表项地址
+
+```
+        pte_t *pte = early_alloc(PTE_HWTABLE_OFF + PTE_HWTABLE_SIZE);
+```
+
+https://github.com/leeminghao/doc-linux/blob/master/4.x.y/arch/arm/mm/mmu.c/early_alloc.md
+
+#### 二级页表项值
+
+```
+pte = pte_offset_kernel(pmd, addr);
+...
+set_pte_ext(pte, pfn_pte(pfn, __pgprot(type->prot_pte)), 0);
+```
+
+https://github.com/leeminghao/doc-linux/blob/master/4.x.y/arch/arm/mm/mmu.c/alloc_init_pte.md

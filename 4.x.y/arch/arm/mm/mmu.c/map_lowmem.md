@@ -65,7 +65,7 @@ https://github.com/leeminghao/doc-linux/blob/master/4.x.y/mm/memblock.c/memblock
 ```
 
 从dmesg中信息我们得知map_lowmem函数的作用就是映射lowmem区间，lowmem区间在我们的实验环境中是
-如下地址区间:
+如下地址区间,该区间的映射用到L1页表:
 
 ```
 [    0.000000]     lowmem  : 0xc0000000 - 0xef800000   ( 760 MB)
