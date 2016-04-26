@@ -190,9 +190,7 @@ kernel stack的大小一般为8192 / sizeof (long);
     boot_init_stack_canary();
 ```
 
-Linux 0.11 Stack:
-
-https://github.com/leeminghao/doc-linux/blob/master/0.11/misc/Stack.md
+https://github.com/leeminghao/doc-linux/blob/master/4.x.y/arch/arm/include/asm/stackprotector.h/boot_init_stack_canary.md
 
 mm_init_owner
 ----------------------------------------
