@@ -1,6 +1,15 @@
 devicemaps_init
 ========================================
 
+```
+[    0.000000]     vector  : 0xffff0000 - 0xffff1000   (   4 kB)
+```
+
+early_trap_init
+----------------------------------------
+
+为vectors分配两个page的物理内存.
+
 path: arch/arm/mm/mmu.c
 ```
 /*
@@ -22,7 +31,12 @@ static void __init devicemaps_init(const struct machine_desc *mdesc)
     vectors = early_alloc(PAGE_SIZE * 2);
 
     early_trap_init(vectors);
+```
 
+map
+----------------------------------------
+
+```
     for (addr = VMALLOC_START; addr; addr += PMD_SIZE)
         pmd_clear(pmd_off_k(addr));
 
@@ -106,4 +120,10 @@ static void __init devicemaps_init(const struct machine_desc *mdesc)
     local_flush_tlb_all();
     flush_cache_all();
 }
+```
+
+### aries
+
+```
+CONFIG_KUSER_HELPERS=y
 ```
