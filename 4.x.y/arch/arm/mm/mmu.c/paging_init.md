@@ -53,13 +53,19 @@ map_lowmem()是为低端物理内存建立映.
 
 https://github.com/leeminghao/doc-linux/blob/master/4.x.y/arch/arm/mm/mmu.c/map_lowmem.md
 
-devicemaps_init
+dma_contiguous_remap
 ----------------------------------------
-
-为设备IO内存创建映射.
 
 ```
     dma_contiguous_remap();
+```
+
+https://github.com/leeminghao/doc-linux/blob/master/4.x.y/arch/arm/mm/dma-mapping.c/dma_contiguous_remap.md
+
+devicemaps_init
+----------------------------------------
+
+```
     devicemaps_init(mdesc);
 ```
 
@@ -77,19 +83,21 @@ https://github.com/leeminghao/doc-linux/blob/master/4.x.y/arch/arm/mm/mmu.c/kmap
 tcm_init
 ----------------------------------------
 
+空函数
+
 ```
     tcm_init();
-
-    top_pmd = pmd_off_k(0xffff0000);
-
-    /* allocate the zero page. */
-    zero_page = early_alloc(PAGE_SIZE);
 ```
 
 bootmem_init
 ----------------------------------------
 
 ```
+    top_pmd = pmd_off_k(0xffff0000);
+
+    /* allocate the zero page. */
+    zero_page = early_alloc(PAGE_SIZE);
+
     bootmem_init();
 
     empty_zero_page = virt_to_page(zero_page);

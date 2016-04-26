@@ -3,6 +3,7 @@ devicemaps_init
 
 ```
 [    0.000000]     vector  : 0xffff0000 - 0xffff1000   (   4 kB)
+[    0.000000]     vector  : 0xffff1000 - 0xffff2000   (   4 kB)
 ```
 
 early_trap_init
@@ -75,6 +76,7 @@ map
      * location (0xffff0000).  If we aren't using high-vectors, also
      * create a mapping at the low-vectors virtual address.
      */
+     // vector: 0xffff0000 - 0xffff1000
     map.pfn = __phys_to_pfn(virt_to_phys(vectors));
     map.virtual = 0xffff0000;
     map.length = PAGE_SIZE;
@@ -93,6 +95,7 @@ map
     }
 
     /* Now create a kernel read-only mapping */
+    // 0xffff1000 - 0xffff2000
     map.pfn += 1;
     map.virtual = 0xffff0000 + PAGE_SIZE;
     map.length = PAGE_SIZE;
