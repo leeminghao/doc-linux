@@ -63,31 +63,11 @@ lockdep是linux内核的一个调试模块，用来检查内核互斥机制尤�
 smp_setup_processor_id
 ----------------------------------------
 
-这个函数主要作用是获取当前正在执行初始化的处理器ID。smp_setup_processor_id()函数每次都要中断CPU
-去获取ID，这样效率比较低。由于单处理器的频率已经慢慢变得不能再高了，那么处理器的计算速度还要提高，
-还有别的办法吗？这样自然就想到多个处理器的技术。这就好比物流公司，有很多货只让一辆卡车在高速公路
-上来回运货，这样车的速度已经最快了，运的货就一定了，不可能再多得去。那么物流公司想提高运货量，那
-只能多顾用几台卡车了，这样运货量就比以前提高了。处理器的制造厂家自然也想到这样的办法，就是几个
-处理器放到一起，这样就可以提高处理速度。接着下来的问题又来，那么这几个处理器怎么样放在一起，
-成本最低，性能最高。考虑到这样的一种情况，处理器只有共享主内存、总线、外围设备，其它每个处理器是
-独立的，这样可以省掉很多外围硬件成本。当然所有这些处理器还共享一个操作系统，这样的结构就叫做
-对称多处理器（SymmetricalMulti-Processing）。在对称多处理器系统里，所有处理器只有在初始化阶段
-处理有主从之分，到系统初始化完成之后，大家是平等的关系，没有主从处理器之分了。在内核里所有以
-smp开头的函数都是处理对称多处理器相关内容的，对称多处理器与单处理器在操作系统里，主要区别是
-引导处理器与应用处理器，每个处理器不同的缓存，中断协作，锁的同步。因此，在内核初始化阶段需要区分，
-在与缓存同步数据需要处理，在中断方面需要多个处理协作执行，在多个进程之间要做同步和通讯。如果内核
-只是有单处理器系统，smp_setup_processor_id()函数是是空的，不必要做任保的处理。
+这个函数主要作用是获取当前正在执行初始化的处理器ID.
 
 ```
     smp_setup_processor_id();
 ```
-
-注意: 与smp_processor_id()函数区别，这两个函数都是获取多处理器的ID，为什么会需要两个函数呢？
-其实这里有一个差别的，smp_setup_processor_id()函数可以不调用setup_arch()初始化函数就可以使用，
-而smp_processor_id()函数是一定要调用setup_arch()初始化函数后，才能使用。smp_setup_processor_id()
-函数是直接获取对称多处理器的ID，而smp_processor_id()函数是获取变量保存的处理器ID，因此一定要调用
-初始化函数。由于smp_setup_processor_id()函数不用调用初始化函数，可以放在内核初始化start_kernel
-函数的最前面使用，而函数smp_processor_id()只能放到setup_arch()函数调用的后面使用了。
 
 ### ARM
 
@@ -164,39 +144,38 @@ CPU存在，但是每个CPU不一定可以使用，或者没有初始化，在�
 
 https://github.com/leeminghao/doc-linux/blob/master/4.x.y/init/main.c/boot_cpu_init.md
 
-9.page_address_init
+page_address_init
 ----------------------------------------
 
-这个函数主要作用是初始化高端内存的映射表。在这里引入了高端内存的概念，那么什么叫做高端内存呢？
-为什么要使用高端内存呢？其实高端内存是相对于低端内存而存在的，那么先要理解一下低端内存了。
-在32位的系统里，最多能访问的总内存是4G，其中3G空间给应用程序，而内核只占用1G的空间。因此，内核
-能映射的内存空间，只有1G大小，但实际上比这个还要小一些，大概是896M，另外128M空间是用来映射
-高端内存使用的。因此0到896M的内存空间，就叫做低端内存，而高于896M的内存，就叫高端内存了。
-如果系统是64位系统，当然就没未必要有高端内存存在了，因为64位有足够多的地址空间给内核使用，
-访问的内存可以达到10G都没有问题。在32位系统里，内核为了访问超过1G的物理内存空间，需要使用
-高端内存映射表。比如当内核需要读取1G的缓存数据时，就需要分配高端内存来使用，这样才可以管理起来。
-使用高端内存之后，32位的系统也可以访问达到64G内存。在移动操作系统里，目前还没有这个必要，最多才
-1G多内存。
+空实现.
 
 ```
     page_address_init();
 ```
 
-10.setup_arch
+linux_banner
+----------------------------------------
+
+```
+    // 主要作用是在输出终端上显示版本信息、编译的电脑用户名称、编译器版本、编译时间。
+    printk(KERN_NOTICE "%s", linux_banner);
+```
+
+setup_arch
 ----------------------------------------
 
 这个函数主要作用是对内核架构进行初始化。再次获取CPU类型和系统架构，分析引导程序传入的命令行参数，
 进行页面内存初始化，处理器初始化，中断早期初始化等等。
 
 ```
-    // 主要作用是在输出终端上显示版本信息、编译的电脑用户名称、编译器版本、编译时间。
-    printk(KERN_NOTICE "%s", linux_banner);
     setup_arch(&command_line);
 ```
 
+### ARM
+
 https://github.com/leeminghao/doc-linux/blob/master/4.x.y/arch/arm/kernel/setup.c/setup_arch.md
 
-11.boot_init_stack_canary
+boot_init_stack_canary
 ----------------------------------------
 
 初始化stack_canary栈,stack_canary的是带防止栈溢出攻击保护的堆栈。当user space的程序通过
@@ -215,7 +194,7 @@ Linux 0.11 Stack:
 
 https://github.com/leeminghao/doc-linux/blob/master/0.11/misc/Stack.md
 
-12.mm_init_owner
+mm_init_owner
 ----------------------------------------
 
 这个函数主要作用是设置最开始的初始化任务属于init_mm内存。在ARM里，这个函数为空。
@@ -224,14 +203,14 @@ https://github.com/leeminghao/doc-linux/blob/master/0.11/misc/Stack.md
     mm_init_owner(&init_mm, &init_task);
 ```
 
-13.mm_init_cpumask
+mm_init_cpumask
 ----------------------------------------
 
 ```
     mm_init_cpumask(&init_mm);
 ```
 
-14.setup_command_line
+setup_command_line
 ----------------------------------------
 
 这个函数主要作用是保存命令行，以便后面可以使用。
@@ -240,7 +219,7 @@ https://github.com/leeminghao/doc-linux/blob/master/0.11/misc/Stack.md
     setup_command_line(command_line);
 ```
 
-15.setup_nr_cpu_ids
+setup_nr_cpu_ids
 ----------------------------------------
 
 这个函数主要作用是设置最多有多少个nr_cpu_ids结构。
@@ -249,7 +228,7 @@ https://github.com/leeminghao/doc-linux/blob/master/0.11/misc/Stack.md
     setup_nr_cpu_ids();
 ```
 
-16.setup_per_cpu_areas
+setup_per_cpu_areas
 ----------------------------------------
 
 setup_per_cpu_areas()函数给每个CPU分配内存，并拷贝.data.percpu段的数据。为系统中的每个
@@ -259,7 +238,7 @@ CPU的per_cpu变量申请空间。
     setup_per_cpu_areas();
 ```
 
-17.smp_prepare_boot_cpu
+smp_prepare_boot_cpu
 ----------------------------------------
 
 如果是SMP环境，则设置boot CPU的一些数据。在引导过程中使用的CPU称为boot CPU.
@@ -268,7 +247,7 @@ CPU的per_cpu变量申请空间。
     smp_prepare_boot_cpu();    /* arch-specific boot-cpu hooks */
 ```
 
-18.build_all_zonelists
+build_all_zonelists
 ----------------------------------------
 
 这个函数主要作用是初始化所有内存管理节点列表，以便后面进行内存管理初始化。
@@ -277,7 +256,7 @@ CPU的per_cpu变量申请空间。
     build_all_zonelists(NULL);
 ```
 
-19.page_alloc_init
+page_alloc_init
 ----------------------------------------
 
 这个函数主要作用是设置内存页分配通知器。
@@ -286,7 +265,7 @@ CPU的per_cpu变量申请空间。
     page_alloc_init();
 ```
 
-20.parse_early_param
+parse_early_param
 ----------------------------------------
 
 解析内核参数.
@@ -299,14 +278,16 @@ CPU的per_cpu变量申请空间。
            0, 0, &unknown_bootoption);
 ```
 
-21.jump_label_init
+https://github.com/leeminghao/doc-linux/blob/master/4.x.y/init/main.c/parse_early_param.md
+
+jump_label_init
 ----------------------------------------
 
 ```
     jump_label_init();
 ```
 
-22.setup_log_buf
+setup_log_buf
 ----------------------------------------
 
 ```
@@ -317,7 +298,7 @@ CPU的per_cpu变量申请空间。
     setup_log_buf(0);
 ```
 
-23.pidhash_init
+pidhash_init
 ----------------------------------------
 
 这个函数是进程ID的HASH表初始化，这样可以提供通PID进行高效访问进程结构的信息。
@@ -327,7 +308,7 @@ LINUX里共有四种类型的PID，因此就有四种HASH表相对应。
     pidhash_init();
 ```
 
-24.vfs_caches_init_early
+vfs_caches_init_early
 ----------------------------------------
 
 初始化VFS的两个重要数据结构dcache和inode的缓存。
@@ -336,7 +317,7 @@ LINUX里共有四种类型的PID，因此就有四种HASH表相对应。
     vfs_caches_init_early();
 ```
 
-25.sort_main_extable
+sort_main_extable
 ----------------------------------------
 
 把编译期间,kbuild设置的异常表,也就是__start___ex_table和__stop___ex_table之中的所有元素进行排序
@@ -345,7 +326,7 @@ LINUX里共有四种类型的PID，因此就有四种HASH表相对应。
     sort_main_extable();
 ```
 
-26.trap_init
+trap_init
 ----------------------------------------
 
 初始化中断向量表,在ARM系统里是空函数，没有任何的初始化。
@@ -354,7 +335,7 @@ LINUX里共有四种类型的PID，因此就有四种HASH表相对应。
     trap_init();
 ```
 
-27.mm_init
+mm_init
 ----------------------------------------
 
 这个函数是标记那些内存可以使用，并且告诉系统有多少内存可以使用，当然是除了内核使用的内存以外。
@@ -363,7 +344,7 @@ LINUX里共有四种类型的PID，因此就有四种HASH表相对应。
     mm_init();
 ```
 
-28.sched_init
+sched_init
 ----------------------------------------
 
 这个函数主要作用是对进程调度器进行初始化，比如分配调度器占用的内存，初始化任务队列，设置当前任务
@@ -381,7 +362,7 @@ LINUX里共有四种类型的PID，因此就有四种HASH表相对应。
     sched_init();
 ```
 
-29.preempt_disable
+preempt_disable
 ----------------------------------------
 
 这个函数主要作用是关闭优先级调度。由于每个进程任务都有优先级，目前系统还没有完全初始化，还不能
