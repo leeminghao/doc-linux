@@ -121,14 +121,14 @@ int main(int argc, char *argv[])
 编译并运行:
 
 ```
-liminghao@liminghao:~/big/leeminghao/doc-linux/4.x.y/include/linux/sched_h/nsproxy/src$ sudo ./uts
+$ sudo ./uts
 [sudo] password for liminghao:
 starting ...
 in child
-root@changed name:~/big/leeminghao/doc-linux/4.x.y/include/linux/sched_h/nsproxy/src# exit
+# exit
 exit
 exited
-liminghao@liminghao:~/big/leeminghao/doc-linux/4.x.y/include/linux/sched_h/nsproxy/src$
+$
 ```
 
 不加CLONE_NEWUTS参数运行上述代码，发现主机名也变了，输入exit以后主机名也会变回来，似乎没什么区别。
@@ -139,13 +139,13 @@ liminghao@liminghao:~/big/leeminghao/doc-linux/4.x.y/include/linux/sched_h/nspro
 ### CLONE_NEWUTS:
 
 ```
-root@changed name:~/big/leeminghao/doc-linux/4.x.y/include/linux/sched_h/nsproxy/src# ps
+# ps
   PID TTY          TIME CMD
  6871 pts/22   00:00:00 sudo
  6872 pts/22   00:00:00 uts
  6873 pts/22   00:00:00 bash
  6888 pts/22   00:00:00 ps
-root@changed name:~/big/leeminghao/doc-linux/4.x.y/include/linux/sched_h/nsproxy/src# ls -l /proc/6873/ns/
+# ls -l /proc/6873/ns/
 total 0
 lrwxrwxrwx 1 root root 0 Feb 18 21:06 ipc -> ipc:[4026531839]
 lrwxrwxrwx 1 root root 0 Feb 18 21:06 mnt -> mnt:[4026531840]
@@ -153,7 +153,7 @@ lrwxrwxrwx 1 root root 0 Feb 18 21:06 net -> net:[4026531962]
 lrwxrwxrwx 1 root root 0 Feb 18 21:06 pid -> pid:[4026531836]
 lrwxrwxrwx 1 root root 0 Feb 18 21:06 user -> user:[4026531837]
 lrwxrwxrwx 1 root root 0 Feb 18 21:06 uts -> uts:[4026531838]
-root@changed name:~/big/leeminghao/doc-linux/4.x.y/include/linux/sched_h/nsproxy/src# ls -l /proc/6873/ns/
+# ls -l /proc/6873/ns/
 total 0
 lrwxrwxrwx 1 root root 0 Feb 18 21:07 ipc -> ipc:[4026531839]
 lrwxrwxrwx 1 root root 0 Feb 18 21:07 mnt -> mnt:[4026531840]
@@ -168,13 +168,13 @@ lrwxrwxrwx 1 root root 0 Feb 18 21:07 uts -> uts:[4026532388]
 ### 不加CLONE_NEWUTS:
 
 ```
-liminghao@liminghao:~/big/leeminghao/doc-linux/4.x.y/include/linux/sched_h/nsproxy/src$ ps
+$ ps
   PID TTY          TIME CMD
  6835 pts/22   00:00:00 bash
  6929 pts/22   00:00:00 uts
  6930 pts/22   00:00:00 bash
  6942 pts/22   00:00:00 ps
-liminghao@liminghao:~/big/leeminghao/doc-linux/4.x.y/include/linux/sched_h/nsproxy/src$ ls -l /proc/6930/ns
+$ ls -l /proc/6930/ns
 total 0
 lrwxrwxrwx 1 liminghao liminghao 0 Feb 18 21:13 ipc -> ipc:[4026531839]
 lrwxrwxrwx 1 liminghao liminghao 0 Feb 18 21:13 mnt -> mnt:[4026531840]
@@ -182,7 +182,7 @@ lrwxrwxrwx 1 liminghao liminghao 0 Feb 18 21:13 net -> net:[4026531962]
 lrwxrwxrwx 1 liminghao liminghao 0 Feb 18 21:13 pid -> pid:[4026531836]
 lrwxrwxrwx 1 liminghao liminghao 0 Feb 18 21:13 user -> user:[4026531837]
 lrwxrwxrwx 1 liminghao liminghao 0 Feb 18 21:13 uts -> uts:[4026531838]
-liminghao@liminghao:~/big/leeminghao/doc-linux/4.x.y/include/linux/sched_h/nsproxy/src$ls -l /proc/6930/ns
+$ ls -l /proc/6930/ns
 total 0
 lrwxrwxrwx 1 liminghao liminghao 0 Feb 18 21:13 ipc -> ipc:[4026531839]
 lrwxrwxrwx 1 liminghao liminghao 0 Feb 18 21:13 mnt -> mnt:[4026531840]

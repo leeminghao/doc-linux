@@ -37,7 +37,7 @@ union thread_union init_thread_union __init_task_data =
 
 ### union thread_union
 
-https://github.com/leeminghao/doc-linux/blob/master/4.x.y/include/linux/sched_h/thread_union.md
+https://github.com/leeminghao/doc-linux/blob/master/4.x.y/include/linux/sched.h/thread_union.md
 
 ### __init_task_data
 
@@ -185,7 +185,7 @@ path: include/linux/init_task.h
 
 对应的task_struct进程描述符如下:
 
-https://github.com/leeminghao/doc-linux/blob/master/4.x.y/include/linux/sched_h/task_struct.md
+https://github.com/leeminghao/doc-linux/blob/master/4.x.y/include/linux/sched.h/task_struct.md
 
 #### init_thread_info
 
