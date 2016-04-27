@@ -172,7 +172,7 @@ https://github.com/leeminghao/doc-linux/blob/master/4.x.y/arch/arm/kernel/init_t
 进程创建
 ----------------------------------------
 
-https://github.com/leeminghao/doc-linux/blob/master/4.x.y/kernel/fork_c/fork.md
+https://github.com/leeminghao/doc-linux/blob/master/4.x.y/kernel/fork.c/README.md
 
 进程调度
 ----------------------------------------

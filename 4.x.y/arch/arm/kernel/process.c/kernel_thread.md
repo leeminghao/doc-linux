@@ -60,7 +60,7 @@ https://github.com/leeminghao/doc-linux/blob/master/4.x.y/arch/arm/kernel/head-c
 
 2.接下来调用我们熟悉的do_fork函数。
 
-https://github.com/leeminghao/doc-linux/tree/master/4.x.y/kernel/fork_c/do_fork.md
+https://github.com/leeminghao/doc-linux/tree/master/4.x.y/kernel/fork.c/do_fork.md
 
 因为内核线程是由内核自身生成的，应该注意下面两个特别之处。
 

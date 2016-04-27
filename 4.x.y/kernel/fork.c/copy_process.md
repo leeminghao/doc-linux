@@ -106,7 +106,7 @@ https://github.com/leeminghao/doc-linux/blob/master/4.x.y/include/asm-generic/cu
 
 dup_task_struct的具体实现如下所示:
 
-https://github.com/leeminghao/doc-linux/blob/master/4.x.y/kernel/fork_c/dup_task_struct.md
+https://github.com/leeminghao/doc-linux/blob/master/4.x.y/kernel/fork.c/dup_task_struct.md
 
 4.检查当前特定用户进程数
 ----------------------------------------
@@ -143,7 +143,7 @@ https://github.com/leeminghao/doc-linux/blob/master/4.x.y/kernel/fork_c/dup_task
 是从父进程的task_struct精确复制而来，因此相关的指针最初都指向同样的资源，或者说同样的具体资源
 实例，如图所示:
 
-https://github.com/leeminghao/doc-linux/tree/master/4.x.y/kernel/fork_c/res/share_res.jpg
+https://github.com/leeminghao/doc-linux/tree/master/4.x.y/kernel/fork.c/res/share_res.jpg
 
 假定我们有两个资源：res_abc和res_def。最初父子进程的task_struct中的对应指针都指向了资源的同一个
 实例，即内存中特定的数据结构。如果CLONE_ABC置位，则两个进程会共享res_abc。此外，为防止与资源实例
@@ -515,4 +515,4 @@ https://github.com/leeminghao/doc-linux/blob/master/4.x.y/include/linux/sched_h/
 流程图
 ----------------------------------------
 
-https://github.com/leeminghao/doc-linux/tree/master/4.x.y/kernel/fork_c/res/copy_process.jpg
+https://github.com/leeminghao/doc-linux/tree/master/4.x.y/kernel/fork.c/res/copy_process.jpg

@@ -52,12 +52,18 @@ lockdep是linux内核的一个调试模块，用来检查内核互斥机制尤�
 * 几把锁形成一个闭环死锁。加锁后导致依赖图产生成闭环，这是典型的死锁现象。
 
 ```
-
     /*
      * Need to run as early as possible, to initialize the
      * lockdep hash:
      */
     lockdep_init();
+```
+
+set_task_stack_end_magic
+----------------------------------------
+
+```
+    set_task_stack_end_magic(&init_task);
 ```
 
 smp_setup_processor_id
@@ -81,6 +87,23 @@ debug_objects_early_init
 ```
     debug_objects_early_init();
 ```
+
+boot_init_stack_canary
+----------------------------------------
+
+初始化stack_canary栈,stack_canary的是带防止栈溢出攻击保护的堆栈。当user space的程序通过
+int 0x80进入内核空间的时候，CPU自动完成一次堆栈切换，从user space的stack切换到
+kernel space的stack。在这个进程exit之前所发生的所有系统调用所使用的kernel stack都是同一个。
+kernel stack的大小一般为8192 / sizeof (long);
+
+```
+    /*
+     * Set up the the initial canary ASAP:
+     */
+    boot_init_stack_canary();
+```
+
+https://github.com/leeminghao/doc-linux/blob/master/4.x.y/arch/arm/include/asm/stackprotector.h/boot_init_stack_canary.md
 
 cgroup_init_early
 ----------------------------------------
@@ -175,22 +198,7 @@ setup_arch
 
 https://github.com/leeminghao/doc-linux/blob/master/4.x.y/arch/arm/kernel/setup.c/setup_arch.md
 
-boot_init_stack_canary
-----------------------------------------
 
-初始化stack_canary栈,stack_canary的是带防止栈溢出攻击保护的堆栈。当user space的程序通过
-int 0x80进入内核空间的时候，CPU自动完成一次堆栈切换，从user space的stack切换到
-kernel space的stack。在这个进程exit之前所发生的所有系统调用所使用的kernel stack都是同一个。
-kernel stack的大小一般为8192 / sizeof (long);
-
-```
-    /*
-     * Set up the the initial canary ASAP:
-     */
-    boot_init_stack_canary();
-```
-
-https://github.com/leeminghao/doc-linux/blob/master/4.x.y/arch/arm/include/asm/stackprotector.h/boot_init_stack_canary.md
 
 mm_init_owner
 ----------------------------------------

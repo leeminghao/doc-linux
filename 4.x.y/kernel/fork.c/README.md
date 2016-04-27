@@ -169,7 +169,7 @@ sys_fork函数最终是调用do_fork来实现一个进程的创建:
 
 ### do_fork
 
-https://github.com/leeminghao/doc-linux/tree/master/4.x.y/kernel/fork_c/do_fork.md
+https://github.com/leeminghao/doc-linux/tree/master/4.x.y/kernel/fork.c/do_fork.md
 
 Sample
 ----------------------------------------

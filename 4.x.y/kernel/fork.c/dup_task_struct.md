@@ -92,7 +92,7 @@ static struct thread_info *alloc_thread_info_node(struct task_struct *tsk,
 也就是8KB空间的起始位置+sizeof(thread_info)的位置。
 内栈的结束位置会写入一个STACK_END_MAGIC(0x57AC6E9D)用于检测内核栈是否溢出。
 
-https://github.com/leeminghao/doc-linux/tree/master/4.x.y/kernel/fork_c/res/kernel_stack.jpg
+https://github.com/leeminghao/doc-linux/tree/master/4.x.y/kernel/fork.c/res/kernel_stack.jpg
 
 end_of_stack
 ----------------------------------------
