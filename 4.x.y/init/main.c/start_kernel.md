@@ -59,12 +59,16 @@ lockdep是linux内核的一个调试模块，用来检查内核互斥机制尤�
     lockdep_init();
 ```
 
+https://github.com/leeminghao/doc-linux/blob/master/4.x.y/kernel/locking/lockdep.c/lockdep_init.md
+
 set_task_stack_end_magic
 ----------------------------------------
 
 ```
     set_task_stack_end_magic(&init_task);
 ```
+
+https://github.com/leeminghao/doc-linux/blob/master/4.x.y/kernel/fork.c/set_task_stack_end_magic.md
 
 smp_setup_processor_id
 ----------------------------------------
@@ -88,13 +92,16 @@ debug_objects_early_init
     debug_objects_early_init();
 ```
 
+### aries
+
+CONFIG_DEBUG_OBJECTS没有配置的话改函数是空实现.
+
+```
+# CONFIG_DEBUG_OBJECTS is not set
+```
+
 boot_init_stack_canary
 ----------------------------------------
-
-初始化stack_canary栈,stack_canary的是带防止栈溢出攻击保护的堆栈。当user space的程序通过
-int 0x80进入内核空间的时候，CPU自动完成一次堆栈切换，从user space的stack切换到
-kernel space的stack。在这个进程exit之前所发生的所有系统调用所使用的kernel stack都是同一个。
-kernel stack的大小一般为8192 / sizeof (long);
 
 ```
     /*
@@ -102,6 +109,8 @@ kernel stack的大小一般为8192 / sizeof (long);
      */
     boot_init_stack_canary();
 ```
+
+### ARM
 
 https://github.com/leeminghao/doc-linux/blob/master/4.x.y/arch/arm/include/asm/stackprotector.h/boot_init_stack_canary.md
 
@@ -153,14 +162,6 @@ tick_init
 boot_cpu_init
 ----------------------------------------
 
-在多CPU的系统里，内核需要管理多个CPU，那么就需要知道系统有多少个CPU，在内核里使用cpu_present_map
-位图表达有多少个CPU，每一位表示一个CPU的存在。如果是单个CPU，就是第0位设置为1。虽然系统里有多个
-CPU存在，但是每个CPU不一定可以使用，或者没有初始化，在内核使用cpu_online_map位图来表示那些CPU
-可以运行内核代码和接受中断处理。随着移动系统的节能需求，需要对CPU进行节能处理，比如有多个CPU
-运行时可以提高性能，但花费太多电能，导致电池不耐用，需要减少运行的CPU个数，或者只需要一个CPU运行。
-这样内核又引入了一个cpu_possible_map位图，表示最多可以使用多少个CPU。
-在本函数里就是依次设置这三个位图的标志，让引导的CPU物理上存在，已经初始化好，最少需要运行的CPU。
-
 ```
     boot_cpu_init();
 ```
@@ -197,8 +198,6 @@ setup_arch
 ### ARM
 
 https://github.com/leeminghao/doc-linux/blob/master/4.x.y/arch/arm/kernel/setup.c/setup_arch.md
-
-
 
 mm_init_owner
 ----------------------------------------
