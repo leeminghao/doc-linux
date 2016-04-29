@@ -4,7 +4,7 @@ __v7_setup
 __v7_setup用来配置与armv7平台相关的MMU和页表相关信息.配置完毕后才能enable MMU.
 其在内核启动过程中被调用.
 
-https://github.com/leeminghao/doc-linux/blob/master/4.x.y/arch/arm/kernel/head.S/head_S.md
+https://github.com/leeminghao/doc-linux/blob/master/4.x.y/arch/arm/kernel/head.S/README.md
 
 完成的主要工作如下：
 
@@ -209,7 +209,7 @@ ENDPROC(__v7_setup)
 
 ### __enable_mmu
 
-https://github.com/leeminghao/doc-linux/blob/master/4.x.y/arch/arm/kernel/head.S/head_S.md
+https://github.com/leeminghao/doc-linux/blob/master/4.x.y/arch/arm/kernel/head.S/README.md
 
 CP15
 ----------------------------------------

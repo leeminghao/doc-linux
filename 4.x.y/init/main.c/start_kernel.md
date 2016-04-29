@@ -206,6 +206,10 @@ smp_prepare_boot_cpu
     smp_prepare_boot_cpu();    /* arch-specific boot-cpu hooks */
 ```
 
+### ARM
+
+https://github.com/leeminghao/doc-linux/blob/master/4.x.y/arch/arm/kernel/smp.c/smp_prepare_boot_cpu.c
+
 build_all_zonelists
 ----------------------------------------
 

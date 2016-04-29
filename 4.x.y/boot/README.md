@@ -65,4 +65,4 @@ https://github.com/leeminghao/doc-linux/blob/master/4.x.y/kbuild/binary/arch/arm
 
 上述反汇编出来的0地址处部分代码,即为对应head.S文件start标志处开始的代码，如下所示:
 
-https://github.com/leeminghao/doc-linux/blob/master/4.x.y/arch/arm/boot/compressed/head_S.md
+https://github.com/leeminghao/doc-linux/blob/master/4.x.y/arch/arm/boot/compressed/head.S/README.md

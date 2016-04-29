@@ -4,7 +4,7 @@ head.S 内核启动
 zImage由其头部的解压程序将真正的内核代码解压到zreladdr地址处后，将跳转到改地址执行
 真正的内核代码, 相应的解压过程如下所示:
 
-https://github.com/leeminghao/doc-linux/blob/master/4.x.y/arch/arm/boot/compressed/head_S.md
+https://github.com/leeminghao/doc-linux/blob/master/4.x.y/arch/arm/boot/compressed/head.S/README.md
 
 内核入口
 ----------------------------------------
@@ -51,7 +51,7 @@ SECTIONS
 
 有关linker script的详细解释如下:
 
-https://github.com/leeminghao/doc-linux/blob/master/4.x.y/arch/arm/kernel/vmlinux.lds.S.md
+https://github.com/leeminghao/doc-linux/blob/master/4.x.y/arch/arm/kernel/vmlinux.lds.S/README.md
 
 ```
 /*
