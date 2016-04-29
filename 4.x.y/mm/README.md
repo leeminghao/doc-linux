@@ -38,7 +38,7 @@ https://github.com/leeminghao/doc-linux/blob/master/arch/arm/msm8960/memory_layo
 初始化内存管理
 ----------------------------------------
 
-https://github.com/leeminghao/doc-linux/tree/master/4.x.y/init/InitMemory.md
+https://github.com/leeminghao/doc-linux/tree/master/4.x.y/init/mm/README.md
 
 虚拟地址-->物理地址
 ----------------------------------------

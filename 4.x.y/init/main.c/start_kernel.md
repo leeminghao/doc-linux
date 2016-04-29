@@ -1,5 +1,7 @@
-start_kernel - init/main.c
+start_kernel
 ========================================
+
+path: init/main.c
 
 __mmap_switched在为内核跳转到start_kernel C函数准备运行环境:
 
