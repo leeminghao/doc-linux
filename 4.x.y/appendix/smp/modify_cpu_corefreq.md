@@ -36,6 +36,14 @@ stop mpdecision
 # echo "1" > /sys/devices/system/cpu/cpu1/online # 打开该CPU核心
 ```
 
+还能通过设置掩码mask值来设定:
+
+假设要关闭cpu3,可以如下设置.
+
+```
+# echo 8 > /sys/module/msm_thermal/core_control/cpus_offlined
+```
+
 设置CPU的频率
 ----------------------------------------
 
