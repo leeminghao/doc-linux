@@ -35,6 +35,7 @@ path: include/linux/mmzone.h
 extern struct pglist_data contig_page_data;
 #define NODE_DATA(nid) (&contig_page_data)
 #else
+...
 #endif
 ```
 
@@ -46,15 +47,7 @@ extern struct pglist_data contig_page_data;
 系统启动过程的内存初始化
 ----------------------------------------
 
-下图给出了start_kernel的代码流程图。其中只包括与内存管理相关的系统初始化函数:
-
-https://github.com/leeminghao/doc-linux/tree/master/4.x.y/init/main.c/res/start_kernel-init_mm.jpg
-
-我们首先概述相关函数的任务:
-
 ### setup_arch
-
-是一个特定于体系结构的设置函数，其中一项任务是负责初始化自举分配器。
 
 #### ARM
 
@@ -62,22 +55,15 @@ https://github.com/leeminghao/doc-linux/tree/master/4.x.y/arch/arm/kernel/setup.
 
 ### setup_per_cpu_areas
 
-在SMP系统上，setup_per_cpu_areas初始化源代码中（使用per_cpu宏）定义的静态per-cpu变量，这种变量
-对系统中的每个CPU都有一个独立的副本。此类变量保存在内核二进制映像的一个独立的段中。
-setup_per_cpu_areas的目的是为系统的各个CPU分别创建一份这些数据的副本。
-在非SMP系统上该函数是一个空操作。
+https://github.com/leeminghao/doc-linux/blob/master/4.x.y/kernel/percpu.c/setup_per_cpu_areas.md
 
 ### build_all_zonelists
 
-建立结点和内存域的数据结构。
+https://github.com/leeminghao/doc-linux/blob/master/4.x.y/mm/page_alloc.c/build_all_zonelists.md
 
-### mem_init
+### mm_init
 
-是另一个特定于体系结构的函数，用于停用boot-mem分配器并迁移到实际的内存管理函数。
-
-### kmem_cache_init
-
-初始化内核内部用于小块内存区的分配器。
+https://github.com/leeminghao/doc-linux/tree/master/4.x.y/init/main.c/mm_init.md
 
 ### setup_per_cpu_pageset
 

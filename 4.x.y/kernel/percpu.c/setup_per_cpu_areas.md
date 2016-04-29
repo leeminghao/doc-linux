@@ -1,6 +1,11 @@
 setup_per_cpu_areas
 ========================================
 
+在SMP系统上，setup_per_cpu_areas初始化源代码中（使用per_cpu宏）定义的静态per-cpu变量，
+这种变量对系统中的每个CPU都有一个独立的副本。此类变量保存在内核二进制映像的一个独立的段中。
+setup_per_cpu_areas的目的是为系统的各个CPU分别创建一份这些数据的副本。在非SMP系统上该函数
+是一个空操作。
+
 path: kernel/percpu.c
 ```
 #ifdef CONFIG_SMP
@@ -98,4 +103,11 @@ void __init setup_per_cpu_areas(void)
 }
 
 #endif    /* CONFIG_SMP */
+```
+
+aries
+----------------------------------------
+
+```
+CONFIG_SMP=y
 ```
