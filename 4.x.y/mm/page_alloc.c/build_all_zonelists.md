@@ -44,6 +44,10 @@ build_all_zonelists中将所有工作都委托给__build_all_zonelists，后者�
         __build_all_zonelists(NULL);
 ```
 
+https://github.com/leeminghao/doc-linux/blob/master/4.x.y/mm/page_alloc.c/__build_all_zonelists.md
+
+
+----------------------------------------
 
 ```
         mminit_verify_zonelist();

@@ -29,6 +29,10 @@ typedef struct pglist_data {
 
 https://github.com/leeminghao/doc-linux/blob/master/4.x.y/include/linux/mmzone.h/struct_zone.md
 
+### MAX_NR_ZONES
+
+https://github.com/leeminghao/doc-linux/blob/master/4.x.y/kernel/bounds.c/MAX_NR_ZONES.md
+
 node_zonelists
 ----------------------------------------
 
@@ -41,6 +45,10 @@ node_zonelists
 了一个独立的数组项。数组项包含了类型为zonelist的一个备用列表:
 
 https://github.com/leeminghao/doc-linux/blob/master/4.x.y/include/linux/mmzone.h/struct_zonelist.md
+
+### MAX_ZONELISTS
+
+https://github.com/leeminghao/doc-linux/blob/master/4.x.y/include/linux/mmzone.h/MAX_ZONELISTS.md
 
 nr_zones
 ----------------------------------------
@@ -162,7 +170,22 @@ kswapd_max_order
 
 ```
     int kswapd_max_order;
+```
+
+用于页交换子系统的实现，用来定义需要释放的区域的长度.
+
+zone_type
+----------------------------------------
+
+```
     enum zone_type classzone_idx;
+```
+
+https://github.com/leeminghao/doc-linux/blob/master/4.x.y/include/linux/mmzone.h/enum_zone_type.md
+
+----------------------------------------
+
+```
 #ifdef CONFIG_NUMA_BALANCING
     /* Lock serializing the migrate rate limiting window */
     spinlock_t numabalancing_migrate_lock;
@@ -175,5 +198,3 @@ kswapd_max_order
 #endif
 } pg_data_t;
 ```
-
-用于页交换子系统的实现，用来定义需要释放的区域的长度.

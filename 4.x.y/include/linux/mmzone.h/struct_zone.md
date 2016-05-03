@@ -25,14 +25,7 @@ watermark
 
 path: include/linux/mmzone.h
 ```
-enum zone_watermarks {
-    WMARK_MIN,
-    WMARK_LOW,
-    WMARK_HIGH,
-    NR_WMARK
-};
-
-...
+#ifndef __GENERATING_BOUNDS_H
 
 struct zone {
     /* Read-mostly fields */
@@ -51,6 +44,8 @@ struct zone {
   watermark[WMARK_HIGH]空闲页为止。
 
 一般情况下，watermark[WMARK_HIGH]缺省值是watermark[WMARK_MIN]的3倍。
+
+https://github.com/leeminghao/doc-linux/tree/master/4.x.y/include/linux/mmzone.h/enum_zone_watermarks.md
 
 lowmem_reserve
 ----------------------------------------

@@ -39,7 +39,6 @@ static void build_zonelists(pg_data_t *pgdat)
     }
 ```
 
-有关node_zonelist的详细介绍如下所示:
 https://github.com/leeminghao/doc-linux/blob/master/4.x.y/include/linux/mmzone.h/pg_data_t.md
 
 建立备用层次结构的任务委托给build_zonelists，该函数为每个NUMA结点都创建了相应的数据结构。

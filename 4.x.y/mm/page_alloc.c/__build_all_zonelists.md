@@ -3,7 +3,7 @@ __build_all_zonelists
 
 __build_all_zonelists对系统中的各个NUMA结点分别调用build_zonelists。
 
-build_zonelists
+for_each_online_node
 ----------------------------------------
 
 path: mm/page_alloc.c
@@ -30,21 +30,34 @@ static int __build_all_zonelists(void *data)
      * 的所有现存信息，而新建的数据结构也会放置在其中。
      */
     for_each_online_node(nid) {
-        /* 在UMA系统上，NODE_DATA返回contig_page_data的地址。*/
-        pg_data_t *pgdat = NODE_DATA(nid);
-
-        build_zonelists(pgdat);
-        build_zonelist_cache(pgdat);
-    }
 ```
-
-### for_each_online_node
 
 https://github.com/leeminghao/doc-linux/tree/master/4.x.y/include/linux/nodemask.h/for_each_online_node.md
 
-### NODE_DATA
+NODE_DATA
+----------------------------------------
+
+```
+        /* 在UMA系统上，NODE_DATA返回contig_page_data的地址。*/
+        pg_data_t *pgdat = NODE_DATA(nid);
+```
 
 https://github.com/leeminghao/doc-linux/tree/master/4.x.y/include/linux/mmzone.h/NODE_DATA.md
+
+build_zonelists
+----------------------------------------
+
+```
+        build_zonelists(pgdat);
+```
+
+build_zonelist_cache
+----------------------------------------
+
+```
+        build_zonelist_cache(pgdat);
+    }
+```
 
 setup_pageset
 ----------------------------------------
