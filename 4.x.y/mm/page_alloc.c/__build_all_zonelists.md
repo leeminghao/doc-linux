@@ -38,6 +38,14 @@ static int __build_all_zonelists(void *data)
     }
 ```
 
+### for_each_online_node
+
+https://github.com/leeminghao/doc-linux/tree/master/4.x.y/include/linux/nodemask.h/for_each_online_node.md
+
+### NODE_DATA
+
+https://github.com/leeminghao/doc-linux/tree/master/4.x.y/include/linux/mmzone.h/NODE_DATA.md
+
 setup_pageset
 ----------------------------------------
 

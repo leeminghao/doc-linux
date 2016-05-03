@@ -218,7 +218,7 @@ build_all_zonelists
 这个函数主要作用是初始化所有内存管理节点列表，以便后面进行内存管理初始化。
 
 ```
-    build_all_zonelists(NULL);
+    build_all_zonelists(NULL, NULL);
 ```
 
 page_alloc_init

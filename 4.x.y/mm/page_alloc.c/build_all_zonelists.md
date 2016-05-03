@@ -18,13 +18,20 @@ void __ref build_all_zonelists(pg_data_t *pgdat, struct zone *zone)
 {
 ```
 
-* pgdat: 结点
+### pgdat
 
 https://github.com/leeminghao/doc-linux/tree/master/4.x.y/include/linux/mmzone.h/pg_data_t.md
 
-* zone: 内存域
+### zone
 
 https://github.com/leeminghao/doc-linux/tree/master/4.x.y/include/linux/mmzone.h/struct_zone.md
+
+set_zonelist_order
+----------------------------------------
+
+```
+    set_zonelist_order();
+```
 
 __build_all_zonelists
 ----------------------------------------
@@ -33,8 +40,6 @@ build_all_zonelists中将所有工作都委托给__build_all_zonelists，后者�
 调用build_zonelists。
 
 ```
-    set_zonelist_order();
-
     if (system_state == SYSTEM_BOOTING) {
         __build_all_zonelists(NULL);
 ```

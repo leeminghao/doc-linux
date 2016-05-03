@@ -33,20 +33,9 @@ pgdat_list列表中，对UMA体系结构，则只有一个静态的pg_data_t结�
 
 https://github.com/leeminghao/doc-linux/tree/master/4.x.y/include/linux/mmzone.h/res/relation.jpg
 
-path: include/linux/mmzone.h
-```
-#ifndef CONFIG_NEED_MULTIPLE_NODES
+NODE_DATA:
 
-extern struct pglist_data contig_page_data;
-#define NODE_DATA(nid)        (&contig_page_data)
-#define NODE_MEM_MAP(nid)     mem_map
-
-#else /* CONFIG_NEED_MULTIPLE_NODES */
-
-#include <asm/mmzone.h>
-
-#endif /* !CONFIG_NEED_MULTIPLE_NODES */
-```
+https://github.com/leeminghao/doc-linux/tree/master/4.x.y/include/linux/mmzone.h/NODE_DATA.md
 
 ### 结点
 
