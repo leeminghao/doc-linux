@@ -1,10 +1,38 @@
 setup_per_cpu_areas
 ========================================
 
-在SMP系统上，setup_per_cpu_areas初始化源代码中（使用per_cpu宏）定义的静态per-cpu变量，
-这种变量对系统中的每个CPU都有一个独立的副本。此类变量保存在内核二进制映像的一个独立的段中。
-setup_per_cpu_areas的目的是为系统的各个CPU分别创建一份这些数据的副本。在非SMP系统上该函数
-是一个空操作。
+setup_per_cpu_areas函数为SMP的每个处理器生成per-cpu数据。per-cpu数据按照不同的CPU类别使用，
+以将性能低下引发的缓存一致性（cache coherency）问题减小到最小。per-cpu数据由各cpu独立使用，
+即使不锁也可访问，十分有效。在SMP系统上，setup_per_cpu_areas初始化源代码中（使用per_cpu宏）
+定义的静态percpu变量，这种变量对系统中的每个CPU都有一个独立的副本。此类变量保存在内核二进制
+映像的一个独立的段中。setup_per_cpu_areas的目的是为系统的各个CPU分别创建一份这些数据的副本。
+在非SMP系统上该函数是一个空操作。
+
+per-cpu变量
+----------------------------------------
+
+每CPU变量主要是数据结构的数组，系统的每个CPU对应数组的一个元素。
+
+一个CPU不应该访问与其他CPU对应的数组元素，另外，它可以随意读或修改它自己的元素而不用担心出现
+竞争条件，因为它是唯一有资格这么做的CPU。但是，这也意味着每CPU变量基本上只能在特殊情况下使用，
+也就是当它确定在系统的CPU上的数据在逻辑上是独立的时候。
+每CPU的数组元素在主存中被排列以使每个数据结构存放在硬件高速缓存的不同行，因此，对每CPU数组的
+并发访问不会导致高速缓存行的窃用和失效（这种操作会带来昂贵的系统开销）。
+虽然每CPU变量为来自不同CPU的并发访问提供保护，但对来自异步函数（中断处理程序和可延迟函数）的
+访问不提供保护，在这种情况下需要另外的同步技术。
+此外，在单处理器和多处理器系统中，内核抢占都可能使每CPU变量产生竞争条件。总的原则是内核控制路径
+应该在禁用抢占的情况下访问每CPU变量。因为当一个内核控制路径获得了它的每CPU变量本地副本的地址，
+然后它因被抢占而转移到另外一个CPU上，但仍然引用原来CPU元素的地址，这是非常危险的。
+
+aries
+----------------------------------------
+
+```
+CONFIG_SMP=y
+```
+
+setup_per_cpu_areas
+----------------------------------------
 
 path: kernel/percpu.c
 ```
@@ -62,52 +90,11 @@ void __init setup_per_cpu_areas(void)
 }
 #endif    /* CONFIG_HAVE_SETUP_PER_CPU_AREA */
 
-
 ...
 
 #else    /* CONFIG_SMP */
 
-/*
- * UP percpu area setup.
- *
- * UP always uses km-based percpu allocator with identity mapping.
- * Static percpu variables are indistinguishable from the usual static
- * variables and don't require any special preparation.
- */
-void __init setup_per_cpu_areas(void)
-{
-    const size_t unit_size =
-        roundup_pow_of_two(max_t(size_t, PCPU_MIN_UNIT_SIZE,
-                     PERCPU_DYNAMIC_RESERVE));
-    struct pcpu_alloc_info *ai;
-    void *fc;
-
-    ai = pcpu_alloc_alloc_info(1, 1);
-    fc = memblock_virt_alloc_from_nopanic(unit_size,
-                          PAGE_SIZE,
-                          __pa(MAX_DMA_ADDRESS));
-    if (!ai || !fc)
-        panic("Failed to allocate memory for percpu areas.");
-    /* kmemleak tracks the percpu allocations separately */
-    kmemleak_free(fc);
-
-    ai->dyn_size = unit_size;
-    ai->unit_size = unit_size;
-    ai->atom_size = unit_size;
-    ai->alloc_size = unit_size;
-    ai->groups[0].nr_units = 1;
-    ai->groups[0].cpu_map[0] = 0;
-
-    if (pcpu_setup_first_chunk(ai, fc) < 0)
-        panic("Failed to initialize percpu areas.");
-}
+...
 
 #endif    /* CONFIG_SMP */
-```
-
-aries
-----------------------------------------
-
-```
-CONFIG_SMP=y
 ```

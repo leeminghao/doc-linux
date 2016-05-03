@@ -8,8 +8,6 @@ Linux内存管理
 
 * 内存中的物理内存页的管理；
 
-  https://github.com/leeminghao/doc-linux/tree/master/4.x.y/mm/misc/PHY_manage.md
-
 * 分配大块内存的伙伴系统；
 
 * 分配较小块内存的slab、slub和slob分配器；

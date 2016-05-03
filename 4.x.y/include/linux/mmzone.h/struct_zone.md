@@ -1,7 +1,10 @@
 struct zone
 ========================================
 
-内核使用zone结构来描述内存域
+每个结点的内存被分为多个块，称为zones，它表示内存中一段区域。一个zone用struct zone结构描述，
+zone的类型主要有ZONE_DMA、ZONE_NORMAL和ZONE_HIGHMEM。ZONE_DMA位于低端的内存空间，
+用于某些旧的ISA设备。ZONE_NORMAL的内存直接映射到Linux内核线性地址空间的高端部分，许多内核操作
+只能在ZONE_NORMAL中进行
 
 数据结构
 ----------------------------------------
