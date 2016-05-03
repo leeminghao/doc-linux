@@ -51,6 +51,8 @@ build_zonelists
         build_zonelists(pgdat);
 ```
 
+https://github.com/leeminghao/doc-linux/blob/master/4.x.y/mm/page_alloc.c/build_zonelists.md
+
 build_zonelist_cache
 ----------------------------------------
 

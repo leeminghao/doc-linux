@@ -11,3 +11,18 @@ static void set_zonelist_order(void)
         current_zonelist_order = user_zonelist_order;
 }
 ```
+
+user_zonelist_order
+----------------------------------------
+
+https://github.com/leeminghao/doc-linux/blob/master/4.x.y/mm/page_alloc.c/user_zonelist_order.md
+
+current_zonelist_order
+----------------------------------------
+
+https://github.com/leeminghao/doc-linux/blob/master/4.x.y/mm/page_alloc.c/current_zonelist_order.md
+
+default_zonelist_order
+----------------------------------------
+
+https://github.com/leeminghao/doc-linux/blob/master/4.x.y/mm/page_alloc.c/default_zonelist_order.md
