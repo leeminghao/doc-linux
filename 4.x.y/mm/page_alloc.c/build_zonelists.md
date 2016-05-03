@@ -53,6 +53,7 @@ node_zonelists
 
 https://github.com/leeminghao/doc-linux/blob/master/4.x.y/include/linux/mmzone.h/pg_data_t.md
 
+nodes_clear
 ----------------------------------------
 
 ```
@@ -61,8 +62,22 @@ https://github.com/leeminghao/doc-linux/blob/master/4.x.y/include/linux/mmzone.h
     load = nr_online_nodes;
     prev_node = local_node;
     nodes_clear(used_mask);
+```
 
+https://github.com/leeminghao/doc-linux/blob/master/4.x.y/include/linux/nodemask.h/nodes_clear.md
+
+node_order
+----------------------------------------
+
+```
     memset(node_order, 0, sizeof(node_order));
+```
+
+https://github.com/leeminghao/doc-linux/blob/master/4.x.y/mm/page_alloc.c/nodes_order.md
+
+----------------------------------------
+
+```
     j = 0;
 
     /* 一个大的外部循环首先迭代所有的结点内存域。每个循环在zonelist数组中找到第node个zonelist，
