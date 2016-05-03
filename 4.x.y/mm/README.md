@@ -39,6 +39,11 @@ https://github.com/leeminghao/doc-linux/blob/master/arch/arm/msm8960/memory_layo
 
 https://github.com/leeminghao/doc-linux/blob/master/4.x.y/arch/arm/mm/mmu.c/README.md
 
+物理内存管理
+----------------------------------------
+
+https://github.com/leeminghao/doc-linux/tree/master/4.x.y/include/linux/mmzone.h/README.md
+
 初始化内存管理
 ----------------------------------------
 
