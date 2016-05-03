@@ -24,28 +24,27 @@ Linux内存管理
 3 GiB将用于用户空间而1 GiB将用于内核。通过修改相关的配置选项可以改变该比例。但只有对非常特殊的
 配置和应用程序，这种修改才会带来好处。目前，我们只需假定比例为3∶1,其他比例以后再讨论。
 
-内存布局
+硬件相关
 ----------------------------------------
 
-### msm8960
+### ARM
+
+#### msm8960
 
 https://github.com/leeminghao/doc-linux/blob/master/arch/arm/msm8960/memory_map.md
 
-### aries
+#### aries
 
 https://github.com/leeminghao/doc-linux/blob/master/arch/arm/msm8960/memory_layout.md
+
+#### MMU
+
+https://github.com/leeminghao/doc-linux/blob/master/4.x.y/arch/arm/mm/mmu.c/README.md
 
 初始化内存管理
 ----------------------------------------
 
 https://github.com/leeminghao/doc-linux/tree/master/4.x.y/init/mm/README.md
-
-虚拟地址-->物理地址
-----------------------------------------
-
-### arm
-
-ghttps://github.com/leeminghao/doc-linux/blob/master/4.x.y/arch/arm/mm/mmu.c/README.md
 
 进程虚拟地址空间
 ----------------------------------------
