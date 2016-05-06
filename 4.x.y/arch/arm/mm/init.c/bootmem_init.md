@@ -1,6 +1,9 @@
 bootmem_init
 ========================================
 
+memblock_allow_resize
+----------------------------------------
+
 path: arch/arm/mm/init.c
 ```
 void __init bootmem_init(void)
@@ -8,28 +11,58 @@ void __init bootmem_init(void)
     unsigned long min, max_low, max_high;
 
     memblock_allow_resize();
+```
+
+find_limits
+----------------------------------------
+
+```
     max_low = max_high = 0;
 
     find_limits(&min, &max_low, &max_high);
+```
 
+https://github.com/leeminghao/doc-linux/tree/master/4.x.y/arch/arm/mm/init.c/find_limits.md
+
+arm_memory_present
+----------------------------------------
+
+```
     /*
      * Sparsemem tries to allocate bootmem in memory_present(),
      * so must be done after the fixed reservations
      */
     arm_memory_present();
+```
 
+sparse_init
+----------------------------------------
+
+```
     /*
      * sparse_init() needs the bootmem allocator up and running.
      */
     sparse_init();
+```
 
+zone_sizes_init
+----------------------------------------
+
+```
     /*
      * Now free the memory - free_area_init_node needs
      * the sparse mem_map arrays initialized by sparse_init()
      * for memmap_init_zone(), otherwise all PFNs are invalid.
      */
     zone_sizes_init(min, max_low, max_high);
+```
 
+https://github.com/leeminghao/doc-linux/tree/master/4.x.y/arch/arm/mm/init.c/zone_sizes_init.md
+
+min_low_pfn vs max_low_pfn vs max_pfn
+----------------------------------------
+
+```
     /*
      * This doesn't seem to be used by the Linux memory manager any
      * more, but is used by ll_rw_block.  If we can get rid of it, we
