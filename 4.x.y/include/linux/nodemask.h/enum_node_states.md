@@ -1,4 +1,4 @@
-node_states
+enum node_states
 ========================================
 
 path: include/linux/nodemask.h

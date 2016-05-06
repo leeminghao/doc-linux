@@ -15,4 +15,4 @@ https://github.com/leeminghao/doc-linux/tree/master/4.x.y/include/linux/nodemask
 node_states
 ----------------------------------------
 
-https://github.com/leeminghao/doc-linux/tree/master/4.x.y/include/linux/nodemask.h/node_states.md
+https://github.com/leeminghao/doc-linux/tree/master/4.x.y/mm/page_alloc.c/node_states.md

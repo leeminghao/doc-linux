@@ -17,3 +17,8 @@ path: include/linux/cpumask.h
     ((struct cpumask *)(1 ? (bitmap)                \
                 : (void *)sizeof(__check_is_bitmap(bitmap))))
 ```
+
+struct cpumask
+----------------------------------------
+
+https://github.com/leeminghao/doc-linux/tree/master/4.x.y/include/linux/cpumask.h/struct_cpumask.md
