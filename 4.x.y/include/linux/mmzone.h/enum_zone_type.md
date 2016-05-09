@@ -58,3 +58,12 @@ enum zone_type {
 
 };
 ```
+
+aries
+----------------------------------------
+
+```
+CONFIG_HIGHMEM=y
+# CONFIG_ZONE_DMA is not set
+# CONFIG_ZONE_DMA32 is not set
+```

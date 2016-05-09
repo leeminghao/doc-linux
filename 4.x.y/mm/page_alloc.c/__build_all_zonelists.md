@@ -44,6 +44,10 @@ NODE_DATA
 
 https://github.com/leeminghao/doc-linux/tree/master/4.x.y/include/linux/mmzone.h/NODE_DATA.md
 
+在UMA系统上contig_page_data的初始化如下所示:
+
+https://github.com/leeminghao/doc-linux/blob/master/4.x.y/arch/arm/mm/init.c/bootmem_init.md
+
 build_zonelists
 ----------------------------------------
 

@@ -18,12 +18,14 @@ static void __paginginit free_area_init_core(struct pglist_data *pgdat)
     unsigned long zone_start_pfn = pgdat->node_start_pfn;
     int ret;
 
+    /* 初始化node_size_lock */
     pgdat_resize_init(pgdat);
 #ifdef CONFIG_NUMA_BALANCING
     spin_lock_init(&pgdat->numabalancing_migrate_lock);
     pgdat->numabalancing_migrate_nr_pages = 0;
     pgdat->numabalancing_migrate_next_window = jiffies;
 #endif
+    /* 初始化页换出进程的等待队列 */
     init_waitqueue_head(&pgdat->kswapd_wait);
     init_waitqueue_head(&pgdat->pfmemalloc_wait);
     pgdat_page_ext_init(pgdat);
@@ -104,3 +106,11 @@ static void __paginginit free_area_init_core(struct pglist_data *pgdat)
     }
 }
 ```
+
+节点和管理区的关键数据已完成初始化，内核在后面为内存管理做得一个准备工作就是将所有节点的管理区
+都链入到zonelist中，便于后面内存分配工作的进行.
+
+build_all_zonelists
+----------------------------------------
+
+https://github.com/leeminghao/doc-linux/blob/master/4.x.y/mm/page_alloc.c/build_all_zonelists.md

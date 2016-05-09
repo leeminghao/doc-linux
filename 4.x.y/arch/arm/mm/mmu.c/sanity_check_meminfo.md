@@ -132,17 +132,30 @@ https://github.com/leeminghao/doc-linux/tree/master/4.x.y/include/linux/memblock
         memblock_limit = round_down(memblock_limit, SECTION_SIZE);
     if (!memblock_limit)
         memblock_limit = arm_lowmem_limit;
-
-    memblock_set_current_limit(memblock_limit);
-}
 ```
 
-### aries dmesg
+### aries
 
 ```
 arm_lowmem_limit=afa00000
 __va(arm_lowmem_limit)=ef800000
 high_memory=ef800000
+```
+
+memblock_set_current_limit
+----------------------------------------
+
+```
+    memblock_set_current_limit(memblock_limit);
+}
+```
+
+https://github.com/leeminghao/doc-linux/tree/master/4.x.y/mm/memblock.c/memblock_set_current_limit.md
+
+### aries
+
+```
+memblock_limit=afa00000
 ```
 
 high_memory vs low_memory

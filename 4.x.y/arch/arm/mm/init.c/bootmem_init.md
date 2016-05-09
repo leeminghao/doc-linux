@@ -75,3 +75,9 @@ min_low_pfn vs max_low_pfn vs max_pfn
     max_pfn = max_high;
 }
 ```
+
+### aries
+
+```
+min=80200, max_low=afa00, max_high=fffff
+```
