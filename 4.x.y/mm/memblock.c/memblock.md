@@ -33,3 +33,8 @@ struct memblock
 ----------------------------------------
 
 https://github.com/leeminghao/doc-linux/tree/master/4.x.y/include/linux/memblock.h/struct_memblock.md
+
+MEMBLOCK_ALLOC_ANYWHERE
+----------------------------------------
+
+https://github.com/leeminghao/doc-linux/tree/master/4.x.y/include/linux/memblock.h/MEMBLOCK_ALLOC_ANYWHERE.md
