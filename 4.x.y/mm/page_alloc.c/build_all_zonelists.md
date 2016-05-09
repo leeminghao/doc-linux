@@ -29,6 +29,8 @@ https://github.com/leeminghao/doc-linux/tree/master/4.x.y/include/linux/mmzone.h
 set_zonelist_order
 ----------------------------------------
 
+设定zonelist的顺序，是按节点还是按管理区排序，只对NUMA有意义.
+
 ```
     set_zonelist_order();
 ```
@@ -48,10 +50,17 @@ build_all_zonelists中将所有工作都委托给__build_all_zonelists，后者�
 
 https://github.com/leeminghao/doc-linux/blob/master/4.x.y/mm/page_alloc.c/__build_all_zonelists.md
 
+mminit_verify_zonelist
 ----------------------------------------
 
 ```
         mminit_verify_zonelist();
+```
+
+cpuset_init_current_mems_allowed
+----------------------------------------
+
+```
         cpuset_init_current_mems_allowed();
     } else {
 #ifdef CONFIG_MEMORY_HOTPLUG
@@ -63,6 +72,13 @@ https://github.com/leeminghao/doc-linux/blob/master/4.x.y/mm/page_alloc.c/__buil
         stop_machine(__build_all_zonelists, pgdat, NULL);
         /* cpuset refresh routine should be here */
     }
+```
+
+other
+----------------------------------------
+
+```
+    /* 得到所有管理区可分配的空闲页面数 */
     vm_total_pages = nr_free_pagecache_pages();
     /*
      * Disable grouping by mobility if the number of pages in the
